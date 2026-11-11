@@ -291,7 +291,7 @@ const en: typeof bs = {
 	errorFreeDownTitle: "Free mode is down",
 	errorFreeDown: "Free mode is not available now. Try later or connect your OpenRouter.",
 	freeBannerTitle: "Free mode is on",
-	freeBannerBody: "I hope you will not use up all my tokens. Connect OpenRouter to use your own account without limits (I would be grateful).",
+	freeBannerBody: "Hopefully you don't use up all of my tokens.Connect OpenRouter to use your own account without limits (I would be grateful).",
 	modelNeedsConnect: "Connect OpenRouter",
 	dropTitle: "Drop images anywhere",
 	dropSub: "I will add them to the message",
