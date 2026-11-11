@@ -1,0 +1,275 @@
+// Pass-through proxy. It never stores or logs bodies, headers or URLs.
+// The only state is a per-day request counter for the free AI route (see free.ts).
+// Read the whole file in a few minutes.
+import { hashIp, sanitizeBody, scrub, scrubStream, secondsUntilNextUtcDay } from "./free";
+
+// SSRF guard: the only hosts this Worker can reach. Keep this list short.
+const UPSTREAMS: Record<string, string> = {
+	olx: "https://api.olx.ba",
+	svex: "https://svex.ba",
+	"svex-listing": "https://listing.api.svex.ba",
+	"svex-search": "https://search.api.svex.ba",
+};
+
+const FORWARD_HEADERS = ["content-type", "accept", "authorization", "next-action", "next-router-state-tree"];
+
+// Upload targets: S3 buckets only, over https.
+const UPLOAD_HOSTS: RegExp[] = [/^[a-z0-9.-]+\.s3[a-z0-9.-]*\.amazonaws\.com$/];
+const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+
+interface Env {
+	ALLOWED_ORIGINS?: string;
+	GIT_COMMIT?: string;
+	RL_API?: RateLimit;
+	RL_LOGIN?: RateLimit;
+	RL_FREE?: RateLimit;
+	FREE_KV?: KVNamespace;
+	// Secrets. Set them with "cf workers secrets update".
+	FREE_MODEL?: string;
+	OPENROUTER_KEY?: string;
+	// Set to "1" in .dev.vars only. It turns the rate limit off.
+	DEV_NO_RATE_LIMIT?: string;
+}
+
+const text = (status: number, body: string, headers?: HeadersInit) => new Response(body, { status, headers });
+const jsonError = (status: number, error: string, headers: Headers) => Response.json({ error }, { status, headers });
+
+// Returns null when the origin is missing or not allowed.
+function corsHeaders(request: Request, env: Env): Headers | null {
+	const origin = request.headers.get("origin");
+	const allowed = (env.ALLOWED_ORIGINS ?? "http://localhost:3000").split(",").map((o) => o.trim());
+	if (!origin || !allowed.includes(origin)) return null;
+	return new Headers({
+		vary: "origin",
+		"access-control-allow-origin": origin,
+		"access-control-expose-headers": "x-lagano-set-cookie",
+	});
+}
+
+const isLogin = (request: Request, path: string) =>
+	request.method === "POST" && (path === "/olx/auth/login" || path === "/svex/prijava");
+
+// SVEX action discovery fetches about 50 public static chunks.
+const isStaticChunk = (request: Request, path: string) =>
+	request.method === "GET" && path.startsWith("/svex/_next/static/");
+
+// Fixed window per client IP. Login routes also use the stricter limit.
+// Missing bindings fail closed, unless DEV_NO_RATE_LIMIT is set.
+async function checkLimit(request: Request, env: Env, path: string): Promise<"ok" | "limited" | "misconfigured"> {
+	if (env.DEV_NO_RATE_LIMIT === "1") return "ok";
+	const login = isLogin(request, path);
+	if (!env.RL_API || (login && !env.RL_LOGIN)) return "misconfigured";
+	const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
+	const checks = [env.RL_API.limit({ key: ip })];
+	if (login) checks.push(env.RL_LOGIN!.limit({ key: ip }));
+	const results = await Promise.all(checks);
+	return results.every((r) => r.success) ? "ok" : "limited";
+}
+
+async function limitResponse(request: Request, env: Env, path: string, cors: Headers): Promise<Response | null> {
+	if (isStaticChunk(request, path)) return null;
+	const limit = await checkLimit(request, env, path);
+	if (limit === "misconfigured") return jsonError(500, "rate limit bindings are missing", cors);
+	return limit === "limited" ? jsonError(429, "too many requests", cors) : null;
+}
+
+function uploadTarget(url: URL): URL | null {
+	let target: URL;
+	try {
+		target = new URL(url.searchParams.get("url") ?? "");
+	} catch {
+		return null;
+	}
+	const hostOk = UPLOAD_HOSTS.some((re) => re.test(target.hostname));
+	if (target.protocol !== "https:" || target.port || target.username || !hostOk) return null;
+	return target;
+}
+
+// Streams the PUT body to a presigned URL. The declared length is the size limit.
+async function upload(request: Request, url: URL, cors: Headers): Promise<Response> {
+	if (request.method !== "PUT") return jsonError(405, "use PUT", cors);
+	const target = uploadTarget(url);
+	if (!target) return jsonError(400, "upload url not allowed", cors);
+	const length = Number(request.headers.get("content-length"));
+	if (!Number.isInteger(length) || length <= 0) return jsonError(411, "content-length required", cors);
+	if (length > MAX_UPLOAD_BYTES) return jsonError(413, "file too large (max 15 MB)", cors);
+	const headers = new Headers({ "content-length": String(length) });
+	const type = request.headers.get("content-type");
+	if (type) headers.set("content-type", type);
+	try {
+		const res = await fetch(target, { method: "PUT", headers, body: request.body, redirect: "manual" });
+		return new Response(res.body, { status: res.status, headers: cors });
+	} catch {
+		return jsonError(502, "upload failed", cors);
+	}
+}
+
+// Checks the path before and after percent-decoding.
+function isSafePath(path: string): boolean {
+	let decoded: string;
+	try {
+		decoded = decodeURIComponent(path);
+	} catch {
+		return false;
+	}
+	const bad = (s: string) => s === ".." || s === "." || s.includes("\\");
+	return ![path, decoded].some((p) => p.includes("//") || p.split("/").some(bad));
+}
+
+// Returns the upstream URL, or null when the path is not allowed.
+function resolveTarget(url: URL): { key: string; target: URL } | null {
+	const rest = url.pathname.slice(1);
+	const slash = rest.indexOf("/");
+	const key = slash === -1 ? rest : rest.slice(0, slash);
+	const base = Object.hasOwn(UPSTREAMS, key) ? UPSTREAMS[key] : undefined;
+	if (!base) return null;
+	const path = slash === -1 ? "/" : rest.slice(slash);
+	if (!isSafePath(path)) return null;
+	const target = new URL(base + path);
+	// Reject any path that changes the host (for example "@host" tricks).
+	if (target.origin !== base) return null;
+	target.search = url.search;
+	return { key, target };
+}
+
+function upstreamHeaders(request: Request, key: string): Headers {
+	const headers = new Headers();
+	for (const name of FORWARD_HEADERS) {
+		const value = request.headers.get(name);
+		if (value) headers.set(name, value);
+	}
+	const cookie = request.headers.get("x-lagano-cookie");
+	if (cookie) headers.set("cookie", cookie);
+	if (key === "svex") {
+		headers.set("origin", "https://svex.ba");
+		headers.set("referer", "https://svex.ba");
+	}
+	headers.set("user-agent", "Mozilla/5.0 (compatible; lagano-proxy)");
+	return headers;
+}
+
+async function proxy(request: Request, key: string, target: URL, cors: Headers): Promise<Response> {
+	const hasBody = request.method !== "GET" && request.method !== "HEAD";
+	let upstream: Response;
+	try {
+		upstream = await fetch(target, {
+			method: request.method,
+			headers: upstreamHeaders(request, key),
+			body: hasBody ? request.body : undefined,
+			redirect: "manual",
+		});
+	} catch {
+		return text(502, "upstream unreachable", cors);
+	}
+	const headers = new Headers(cors);
+	// Hop-by-hop and encoding headers stay out; the runtime sets them again.
+	for (const name of ["content-type", "location", "cache-control"]) {
+		const value = upstream.headers.get(name);
+		if (value) headers.set(name, value);
+	}
+	const cookies = upstream.headers.getSetCookie();
+	if (cookies.length > 0) headers.set("x-lagano-set-cookie", JSON.stringify(cookies));
+	return new Response(upstream.body, { status: upstream.status, headers });
+}
+
+const FREE_DAILY_CAP = 150;
+const MAX_FREE_BODY = 2 * 1024 * 1024;
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+
+const freeLimited = (scope: "minute" | "day", retryAfter: number, cors: Headers) => {
+	const headers = new Headers(cors);
+	headers.set("retry-after", String(retryAfter));
+	return Response.json({ error: "free-limit", scope }, { status: 429, headers });
+};
+
+// Per IP: 12 per minute (binding), then a per-day count in KV. KV is approximate under load.
+async function freeLimit(request: Request, env: Env, cors: Headers): Promise<Response | null> {
+	if (env.DEV_NO_RATE_LIMIT === "1") return null;
+	if (!env.RL_FREE || !env.FREE_KV) return jsonError(500, "rate limit bindings are missing", cors);
+	const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
+	if (!(await env.RL_FREE.limit({ key: ip })).success) return freeLimited("minute", 60, cors);
+	const key = `d:${new Date().toISOString().slice(0, 10)}:${await hashIp(ip)}`;
+	const count = Number(await env.FREE_KV.get(key)) || 0;
+	if (count >= FREE_DAILY_CAP) return freeLimited("day", secondsUntilNextUtcDay(), cors);
+	await env.FREE_KV.put(key, String(count + 1), { expirationTtl: 2 * 24 * 3600 });
+	return null;
+}
+
+const freeUnavailable = (cors: Headers) => jsonError(503, "free-unavailable", cors);
+
+async function freeChat(request: Request, env: Env, cors: Headers): Promise<Response> {
+	if (request.method !== "POST") return jsonError(405, "use POST", cors);
+	if (!env.FREE_MODEL || !env.OPENROUTER_KEY) return freeUnavailable(cors);
+	const limited = await freeLimit(request, env, cors);
+	if (limited) return limited;
+	const raw = await request.text();
+	if (raw.length > MAX_FREE_BODY) return jsonError(413, "body too large", cors);
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		return jsonError(400, "bad json", cors);
+	}
+	const body = sanitizeBody(parsed, env.FREE_MODEL);
+	if (!body) return jsonError(400, "bad body", cors);
+	let upstream: Response;
+	try {
+		upstream = await fetch(OPENROUTER_URL, {
+			method: "POST",
+			headers: {
+				"content-type": "application/json",
+				authorization: `Bearer ${env.OPENROUTER_KEY}`,
+				"http-referer": "trgo",
+				"x-openrouter-title": "trgo",
+			},
+			body: JSON.stringify(body),
+		});
+	} catch {
+		return jsonError(502, "upstream unreachable", cors);
+	}
+	// A problem with our own key or quota is not the user's problem.
+	if ([401, 402, 403, 429].includes(upstream.status)) return freeUnavailable(cors);
+	const headers = new Headers(cors);
+	headers.set("cache-control", "no-store");
+	const type = upstream.headers.get("content-type") ?? "application/json";
+	headers.set("content-type", type);
+	if (type.includes("text/event-stream")) {
+		return new Response(upstream.body?.pipeThrough(scrubStream()), { status: upstream.status, headers });
+	}
+	const data = await upstream.json().catch(() => null);
+	return Response.json(scrub(data) ?? { error: "bad upstream" }, { status: upstream.status, headers });
+}
+
+const versionResponse = (env: Env, headers: Headers) => Response.json({ commit: env.GIT_COMMIT ?? "dev" }, { headers });
+
+export default {
+	async fetch(request: Request, env: Env): Promise<Response> {
+		const url = new URL(request.url);
+		const cors = corsHeaders(request, env);
+		// Only GET /version works without an allowed Origin.
+		if (!cors) {
+			if (request.method === "GET" && url.pathname === "/version") return versionResponse(env, new Headers());
+			return text(403, "origin not allowed");
+		}
+		if (url.pathname === "/ai/chat/completions" && request.method !== "OPTIONS") return freeChat(request, env, cors);
+		const blocked = await limitResponse(request, env, url.pathname, cors);
+		if (blocked) return blocked;
+		if (request.method === "OPTIONS") {
+			cors.set("access-control-allow-methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+			cors.set(
+				"access-control-allow-headers",
+				[...FORWARD_HEADERS, "x-lagano-cookie"].join(","),
+			);
+			// The AI SDK adds its own headers on the free route.
+			const asked = request.headers.get("access-control-request-headers");
+			if (url.pathname.startsWith("/ai/") && asked) cors.set("access-control-allow-headers", asked);
+			cors.set("access-control-max-age", "600");
+			return new Response(null, { status: 204, headers: cors });
+		}
+		if (url.pathname === "/version") return versionResponse(env, cors);
+		if (url.pathname === "/upload") return upload(request, url, cors);
+		const route = resolveTarget(url);
+		if (!route) return text(400, "bad route", cors);
+		return proxy(request, route.key, route.target, cors);
+	},
+};

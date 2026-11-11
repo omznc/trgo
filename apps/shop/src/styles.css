@@ -1,0 +1,396 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/inter/opsz.css";
+
+@custom-variant dark (@media (prefers-color-scheme: dark));
+
+/* Tokens from design/SPEC.md section 2. The design is dark only. */
+@theme {
+	--color-bg: #0e1020;
+	--color-fg: #f5f5f7;
+	--color-fg-hover: #ffffff;
+	--color-fg-2: rgba(235, 235, 245, 0.82);
+	--color-fg-3: rgba(235, 235, 245, 0.68);
+	--color-fg-4: rgba(235, 235, 245, 0.56);
+	--color-placeholder: rgba(235, 235, 245, 0.45);
+	--color-accent: #ff9646;
+	--color-focus: #8fb4ff;
+	--color-ok: #34c759;
+	--color-off: #8e8e9a;
+	--color-warn: #ffb340;
+	--color-danger: #ff6b61;
+	--color-danger-strong: #ff453a;
+	--color-glass: rgba(22, 24, 46, 0.58);
+	--color-solid: rgba(20, 22, 42, 0.94);
+	--color-chip: rgba(255, 255, 255, 0.07);
+	--color-chip-line: rgba(255, 255, 255, 0.08);
+	--color-line: rgba(255, 255, 255, 0.1);
+	--color-line-dashed: rgba(255, 255, 255, 0.18);
+	--color-card-img: #232745;
+	--color-panel: rgba(18, 20, 40, 0.72);
+	--color-scrim: rgba(5, 6, 15, 0.55);
+	--color-spark: #ffd36e;
+
+	--radius-pill: 999px;
+	--radius-composer: 28px;
+	--radius-composer-sm: 26px;
+	--radius-panel: 24px;
+	--radius-card: 22px;
+	--radius-card-sm: 20px;
+	--radius-bubble: 18px;
+	--radius-media: 15px;
+	--radius-field: 12px;
+
+	--font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", "Inter Variable", system-ui, sans-serif;
+	--font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* Legacy shadcn token names, mapped to the new palette for the files that still use them. */
+@theme inline {
+	--color-background: var(--color-bg);
+	--color-foreground: var(--color-fg);
+	--color-card: var(--color-chip);
+	--color-card-foreground: var(--color-fg);
+	--color-popover: #14162a;
+	--color-popover-foreground: var(--color-fg);
+	--color-primary: var(--color-fg);
+	--color-primary-foreground: var(--color-bg);
+	--color-secondary: var(--color-chip);
+	--color-secondary-foreground: var(--color-fg);
+	--color-muted: rgba(255, 255, 255, 0.06);
+	--color-muted-foreground: var(--color-fg-3);
+	--color-accent-foreground: var(--color-bg);
+	--color-destructive: var(--color-danger);
+	--color-border: var(--color-line);
+	--color-input: var(--color-line);
+	--color-ring: var(--color-focus);
+	--radius-sm: 8px;
+	--radius-md: 12px;
+	--radius-lg: 16px;
+	--radius-xl: 20px;
+}
+
+:root {
+	color-scheme: dark;
+	--p: 2px;
+	accent-color: var(--color-accent);
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+/* The page never scrolls. Each region owns its scrollbar (SPEC 1). */
+html,
+body {
+	height: 100%;
+	margin: 0;
+	overflow: hidden;
+	background: var(--color-bg);
+	color: var(--color-fg);
+	font-family: var(--font-sans);
+	-webkit-font-smoothing: antialiased;
+	overscroll-behavior: none;
+}
+
+/* In a layer, so utility classes such as text-bg still win. */
+@layer base {
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+summary,
+label[for],
+select {
+	cursor: pointer;
+}
+:disabled,
+[aria-disabled="true"] {
+	cursor: not-allowed;
+}
+a {
+	color: var(--color-fg);
+}
+a:hover {
+	color: var(--color-fg-hover);
+}
+
+button,
+a {
+	-webkit-tap-highlight-color: transparent;
+	transition:
+		transform 0.15s ease,
+		filter 0.15s ease,
+		background-color 0.15s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+	button:not(:disabled):hover,
+	a.btn:hover {
+		filter: brightness(1.12);
+	}
+}
+button:not(:disabled):active,
+a.btn:active {
+	transform: scale(0.97);
+}
+button:focus-visible,
+a:focus-visible,
+textarea:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+	outline: 2px solid var(--color-focus);
+	outline-offset: 3px;
+}
+textarea::placeholder,
+input::placeholder {
+	color: var(--color-placeholder);
+}
+}
+
+.sr {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+.glass {
+	background: var(--color-glass);
+	-webkit-backdrop-filter: blur(28px) saturate(170%);
+	backdrop-filter: blur(28px) saturate(170%);
+	border: 1px solid var(--color-line);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.07),
+		0 24px 60px rgba(0, 0, 0, 0.35);
+}
+.solid {
+	background: var(--color-solid);
+	-webkit-backdrop-filter: blur(30px);
+	backdrop-filter: blur(30px);
+	border: 1px solid var(--color-line);
+	box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+}
+.chip {
+	background: var(--color-chip);
+	border: 1px solid var(--color-chip-line);
+}
+.field {
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid var(--color-line);
+	border-radius: var(--radius-field);
+	color: var(--color-fg);
+	font: inherit;
+	font-size: 15px;
+	padding: 0 14px;
+	height: 44px;
+	width: 100%;
+	outline: none;
+}
+.lbl {
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: var(--color-fg-3);
+	text-transform: uppercase;
+}
+
+/* Scroll container: thin square scrollbar, space reserved so nothing shifts. */
+.scroll {
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	scrollbar-gutter: stable;
+	scrollbar-width: thin;
+	scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.scroll:hover {
+	scrollbar-color: rgba(255, 255, 255, 0.32) transparent;
+}
+.scroll::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+.scroll::-webkit-scrollbar-track {
+	background: transparent;
+}
+.scroll::-webkit-scrollbar-thumb {
+	background: rgba(255, 255, 255, 0.18);
+	border-radius: 0;
+}
+.scroll::-webkit-scrollbar-thumb:hover {
+	background: rgba(255, 255, 255, 0.32);
+}
+.scroll-x {
+	overflow-x: auto;
+	scrollbar-width: thin;
+	scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+/* Kept so old markup does not break. The pixel font is gone. */
+.font-pixel {
+	font-family: var(--font-sans);
+	font-weight: 700;
+}
+
+/* Animation (SPEC S3). */
+.in {
+	animation: springIn 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.25) backwards;
+}
+.dock {
+	animation: dock 0.7s cubic-bezier(0.2, 0.9, 0.3, 1) backwards;
+}
+.attn {
+	animation: attn 2.6s ease-in-out 0.8s infinite;
+}
+.shim {
+	background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.05) 100%) 0 0 / 200% 100%;
+	animation: shim 1.4s linear infinite;
+}
+.spin {
+	animation: spin 0.9s linear infinite;
+}
+.dot1,
+.dot2,
+.dot3 {
+	animation: blink 1.2s ease-in-out infinite;
+}
+.dot2 {
+	animation-delay: 0.15s;
+}
+.dot3 {
+	animation-delay: 0.3s;
+}
+.caret {
+	animation: caret 1s steps(1) infinite;
+}
+.conf {
+	animation: fall 2.8s linear infinite;
+}
+.fly {
+	animation: flyIn 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) backwards;
+}
+.rise {
+	animation: rise 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) backwards;
+}
+
+/* First load only: the page root has .boot until the first send or "new chat". */
+.boot .ld {
+	animation: ld 0.6s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0) * 1ms) backwards;
+}
+.boot .ld-pop {
+	animation: ld 0.6s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0) * 1ms) backwards, ldPop 0.9s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--d, 0) * 1ms) backwards;
+}
+.boot .ld-star {
+	animation: ldFade 0.9s ease-out calc(var(--d, 0) * 1ms) backwards;
+}
+@keyframes ld {
+	from { opacity: 0; transform: translateY(10px); filter: blur(7px); }
+}
+@keyframes ldPop {
+	from { scale: 0.94; }
+}
+@keyframes ldFade {
+	from { opacity: 0; }
+}
+
+/* Side panel: bottom sheet on a phone, a column from 640px. */
+.side-panel {
+	background: var(--color-solid);
+	-webkit-backdrop-filter: blur(30px);
+	backdrop-filter: blur(30px);
+	border: 1px solid var(--color-line);
+	box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+}
+@media (min-width: 640px) {
+	.side-panel {
+		background: var(--color-glass);
+		-webkit-backdrop-filter: blur(28px) saturate(170%);
+		backdrop-filter: blur(28px) saturate(170%);
+		box-shadow:
+			inset 0 1px 0 rgba(255, 255, 255, 0.07),
+			0 24px 60px rgba(0, 0, 0, 0.35);
+	}
+}
+
+@keyframes springIn {
+	from { opacity: 0; transform: translateY(14px) scale(0.97); }
+	to { opacity: 1; transform: none; }
+}
+@keyframes dock {
+	from { opacity: 0.6; transform: translateY(-40vh); }
+	to { opacity: 1; transform: none; }
+}
+@keyframes attn {
+	0%, 100% { box-shadow: 0 0 0 0 rgba(255, 150, 70, 0), 0 30px 80px rgba(0, 0, 0, 0.45); }
+	30% { box-shadow: 0 0 0 8px rgba(255, 150, 70, 0.22), 0 30px 80px rgba(0, 0, 0, 0.45); }
+	60% { box-shadow: 0 0 0 14px rgba(255, 150, 70, 0), 0 30px 80px rgba(0, 0, 0, 0.45); }
+}
+@keyframes shim {
+	to { background-position: -200% 0; }
+}
+@keyframes spin {
+	to { transform: rotate(360deg); }
+}
+@keyframes blink {
+	0%, 100% { opacity: 0.25; }
+	50% { opacity: 1; }
+}
+@keyframes caret {
+	50% { opacity: 0; }
+}
+@keyframes fall {
+	from { transform: translateY(-30px); }
+	to { transform: translateY(520px); }
+}
+@keyframes flyIn {
+	from { opacity: 0; transform: translateX(48px); }
+	to { opacity: 1; transform: none; }
+}
+@keyframes rise {
+	from { opacity: 0; transform: translateY(100%); }
+	to { opacity: 1; transform: none; }
+}
+@keyframes fade {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+/* Composer moves from the centre to the dock with a View Transition. */
+::view-transition-group(composer) {
+	animation-duration: 0.7s;
+	animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+/* Attention cue: decaying shake plus an accent ring pulse. */
+@keyframes cue-shake {
+	0%, 100% { transform: translateX(0); }
+	15% { transform: translateX(-8px); }
+	40% { transform: translateX(6px); }
+	65% { transform: translateX(-3px); }
+	85% { transform: translateX(1px); }
+}
+@keyframes cue-ring {
+	0% { opacity: 0.9; transform: scale(1); }
+	100% { opacity: 0; transform: scale(1.04); }
+}
+[data-cue] { position: relative; }
+.cue-shake { animation: cue-shake 0.32s cubic-bezier(0.32, 0.72, 0, 1); }
+.cue-shake::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	pointer-events: none;
+	border: 2px solid var(--color-accent);
+	animation: cue-ring 0.5s ease-out forwards;
+}
+
+/* Phone sheet: the header and grabber take the drag, the body keeps its own scroll. */
+@media (max-width: 639px) {
+	.side-panel { touch-action: none; }
+	.side-panel .scroll { touch-action: pan-y; }
+}
+.scrim:hover, .scrim:active { transform: none; filter: none; }
+.scrim { transition: none; }

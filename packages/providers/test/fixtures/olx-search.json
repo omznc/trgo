@@ -1,0 +1,222 @@
+{
+ "data": [
+  {
+   "id": 73497222,
+   "title": "Ender Magnolia Bloom In The Mist (PS5 - PlayStation 5)",
+   "price": 79,
+   "display_price": "79 KM",
+   "show_price": true,
+   "state": "new",
+   "status": "active",
+   "available": true,
+   "category_id": 290,
+   "city_id": 37,
+   "image": "https://d4n0y8dshd77z.cloudfront.net/listings/73497222/sm/img-1768055804-65fe456bbfbb.jpg",
+   "date": 1794379633
+  },
+  {
+   "id": 73499219,
+   "title": "Ender Magnolia Bloom In The Mist (PS5 - PlayStation 5)",
+   "price": 79,
+   "display_price": "79 KM",
+   "show_price": true,
+   "state": "new",
+   "status": "active",
+   "available": true,
+   "category_id": 290,
+   "city_id": 133,
+   "image": "https://d4n0y8dshd77z.cloudfront.net/listings/73499219/sm/img-1768227516-3d53b16d38f6.jpg",
+   "date": 1794292533
+  }
+ ],
+ "meta": {
+  "total": 114,
+  "last_page": 57,
+  "current_page": 1,
+  "per_page": 2,
+  "selected_category": 0
+ },
+ "filters": [
+  {
+   "key": "q",
+   "value": "ender",
+   "values": null
+  }
+ ],
+ "aggregations": {
+  "categories": [
+   {
+    "id": 224,
+    "name": "Biznis i Industrija",
+    "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/224/biznis-i-industrija-20260714141642-yjajhYAAm8.webp",
+    "icon_background_color": "#ffffff",
+    "count": 89,
+    "sub_categories": [
+     {
+      "id": 2568,
+      "name": "3D printeri i oprema",
+      "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/2568/3d-printeri-i-oprema-20260720204702-8PUZy6A43t.png",
+      "icon_background_color": "#ffffff",
+      "count": 87,
+      "parent_name": "Ma\u0161ine i alati"
+     },
+     {
+      "id": 370,
+      "name": "Ostalo",
+      "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/370/ostalo-20260630140649-k5yZQGIdzH.png",
+      "icon_background_color": null,
+      "count": 1,
+      "parent_name": "Biznis i Industrija"
+     },
+     {
+      "id": 1123,
+      "name": "Rezervni dijelovi",
+      "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/1123/rezervni-dijelovi-20260728012043-IUrAu6XhBM.png",
+      "icon_background_color": "#ffffff",
+      "count": 1,
+      "parent_name": "Dijelovi i oprema"
+     }
+    ]
+   },
+   {
+    "id": 5,
+    "name": "Kompjuteri",
+    "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/5/kompjuteri-20260709155053-i8rxtsSUqP.webp",
+    "icon_background_color": null,
+    "count": 9,
+    "sub_categories": [
+     {
+      "id": 166,
+      "name": "Printer, skener i kopir aparati",
+      "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/166/printer-skener-i-kopir-aparati-20260715202000-9OAjANUTvm.png",
+      "icon_background_color": "#ffffff",
+      "count": 9,
+      "parent_name": "Kompjuterska oprema"
+     }
+    ]
+   },
+   {
+    "id": 276,
+    "name": "Ljepota i Zdravlje",
+    "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/276/ljepota-i-zdravlje-20260709155203-mYRtZVgLm7.webp",
+    "icon_background_color": "#ffffff",
+    "count": 5,
+    "sub_categories": [
+     {
+      "id": 1403,
+      "name": "Ma\u0161inice / Trimeri",
+      "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/1403/masinice-trimeri-20260703235705-25I0Vd9E8n.png",
+      "icon_background_color": "#ffffff",
+      "count": 3,
+      "parent_name": "Njega kose i brade"
+     },
+     {
+      "id": 1406,
+      "name": "Frizerska oprema",
+      "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/1406/frizerska-oprema-20260703235650-6GI13yIoUD.png",
+      "icon_background_color": null,
+      "count": 1,
+      "parent_name": "Njega kose i brade"
+     },
+     {
+      "id": 1407,
+      "name": "Pribor za kosu i bradu",
+      "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/1407/pribor-za-kosu-i-bradu-20260703235740-rhcFPiuAj3.png",
+      "icon_background_color": "#ffffff",
+      "count": 1,
+      "parent_name": "Njega kose i brade"
+     }
+    ]
+   },
+   {
+    "id": 289,
+    "name": "Gaming",
+    "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/289/video-igre-20260709155350-QINnqOXB55.webp",
+    "icon_background_color": "#ffffff",
+    "count": 4,
+    "sub_categories": [
+     {
+      "id": 290,
+      "name": "Igre za PC i konzole",
+      "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/290/igre-za-pc-i-konzole-20260630142450-x81h8pebpT.png",
+      "icon_background_color": "#ffffff",
+      "count": 4,
+      "parent_name": "Gaming"
+     }
+    ]
+   },
+   {
+    "id": 14,
+    "name": "Tehnika",
+    "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/14/tehnika-20260717235605-ouqObmFhDw.webp",
+    "icon_background_color": "#ffffff",
+    "count": 2,
+    "sub_categories": [
+     {
+      "id": 250,
+      "name": "Ostalo",
+      "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/250/ostalo-20260630135858-ARA9ixpclo.png",
+      "icon_background_color": "#ffffff",
+      "count": 2,
+      "parent_name": "Tehnika"
+     }
+    ]
+   },
+   {
+    "id": 16,
+    "name": "Literatura",
+    "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/16/literatura-20260709155405-CO7N8hqfvf.webp",
+    "icon_background_color": "#ffffff",
+    "count": 2,
+    "sub_categories": [
+     {
+      "id": 1767,
+      "name": "Beletristika",
+      "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/1767/beletristika-20260701222448-Vy7e27fKpk.png",
+      "icon_background_color": "#ffffff",
+      "count": 2,
+      "parent_name": "Knjige"
+     }
+    ]
+   },
+   {
+    "id": 435,
+    "name": "Kolekcionarstvo",
+    "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/435/kolekcionarstvo-20260709155431-QnE9DYds03.webp",
+    "icon_background_color": "#ffffff",
+    "count": 2,
+    "sub_categories": [
+     {
+      "id": 2016,
+      "name": "Auti\u0107i (makete automobila)",
+      "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/2016/autici-makete-automobila-20260701200910-WyUTVjRfzy.png",
+      "icon_background_color": "#ffffff",
+      "count": 2,
+      "parent_name": "Maketarstvo/Modelarstvo"
+     }
+    ]
+   },
+   {
+    "id": 328,
+    "name": "Sve ostalo",
+    "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/328/sve-ostalo-20260709155526-NUWThkQhTD.webp",
+    "icon_background_color": null,
+    "count": 1,
+    "sub_categories": [
+     {
+      "id": 369,
+      "name": "Ostalo",
+      "icon_url": "https://d4n0y8dshd77z.cloudfront.net/categories/369/ostalo-20260630143726-6Pj3s53jFb.png",
+      "icon_background_color": null,
+      "count": 1,
+      "parent_name": "Sve ostalo"
+     }
+    ]
+   }
+  ]
+ },
+ "available_filters": {
+  "card_payment": true
+ },
+ "search_id": "01m7623ta8srcv2yx548p5qy7d"
+}

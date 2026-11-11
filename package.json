@@ -1,0 +1,9 @@
+{
+  "name": "lagano-shop",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "deploy:proxy": "scripts/deploy.sh proxy",
+    "deploy:shop": "scripts/deploy.sh shop"
+  }
+}

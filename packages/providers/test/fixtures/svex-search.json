@@ -1,0 +1,30 @@
+{
+ "items": [
+  {
+   "id": "80945785-7da9-4c30-a8cd-2c3d3dd41eec",
+   "slug": "3d-printer-creality-ender-3-pro-mvl3zvz17c49",
+   "title": "3D Printer Creality Ender 3 Pro",
+   "price": "400",
+   "currency": "BAM",
+   "thumbnailUrl": "https://d3crc1dm59gy8z.cloudfront.net/listing_image/e3db3ba8-3dfa-4bd5-9935-f498945c7ab2/045c335b-f043-4a9c-9674-445bd2e5cd15_thumb.webp",
+   "thumbnailMediumUrl": "https://d3crc1dm59gy8z.cloudfront.net/listing_image/e3db3ba8-3dfa-4bd5-9935-f498945c7ab2/045c335b-f043-4a9c-9674-445bd2e5cd15_medium.webp",
+   "city": "Biha\u0107",
+   "cityId": "abc0e7a3-3fd4-55af-85d5-5ead8efe3aa0",
+   "publishedAt": "2026-10-23T15:12:51.395Z"
+  },
+  {
+   "id": "bae45799-8495-4be8-b265-c2b976aa304f",
+   "slug": "creality-3d-printer-ender-3-v3-se-mv6iani9d8a5",
+   "title": "Creality 3D Printer Ender-3 V3 SE",
+   "price": "671",
+   "currency": "BAM",
+   "thumbnailUrl": "https://d3crc1dm59gy8z.cloudfront.net/listing_image/dbdc038c-170b-46e5-b189-fa60bff6a5cf/4313fd15-0a6e-46f0-9b8c-3f29cf0f0671.jpg",
+   "thumbnailMediumUrl": "https://d3crc1dm59gy8z.cloudfront.net/listing_image/dbdc038c-170b-46e5-b189-fa60bff6a5cf/4313fd15-0a6e-46f0-9b8c-3f29cf0f0671.jpg",
+   "city": "\u017divinice",
+   "cityId": "3732b59f-4f66-5d00-8d3a-2504553c8b6a",
+   "publishedAt": "2026-10-13T09:56:29.724Z"
+  }
+ ],
+ "total": 1614,
+ "nextCursor": "2"
+}

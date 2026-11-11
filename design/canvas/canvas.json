@@ -1,0 +1,172 @@
+{
+  "v": 3,
+  "attachments": {},
+  "createdOnFiles": {
+    "at": "2026-11-11T19:55:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "title": {
+      "kind": "title1",
+      "maxW": 2960,
+      "text": "pravimo govna",
+      "w": 240,
+      "x": 0,
+      "y": -320
+    },
+    "prodaja": {
+      "kind": "title1",
+      "text": "Prodaja",
+      "x": 0,
+      "y": 2140,
+      "maxW": 6000
+    },
+    "racuni": {
+      "kind": "title1",
+      "text": "Oglasi, računi i stanja",
+      "x": 0,
+      "y": 3860,
+      "maxW": 6000
+    },
+    "telefon": {
+      "kind": "title1",
+      "text": "Telefon",
+      "x": 0,
+      "y": 5840,
+      "maxW": 1450
+    }
+  },
+  "noteOrder": [
+    "title",
+    "prodaja",
+    "racuni",
+    "telefon"
+  ],
+  "pages": [],
+  "title": "Lagano Shop – UI redesign",
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "1 · Prazan ekran",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Chat.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 2000,
+      "title": "2 · Chat s rezultatima",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Detail.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "3 · Detalji oglasa (podijeljen ekran)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "SellPhotos.dc.html": {
+      "x": 0,
+      "y": 2420,
+      "w": 1440,
+      "h": 980,
+      "title": "4a · Prodaja: slike",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "SellDraft.dc.html": {
+      "x": 1520,
+      "y": 2420,
+      "w": 1440,
+      "h": 1300,
+      "title": "4b · Prodaja: nacrt",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "SellApprove.dc.html": {
+      "x": 3040,
+      "y": 2420,
+      "w": 1440,
+      "h": 1240,
+      "title": "4c · Prodaja: odobrenje",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "SellSuccess.dc.html": {
+      "x": 4560,
+      "y": 2420,
+      "w": 1440,
+      "h": 1060,
+      "title": "4d · Prodaja: uspjeh",
+      "expand": "fill"
+    },
+    "MyListings.dc.html": {
+      "x": 0,
+      "y": 4140,
+      "w": 1440,
+      "h": 1000,
+      "title": "5 · Moji oglasi",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Connect.dc.html": {
+      "x": 1520,
+      "y": 4140,
+      "w": 1440,
+      "h": 1560,
+      "title": "6 · Povezivanje računa",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Settings.dc.html": {
+      "x": 3040,
+      "y": 4140,
+      "w": 1440,
+      "h": 900,
+      "title": "7 · Postavke (podijeljen ekran)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "States.dc.html": {
+      "x": 4560,
+      "y": 4140,
+      "w": 1440,
+      "h": 1500,
+      "title": "8 · Stanja i povratne informacije",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Phones.dc.html": {
+      "x": 0,
+      "y": 6120,
+      "w": 1450,
+      "h": 1000,
+      "title": "9 · Telefon"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Chat.dc.html",
+    "Detail.dc.html",
+    "SellPhotos.dc.html",
+    "SellDraft.dc.html",
+    "SellApprove.dc.html",
+    "SellSuccess.dc.html",
+    "MyListings.dc.html",
+    "Connect.dc.html",
+    "Settings.dc.html",
+    "States.dc.html",
+    "Phones.dc.html"
+  ]
+}

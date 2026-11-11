@@ -1,0 +1,117 @@
+/* Sell flow motion and form basics. Names are prefixed so they cannot clash with the shell. */
+@layer theme, base, components, utilities;
+
+@keyframes sell-spring-in {
+	from {
+		opacity: 0;
+		transform: translateY(14px) scale(0.97);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+@keyframes sell-attn {
+	0%,
+	100% {
+		box-shadow: 0 0 0 0 rgba(255, 150, 70, 0), 0 30px 80px rgba(0, 0, 0, 0.45);
+	}
+	30% {
+		box-shadow: 0 0 0 8px rgba(255, 150, 70, 0.22), 0 30px 80px rgba(0, 0, 0, 0.45);
+	}
+	60% {
+		box-shadow: 0 0 0 14px rgba(255, 150, 70, 0), 0 30px 80px rgba(0, 0, 0, 0.45);
+	}
+}
+@keyframes sell-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+@keyframes sell-fall {
+	from {
+		transform: translateY(-30px);
+	}
+	to {
+		transform: translateY(520px);
+	}
+}
+@keyframes sell-fade {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+.sell-in {
+	animation: sell-spring-in 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.25) backwards;
+}
+.sell-attn {
+	animation: sell-attn 2.6s ease-in-out 0.8s infinite;
+}
+.sell-spin {
+	animation: sell-spin 0.9s linear infinite;
+}
+.sell-conf {
+	animation: sell-fall 2.8s linear infinite;
+}
+
+/* In the components layer, so Tailwind utilities can still override them. */
+@layer components {
+.sell-btn {
+	-webkit-tap-highlight-color: transparent;
+	transition: transform 0.15s ease, filter 0.15s ease, background-color 0.15s ease;
+	cursor: pointer;
+}
+.sell-btn:hover {
+	filter: brightness(1.12);
+}
+.sell-btn:active {
+	transform: scale(0.97);
+}
+.sell-btn:focus-visible,
+.sell-field:focus-visible,
+.sell-link:focus-visible,
+.sell-focus-within:focus-within {
+	outline: 2px solid var(--color-focus, #8fb4ff);
+	outline-offset: 3px;
+}
+.sell-bar {
+	transform-origin: left;
+	transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.sell-glass {
+	background: var(--color-glass, rgba(22, 24, 46, 0.58));
+	backdrop-filter: blur(28px) saturate(170%);
+	border: 1px solid var(--color-line, rgba(255, 255, 255, 0.1));
+}
+.sell-chip {
+	background: var(--color-chip, rgba(255, 255, 255, 0.07));
+	border: 1px solid var(--color-chip-line, rgba(255, 255, 255, 0.08));
+}
+
+.sell-field {
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 12px;
+	color: #f5f5f7;
+	font: inherit;
+	font-size: 15px;
+	padding: 0 14px;
+	height: 44px;
+	width: 100%;
+}
+.sell-field::placeholder {
+	color: rgba(235, 235, 245, 0.45);
+}
+.sell-lbl {
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+	color: rgba(235, 235, 245, 0.68);
+	text-transform: uppercase;
+}
+}
