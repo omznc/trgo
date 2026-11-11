@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DetailListing } from "@/components/detail/DetailPanel";
 import { Mascot } from "@/components/Mascot";
+import { CopyImageButton } from "@/components/shell/CopyImageButton";
 import { useChatActions } from "@/components/shell/chat-actions";
 import { ListingCard, SkeletonCard, type ViewMode } from "@/components/shell/ListingCard";
 import { strings } from "@/lib/strings";
@@ -267,9 +268,13 @@ function Loaded({ output, input, mine, defaultOpen }: { output: SearchOutput; in
 	const [clicked, setClicked] = useState<boolean | null>(null);
 	const open = clicked ?? defaultOpen;
 	const failed = output.errors.map((e) => e.provider);
+	const block = useRef<HTMLDivElement>(null);
 	return (
-		<div>
-			<StatusLine loading={false} listings={output.listings} errors={failed} mine={mine} toggle={{ open, onToggle: () => setClicked(!open) }} />
+		<div ref={block}>
+			<div className="flex items-center justify-between gap-1">
+				<StatusLine loading={false} listings={output.listings} errors={failed} mine={mine} toggle={{ open, onToggle: () => setClicked(!open) }} />
+				<CopyImageButton target={block} className="-my-1.5" />
+			</div>
 			<Collapsible open={open}>
 				<LoadedBody output={output} input={input} mine={mine} failed={failed} />
 			</Collapsible>

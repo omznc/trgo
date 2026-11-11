@@ -2,6 +2,8 @@ import type { ToolUIPart } from "ai";
 import { Tag } from "lucide-react";
 import type { PriceCheckOutput } from "@/lib/price-check";
 import type { PriceReport, PriceStats } from "@/lib/price-stats";
+import { useRef } from "react";
+import { CopyImageButton } from "@/components/shell/CopyImageButton";
 import { strings } from "@/lib/strings";
 
 
@@ -66,6 +68,7 @@ function Extras({ report }: { report: PriceReport }) {
 }
 
 export function PriceCheckPart({ part }: { part: ToolUIPart }) {
+	const card = useRef<HTMLElement>(null);
 	const output = part.state === "output-available" ? (part.output as PriceCheckOutput) : undefined;
 	const item = (part.input as { item?: string } | undefined)?.item;
 	if (part.state === "output-error") return null;
@@ -74,10 +77,13 @@ export function PriceCheckPart({ part }: { part: ToolUIPart }) {
 	if (!report) return <section className={shell}><Title item={output.item} /><p className="m-0 text-sm text-fg-2">{strings.priceEmpty(output.item)}</p></section>;
 	const { stats } = report;
 	return (
-		<section className={shell} style={{ animationDelay: "120ms" }}>
-			<div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-				<Title item={output.item} />
-				<span className="shrink-0 text-xs text-fg-3">{strings.priceMeta(stats.count, report.windowDays)}</span>
+		<section ref={card} className={shell} style={{ animationDelay: "120ms" }}>
+			<div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+				<div className="min-w-0 flex-1">
+					<Title item={output.item} />
+				</div>
+				<span className="shrink-0 text-xs text-fg-3 max-sm:order-last max-sm:basis-full">{strings.priceMeta(stats.count, report.windowDays)}</span>
+				<CopyImageButton target={card} className="-my-1.5 -mr-2" />
 			</div>
 			<div className="flex flex-wrap items-end gap-7">
 				<div>
@@ -94,9 +100,9 @@ export function PriceCheckPart({ part }: { part: ToolUIPart }) {
 			<Extras report={report} />
 			<Histogram stats={stats} />
 			<div className="flex justify-between text-xs text-fg-3">
-				<span>{km(stats.min)} KM</span>
-				<span>{km((stats.min + stats.max) / 2)}</span>
-				<span>{km(stats.max)} KM</span>
+				<span>{km(stats.lo)} KM</span>
+				<span>{km((stats.lo + stats.hi) / 2)}</span>
+				<span>{km(stats.hi)} KM</span>
 			</div>
 			<div className="text-xs text-fg-3">{strings.priceAnalyzed(stats.count, report.fetched, droppedText(report.dropped))}</div>
 		</section>

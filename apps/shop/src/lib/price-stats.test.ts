@@ -38,14 +38,17 @@ const listing = (price: number, age: number, condition?: "new" | "used") =>
 	({ price, condition, postedAt: new Date(NOW - age * 86_400_000).toISOString() }) as never;
 const NOW = Date.parse("2026-11-11T12:00:00Z");
 
-test("report: new/used medians and trend need 5 on each side", () => {
+test("report: new/used medians need 5 per side, trend needs 15", () => {
 	const recent = [700, 710, 720, 730, 740].map((p) => listing(p, 5, "used"));
 	const older = [600, 610, 620, 630, 640].map((p) => listing(p, 60, "new"));
 	const r = priceReport({ fetched: 40, listings: [...recent, ...older], windowDays: 90, dropped: { accessory: 3 } }, NOW)!;
 	expect(r.usedMedian).toBe(720);
 	expect(r.newMedian).toBe(620);
-	expect(r.trendPct).toBe(16);
+	expect(r.trendPct).toBeUndefined();
 	expect(r.fetched).toBe(40);
+	const many = (base: number, days: number) => Array.from({ length: 15 }, (_, i) => listing(base + i, days, "used"));
+	const t = priceReport({ fetched: 30, listings: [...many(800, 5), ...many(700, 60)], windowDays: 90, dropped: {} }, NOW)!;
+	expect(t.trendPct).toBe(14);
 });
 
 test("report: no trend or split with fewer than 5", () => {
