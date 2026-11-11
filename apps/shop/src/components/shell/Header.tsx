@@ -138,7 +138,7 @@ export function Header({
 		<header
 			style={delay(280)}
 			className={cn(
-				"ld relative z-[5] flex shrink-0 items-center justify-between gap-3 px-3 py-2.5 sm:px-6",
+				"ld relative z-[22] flex shrink-0 items-center justify-between gap-3 px-3 py-2.5 sm:px-6",
 				started && "glass rounded-none border-x-0 border-t-0 shadow-none",
 			)}
 		>

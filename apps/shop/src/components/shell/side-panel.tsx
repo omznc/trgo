@@ -299,7 +299,14 @@ function Island({ side, label, close, pageKey, dir, canGoBack, ctx, children }: 
 		} else animate(y, 0, { type: "spring", stiffness: 400, damping: 40, velocity: info.velocity.y });
 	};
 	return (
-		<motion.div variants={split ? SLOT : undefined} initial="closed" animate="open" exit="closed" className="contents min-[1180px]:flex min-[1180px]:flex-none">
+		// The left slot pins the island to its right edge, so it slides in from the screen edge like the right one.
+		<motion.div
+			variants={split ? SLOT : undefined}
+			initial="closed"
+			animate="open"
+			exit="closed"
+			className={cn("contents min-[1180px]:flex min-[1180px]:flex-none", side === "left" && "min-[1180px]:justify-end")}
+		>
 			<motion.button
 				type="button"
 				aria-label="Zatvori panel"
@@ -307,7 +314,7 @@ function Island({ side, label, close, pageKey, dir, canGoBack, ctx, children }: 
 				onClick={close}
 				variants={wide ? SCRIM : undefined}
 				style={wide ? undefined : { opacity: scrim }}
-				className="scrim fixed inset-0 z-[4] cursor-default bg-scrim sm:bg-scrim/40 min-[1180px]:hidden"
+				className="scrim fixed inset-0 z-[20] cursor-default bg-scrim sm:bg-scrim/40 min-[1180px]:hidden"
 			/>
 			<motion.aside
 				ref={aside}
@@ -324,7 +331,7 @@ function Island({ side, label, close, pageKey, dir, canGoBack, ctx, children }: 
 				onPointerDown={onPointerDown}
 				aria-label={label}
 				className={cn(
-					"side-panel fixed inset-x-0 bottom-0 z-[5] flex h-[min(690px,88dvh)] min-h-0 flex-col overflow-hidden rounded-t-[30px] sm:inset-x-auto sm:top-[76px] sm:bottom-3 sm:h-auto sm:w-[min(480px,calc(100vw-24px))] sm:rounded-[28px] min-[1180px]:static min-[1180px]:z-auto min-[1180px]:m-3 min-[1180px]:w-[480px] min-[1180px]:flex-none",
+					"side-panel fixed inset-x-0 bottom-0 z-[21] flex h-[min(690px,88dvh)] min-h-0 flex-col overflow-hidden rounded-t-[30px] sm:inset-x-auto sm:top-[76px] sm:bottom-3 sm:h-auto sm:w-[min(480px,calc(100vw-24px))] sm:rounded-[28px] min-[1180px]:static min-[1180px]:z-auto min-[1180px]:m-3 min-[1180px]:w-[480px] min-[1180px]:flex-none",
 					SIDE_CLASS[side],
 				)}
 			>

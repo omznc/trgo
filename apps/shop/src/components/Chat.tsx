@@ -68,7 +68,7 @@ function Toast({ text, onDone }: { text: string; onDone: () => void }) {
 			animate={{ opacity: 1, transform: "translateY(0px)" }}
 			exit={{ opacity: 0, transform: "translateY(8px)", transition: { duration: 0.15 } }}
 			transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-			className="solid fixed bottom-28 left-1/2 z-[6] flex w-[min(340px,calc(100vw-24px))] -translate-x-1/2 items-center gap-2.5 rounded-2xl px-3.5 py-2.5 text-sm"
+			className="solid fixed bottom-28 left-1/2 z-[30] flex w-[min(340px,calc(100vw-24px))] -translate-x-1/2 items-center gap-2.5 rounded-2xl px-3.5 py-2.5 text-sm"
 		>
 			<Check className="size-4 shrink-0 text-ok" strokeWidth={2.4} aria-hidden />
 			<span className="flex-1">{text}</span>
