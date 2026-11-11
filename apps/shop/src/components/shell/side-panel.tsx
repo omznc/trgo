@@ -5,6 +5,8 @@ import MyListingsPanel from "@/components/account/MyListingsPanel";
 import SettingsPanel from "@/components/account/SettingsPanel";
 import { DetailPanel, type DetailListing } from "@/components/detail/DetailPanel";
 import { listingIdFromUrl } from "@lagano/providers";
+import { strings } from "@/lib/strings";
+import { cn } from "@/lib/utils";
 import { tagAndFocus } from "./tagged-listing";
 
 export type SidePanelView =
@@ -27,7 +29,17 @@ type SidePanel = {
 	// Opens the connect view for the provider. If it is already on top, only the cue plays.
 	requireConnection: (provider: Provider, reason: string) => void;
 	close: () => void;
+	// Chat history on the left. Below 1504px it excludes the right panel.
+	history: boolean;
+	openHistory: () => void;
+	closeHistory: () => void;
+	// Closes history unless it is a split column that stays beside the chat.
+	leaveHistory: () => void;
 };
+
+// Two 492px islands and a 520px chat column.
+const COEXIST_PX = 1504;
+const canCoexist = () => window.innerWidth >= COEXIST_PX;
 
 const Ctx = createContext<SidePanel | null>(null);
 
@@ -46,6 +58,7 @@ type Entry = { view: SidePanelView; id: number };
 export function SidePanelProvider({ children }: { children: ReactNode }) {
 	const [stack, setStack] = useState<Entry[]>([]);
 	const [cue, setCue] = useState<{ n: number; reason?: string }>({ n: 0 });
+	const [history, setHistory] = useState(false);
 	const dir = useRef(0);
 	const nextId = useRef(0);
 	const close = useCallback(() => {
@@ -62,6 +75,7 @@ export function SidePanelProvider({ children }: { children: ReactNode }) {
 	const open = useCallback((view: SidePanelView, opts?: { fresh?: boolean }) => {
 		// Same view already on top: no page change, only an attention cue.
 		if (top.current && sameView(top.current, view)) return setCue((c) => ({ ...c, n: c.n + 1 }));
+		if (!canCoexist()) setHistory(false);
 		setCue((c) => ({ n: c.n }));
 		dir.current = opts?.fresh ? 0 : 1;
 		const entry = { view, id: nextId.current++ };
@@ -76,9 +90,39 @@ export function SidePanelProvider({ children }: { children: ReactNode }) {
 		},
 		[open],
 	);
+	const openHistory = useCallback(() => {
+		if (!canCoexist()) {
+			dir.current = 0;
+			setStack([]);
+		}
+		setHistory(true);
+	}, []);
+	const closeHistory = useCallback(() => setHistory(false), []);
+	const leaveHistory = useCallback(() => {
+		if (!window.matchMedia("(min-width: 1180px)").matches) setHistory(false);
+	}, []);
+	// A window resize can leave both panels open on a narrow window.
+	const roomForBoth = useMedia(`(min-width: ${COEXIST_PX}px)`, false);
+	useEffect(() => {
+		if (!roomForBoth && history && stack.length) setHistory(false);
+	}, [roomForBoth, history, stack.length]);
 	const value = useMemo(
-		() => ({ view: stack.at(-1)?.view ?? null, pageKey: stack.at(-1)?.id ?? -1, dir: dir.current, cue, requireConnection, open, back, canGoBack: stack.length > 1, close }),
-		[stack, cue, requireConnection, open, back, close],
+		() => ({
+			view: stack.at(-1)?.view ?? null,
+			pageKey: stack.at(-1)?.id ?? -1,
+			dir: dir.current,
+			cue,
+			requireConnection,
+			open,
+			back,
+			canGoBack: stack.length > 1,
+			close,
+			history,
+			openHistory,
+			closeHistory,
+			leaveHistory,
+		}),
+		[stack, cue, requireConnection, open, back, close, history, openHistory, closeHistory, leaveHistory],
 	);
 	return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
@@ -154,14 +198,15 @@ const useSplit = () => useMedia("(min-width: 1180px)", true);
 
 // Island slides 32px right, fades, scales and blurs out. Sheet slides down. SLOT frees the chat column smoothly.
 const ISLAND_TWEEN = { duration: 0.26, ease: EASE } as const;
-type IslandCtx = { wide: boolean; split: boolean; vel: { current: number } };
+type Side = "left" | "right";
+type IslandCtx = { wide: boolean; split: boolean; vel: { current: number }; side: Side };
 const sheetHeight = () => Math.min(690, window.innerHeight * 0.88);
 // After a thrown close the sheet leaves on a spring that starts at the release velocity.
 const THROW = (v: number) => ({ type: "spring", stiffness: 300, damping: 40, velocity: v, restDelta: 2, restSpeed: 20 }) as const;
 const ISLAND: Variants = {
-	closed: ({ wide, vel }: IslandCtx) =>
+	closed: ({ wide, vel, side }: IslandCtx) =>
 		wide
-			? { opacity: 0, x: 32, scale: 0.98, filter: "blur(4px)", transition: ISLAND_TWEEN }
+			? { opacity: 0, x: side === "left" ? -32 : 32, scale: 0.98, filter: "blur(4px)", transition: ISLAND_TWEEN }
 			: { y: sheetHeight(), transition: vel.current > 0 ? THROW(vel.current) : ISLAND_TWEEN },
 	open: { opacity: 1, x: 0, y: 0, scale: 1, filter: "blur(0px)", transition: ISLAND_TWEEN },
 };
@@ -170,32 +215,70 @@ const SCRIM: Variants = { closed: { opacity: 0, transition: ISLAND_TWEEN }, open
 const CLOSE_DIST = 0.3;
 const CLOSE_VELOCITY = 500;
 
+function usePanelCtx(side: Side, open: boolean, close: () => void) {
+	const wide = useWide();
+	const split = useSplit();
+	const vel = useRef(0);
+	const ctx = useMemo(() => ({ wide, split, vel, side }), [wide, split, side]);
+	useEffect(() => {
+		if (!open) return;
+		vel.current = 0;
+		const onKey = (e: KeyboardEvent) => e.key === "Escape" && !e.defaultPrevented && close();
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+	}, [open, close]);
+	return ctx;
+}
+
 // Desktop: a column next to the chat. Phone: a bottom sheet over a scrim.
 // The content owns its header and its own scroll container (class "scroll").
 // Island gets the view as props: AnimatePresence keeps the last props during exit.
 export function SidePanelRegion() {
 	const { view, close, pageKey, dir, canGoBack } = useSidePanel();
-	const wide = useWide();
-	const split = useSplit();
-	const vel = useRef(0);
-	const ctx = useMemo(() => ({ wide, split, vel }), [wide, split]);
-	useEffect(() => {
-		if (!view) return;
-		vel.current = 0;
-		const onKey = (e: KeyboardEvent) => e.key === "Escape" && !e.defaultPrevented && close();
-		window.addEventListener("keydown", onKey);
-		return () => window.removeEventListener("keydown", onKey);
-	}, [view, close]);
+	const ctx = usePanelCtx("right", !!view, close);
 	return (
 		<AnimatePresence custom={ctx}>
-			{view && <Island key="island" view={view} close={close} pageKey={pageKey} dir={dir} canGoBack={canGoBack} ctx={ctx} />}
+			{view && (
+				<Island key="island" side="right" label={LABELS[view.kind]} close={close} pageKey={pageKey} dir={dir} canGoBack={canGoBack} ctx={ctx}>
+					<Content view={view} />
+				</Island>
+			)}
 		</AnimatePresence>
 	);
 }
 
-type IslandProps = { view: SidePanelView; close: () => void; pageKey: number; dir: number; canGoBack: boolean; ctx: IslandCtx };
+// The left twin: chat history. It has one page and no back stack.
+export function HistoryRegion({ children }: { children: ReactNode }) {
+	const { history, closeHistory } = useSidePanel();
+	const ctx = usePanelCtx("left", history, closeHistory);
+	return (
+		<AnimatePresence custom={ctx}>
+			{history && (
+				<Island key="history" side="left" label={strings.history} close={closeHistory} pageKey={0} dir={0} canGoBack={false} ctx={ctx}>
+					{children}
+				</Island>
+			)}
+		</AnimatePresence>
+	);
+}
 
-function Island({ view, close, pageKey, dir, canGoBack, ctx }: IslandProps) {
+type IslandProps = {
+	side: Side;
+	label: string;
+	close: () => void;
+	pageKey: number;
+	dir: number;
+	canGoBack: boolean;
+	ctx: IslandCtx;
+	children: ReactNode;
+};
+
+const SIDE_CLASS: Record<Side, string> = {
+	right: "sm:right-3 min-[1180px]:ml-0",
+	left: "sm:left-3 min-[1180px]:mr-0",
+};
+
+function Island({ side, label, close, pageKey, dir, canGoBack, ctx, children }: IslandProps) {
 	const { wide, split, vel } = ctx;
 	const live = useSidePanel();
 	const aside = useRef<HTMLElement>(null);
@@ -239,8 +322,11 @@ function Island({ view, close, pageKey, dir, canGoBack, ctx }: IslandProps) {
 				dragMomentum={false}
 				onDragEnd={onDragEnd}
 				onPointerDown={onPointerDown}
-				aria-label={LABELS[view.kind]}
-				className="side-panel fixed inset-x-0 bottom-0 z-[5] flex h-[min(690px,88dvh)] min-h-0 flex-col overflow-hidden rounded-t-[30px] sm:inset-x-auto sm:top-[76px] sm:right-3 sm:bottom-3 sm:h-auto sm:w-[min(480px,calc(100vw-24px))] sm:rounded-[28px] min-[1180px]:static min-[1180px]:z-auto min-[1180px]:m-3 min-[1180px]:ml-0 min-[1180px]:w-[480px] min-[1180px]:flex-none"
+				aria-label={label}
+				className={cn(
+					"side-panel fixed inset-x-0 bottom-0 z-[5] flex h-[min(690px,88dvh)] min-h-0 flex-col overflow-hidden rounded-t-[30px] sm:inset-x-auto sm:top-[76px] sm:bottom-3 sm:h-auto sm:w-[min(480px,calc(100vw-24px))] sm:rounded-[28px] min-[1180px]:static min-[1180px]:z-auto min-[1180px]:m-3 min-[1180px]:w-[480px] min-[1180px]:flex-none",
+					SIDE_CLASS[side],
+				)}
 			>
 				<div aria-hidden className="flex h-[13px] shrink-0 justify-center pt-2 sm:hidden">
 					<div className="h-[5px] w-10 rounded-[5px] bg-white/30" />
@@ -249,7 +335,7 @@ function Island({ view, close, pageKey, dir, canGoBack, ctx }: IslandProps) {
 					<AnimatePresence initial={false} mode="popLayout" custom={pageCtx}>
 						<motion.div key={pageKey} custom={pageCtx} variants={PAGE} initial="enter" animate="center" exit="exit" className="flex h-full min-h-0 flex-col">
 							<Ctx.Provider value={{ ...live, canGoBack }}>
-								<Content view={view} />
+								{children}
 							</Ctx.Provider>
 						</motion.div>
 					</AnimatePresence>

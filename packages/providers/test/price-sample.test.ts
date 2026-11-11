@@ -63,6 +63,11 @@ describe("selectComparable", () => {
 	// The age is part of the title, so batches do not make cross-posts.
 	const batch = (count: number, age: number) =>
 		Array.from({ length: count }, (_, i) => make(`PS5 konzola ${i} ${age}`, 700 + i, age));
+	test("uses exactly the given days, even with few listings", () => {
+		const s = selectComparable([...batch(3, 10), ...batch(20, 150)], { query: "ps5", now: NOW, days: 90 });
+		expect(s.windowDays).toBe(90);
+		expect(s.listings).toHaveLength(3);
+	});
 	test("uses 90 days when enough listings are in it", () => {
 		const s = selectComparable([...batch(20, 10), ...batch(5, 200)], { query: "ps5", now: NOW });
 		expect(s.windowDays).toBe(90);

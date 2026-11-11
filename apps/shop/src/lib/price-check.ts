@@ -10,6 +10,7 @@ export const priceCheckSchema = z.object({
 	condition: z.enum(["new", "used"]).optional(),
 	minPrice: z.number().positive().optional().describe("Lowest price in KM that a real offer of this item can have. About half of the usual used price. It cuts games, cases and accessories."),
 	maxPrice: z.number().positive().optional().describe("Highest price in KM for a real offer. Use it only when the user gave a limit."),
+	days: z.number().int().min(7).max(365).optional().describe("Use only the listings of the last N days, for example 90 for 3 months. Set it only when the user asks for a period."),
 });
 export type PriceCheckInput = z.infer<typeof priceCheckSchema>;
 

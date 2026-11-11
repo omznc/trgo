@@ -1,6 +1,6 @@
 import type { FileUIPart } from "ai";
 import { Check, WifiOff } from "lucide-react";
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { flushSync } from "react-dom";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
@@ -12,9 +12,11 @@ import { ErrorCard, type ChatErrorKind } from "@/components/shell/ErrorCard";
 import { Header } from "@/components/shell/Header";
 import { Horizon } from "@/components/shell/Horizon";
 import { AnswerActions, Message, stripNotes, textOf, Thinking } from "@/components/shell/Messages";
-import { clearTaggedListing, getTaggedListing, taggedNote } from "@/components/shell/tagged-listing";
+import { clearTaggedListing, getTaggedListings, taggedNote } from "@/components/shell/tagged-listing";
 import { usePendingSend } from "@/components/shell/use-pending-send";
-import { SidePanelRegion, useSidePanel } from "@/components/shell/side-panel";
+import { HistoryPanel } from "@/components/shell/HistoryPanel";
+import { HistoryRegion, SidePanelRegion, useSidePanel } from "@/components/shell/side-panel";
+import { useHistory } from "@/components/shell/use-history";
 import type { LaganoMessage } from "@/lib/agent";
 import { addPhoto, photoNote } from "@/lib/photos";
 import { useSessionExpired, useSessions } from "@/lib/sessions";
@@ -93,7 +95,7 @@ function MessageList({
 	const canAct = (m: LaganoMessage) => m === last && m.role === "assistant" && status === "ready" && !!textOf(m);
 	return (
 		<Conversation className="min-h-0 flex-1" aria-label={strings.conversation}>
-			<ConversationContent scrollClassName="scroll min-h-0 flex-1" className="mx-auto w-full max-w-[1040px] gap-7 px-6 pt-8 pb-6 max-sm:gap-3.5 max-sm:px-3.5 max-sm:pt-4">
+			<ConversationContent scrollClassName="scroll chat-fade min-h-0 flex-1" className="mx-auto w-full max-w-[1040px] gap-7 px-6 pt-8 pb-[calc(var(--composer-h,140px)+24px)] max-sm:gap-3.5 max-sm:px-3.5 max-sm:pt-4">
 				{messages.map((m) => (
 					<Message
 						key={m.id}
@@ -124,7 +126,17 @@ export function Chat() {
 	const box = useRef<HTMLDivElement>(null);
 	const clearAttachments = useRef<(() => void) | null>(null);
 	const started = docked || messages.length > 0;
+	// The docked composer floats over the list. The list pads its end by the composer height.
+	useLayoutEffect(() => {
+		const el = box.current;
+		if (!started || !el?.parentElement) return;
+		const host = el.parentElement;
+		const ro = new ResizeObserver(() => host.style.setProperty("--composer-h", `${el.offsetHeight}px`));
+		ro.observe(el);
+		return () => ro.disconnect();
+	}, [started]);
 	const busy = status === "submitted" || status === "streaming";
+	const history = useHistory(chat, setDocked, withTransition);
 	// The first-load reveal (.boot) ends for good once the chat starts.
 	const [boot, setBoot] = useState(true);
 	useEffect(() => {
@@ -140,9 +152,9 @@ export function Chat() {
 		// A photo that cannot be decoded is skipped.
 		const added = await Promise.allSettled(files.map(async (f) => addPhoto(await (await fetch(f.url)).blob())));
 		const ids = added.flatMap((r) => (r.status === "fulfilled" ? [r.value.id] : []));
-		const tagged = getTaggedListing();
-		const note = tagged ? taggedNote(tagged) : "";
-		chat.sendMessage({ text: text.trim() + photoNote(ids) + note + sourceNote(sources), metadata: { photoIds: ids, tagged: tagged ?? undefined } });
+		const tagged = getTaggedListings();
+		const note = tagged.map(taggedNote).join("");
+		chat.sendMessage({ text: text.trim() + photoNote(ids) + note + sourceNote(sources), metadata: { photoIds: ids, tagged: tagged.length ? tagged : undefined } });
 		clearTaggedListing();
 	};
 	const hold = usePendingSend({ apiKey, send, textarea, box, clearAttachments });
@@ -156,12 +168,9 @@ export function Chat() {
 	};
 	const pick = (text: string) => (chat.ready ? void send(text) : hold(text, []));
 	const newChat = () => {
-		chat.stop();
-		withTransition(() => {
-			chat.setMessages([]);
-			setDocked(false);
-		});
+		history.startNew();
 		panel.close();
+		panel.leaveHistory();
 	};
 	const actions = useMemo(
 		() => ({
@@ -207,6 +216,7 @@ onRetry={chat.error ? () => chat.regenerate() : undefined} />
 			<div className={cn("relative flex h-dvh flex-col overflow-hidden bg-bg", boot && "boot")}>
 				<Horizon variant={started ? "chat" : "main"} />
 				<Header
+					hasHistory={history.chats.length > 0}
 					started={started}
 					connections={{ openrouter: !!apiKey, ...sessions }}
 					model={chat.model}
@@ -220,10 +230,14 @@ onRetry={chat.error ? () => chat.regenerate() : undefined} />
 					</div>
 				)}
 				<div className="relative flex min-h-0 flex-1">
+					<HistoryRegion>
+						<HistoryPanel chats={history.chats} currentId={history.chatId} onPick={history.open} onDelete={history.remove} onNew={newChat} onClear={history.clear} />
+					</HistoryRegion>
 					<div className="flex min-w-0 flex-1 flex-col">
 						<main className={cn("relative flex min-h-0 flex-1 flex-col", !started && "items-center justify-center gap-[22px] px-3.5 pb-6 sm:px-6 sm:pb-12")}>
 							{started ? (
 								<MessageList
+									key={history.chatId}
 									messages={messages}
 									status={status}
 									onRespond={respond}
@@ -236,7 +250,7 @@ onRetry={chat.error ? () => chat.regenerate() : undefined} />
 							)}
 							{!started && !apiKey ? <ConnectBanner free={chat.ready} cue={panel.cue} onPasteKey={() => openConnect("openrouter")} /> : null}
 							{!started && errorCard}
-							<div ref={box} style={delay(550)} className={cn("ld w-full", started && "shrink-0 px-3.5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-6 sm:pb-[22px]")}>
+							<div ref={box} style={delay(550)} className={cn("ld w-full", started && "absolute inset-x-0 bottom-0 z-10 px-3.5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-6 sm:pb-[22px]")}>
 								<Composer
 									started={started}
 									busy={busy}

@@ -1,4 +1,4 @@
-import { ChevronDown, Layers, Pencil, Settings, UserRound } from "lucide-react";
+import { ChevronDown, History, Layers, Pencil, Settings, UserRound } from "lucide-react";
 import { Mascot } from "@/components/Mascot";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { isFreeModel, MODELS, modelLabel } from "@/lib/agent";
@@ -117,7 +117,9 @@ export function Header({
 	model,
 	onModel,
 	onNewChat,
+	hasHistory,
 }: {
+	hasHistory: boolean;
 	started: boolean;
 	connections: Connections;
 	model: string;
@@ -141,9 +143,22 @@ export function Header({
 			)}
 		>
 			<div className="flex items-center gap-2.5">
-				<button type="button" onClick={onNewChat} aria-label={strings.home} className="grid size-11 place-items-center">
-					<Mascot mood="calm" width={30} />
-				</button>
+				{hasHistory ? (
+					<button
+						type="button"
+						onClick={() => (panel.history ? panel.closeHistory() : panel.openHistory())}
+						aria-pressed={panel.history}
+						aria-label={strings.history}
+						title={strings.history}
+						className={cn(pill, "chip size-11 cursor-pointer justify-center px-0 text-fg sm:size-10")}
+					>
+						<History className="size-[15px]" strokeWidth={2.2} aria-hidden />
+					</button>
+				) : (
+					<button type="button" onClick={onNewChat} aria-label={strings.home} className="grid size-11 place-items-center">
+						<Mascot mood="calm" width={30} />
+					</button>
+				)}
 				<button
 					type="button"
 					onClick={onNewChat}

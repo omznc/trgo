@@ -1,7 +1,7 @@
 import type { ProviderId } from "@lagano/providers";
 import { useSyncExternalStore } from "react";
 
-// One listing that the user attached to the next chat message.
+// A listing that the user attached to the next chat message.
 export type TaggedListing = {
 	provider: ProviderId;
 	id: string;
@@ -13,19 +13,34 @@ export type TaggedListing = {
 	own?: boolean;
 };
 
-let current: TaggedListing | null = null;
+export const MAX_TAGGED = 5;
+const NONE: TaggedListing[] = [];
+let current = NONE;
 const listeners = new Set<() => void>();
-const emit = () => listeners.forEach((l) => l());
+const set = (next: TaggedListing[]) => {
+	current = next.length ? next : NONE;
+	listeners.forEach((l) => l());
+};
 
+export const taggedKey = (l: Pick<TaggedListing, "provider" | "id">) => `${l.provider}:${l.id}`;
+
+// A new listing goes last. At the cap, the oldest one drops.
 export function tagListing(listing: TaggedListing) {
-	current = listing;
-	emit();
+	if (current.some((l) => taggedKey(l) === taggedKey(listing))) return;
+	set([...current, listing].slice(-MAX_TAGGED));
+}
+
+export function untagListing(listing: Pick<TaggedListing, "provider" | "id">) {
+	set(current.filter((l) => taggedKey(l) !== taggedKey(listing)));
+}
+
+export function toggleTagged(listing: TaggedListing) {
+	if (current.some((l) => taggedKey(l) === taggedKey(listing))) untagListing(listing);
+	else tagListing(listing);
 }
 
 export function clearTaggedListing() {
-	if (!current) return;
-	current = null;
-	emit();
+	if (current.length) set(NONE);
 }
 
 // Tags the listing, then focuses the composer. The panel closes below the split tier (1180px),
@@ -36,13 +51,13 @@ export function tagAndFocus(listing: TaggedListing, close: () => void) {
 	setTimeout(() => document.getElementById("prompt")?.focus(), 60);
 }
 
-export const getTaggedListing = () => current;
+export const getTaggedListings = () => current;
 
-export function useTaggedListing() {
+export function useTaggedListings() {
 	return useSyncExternalStore(
 		(cb) => (listeners.add(cb), () => listeners.delete(cb)),
 		() => current,
-		() => null,
+		() => NONE,
 	);
 }
 

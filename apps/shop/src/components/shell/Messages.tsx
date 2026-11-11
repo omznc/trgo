@@ -1,4 +1,4 @@
-import { Copy, RefreshCw } from "lucide-react";
+import { Copy, ImageOff, RefreshCw } from "lucide-react";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { EditApprovalPart } from "@/components/EditApproval";
 import { ListingApprovalPart } from "@/components/ListingApproval";
@@ -8,14 +8,14 @@ import { Mascot, type MascotMood } from "@/components/Mascot";
 import type { LaganoMessage } from "@/lib/agent";
 import { getPhoto } from "@/lib/photos";
 import { strings } from "@/lib/strings";
+import { taggedKey } from "./tagged-listing";
 import { TaggedChip } from "./TaggedChip";
 
 type Part = LaganoMessage["parts"][number];
 export type Respond = (id: string, approved: boolean) => void;
 
-// The attached-photo and source notes are for the model, not for the user.
-const MODEL_NOTE = /\n\n\[(?:Attached photos|Search only on|Tagged listing):[^\]]*\]/g;
-export const stripNotes = (text: string) => text.replace(MODEL_NOTE, "");
+import { stripNotes } from "@/lib/model-notes";
+export { stripNotes };
 
 export function textOf(message: LaganoMessage) {
 	return message.parts.flatMap((p) => (p.type === "text" ? [p.text] : [])).join("\n\n");
@@ -24,16 +24,32 @@ export function textOf(message: LaganoMessage) {
 function UserMessage({ message }: { message: LaganoMessage }) {
 	const ids = message.metadata?.photoIds ?? [];
 	const text = stripNotes(textOf(message));
+	// An older saved message has one listing, not a list.
+	const tagged = [message.metadata?.tagged ?? []].flat();
+	const photoUrl = (id: string) => getPhoto(id)?.url;
 	return (
 		<div className="in flex max-w-[520px] flex-col items-end gap-1.5 self-end">
 			{ids.length > 0 && (
 				<div className="flex flex-wrap justify-end gap-1.5">
 					{ids.map((id, i) => (
-						<img key={id} src={getPhoto(id)?.url} alt={strings.attachmentAlt(i + 1)} className="size-[72px] rounded-[14px] border border-white/12 object-cover" />
+						photoUrl(id) ? (
+								<img key={id} src={photoUrl(id)} alt={strings.attachmentAlt(i + 1)} className="size-[72px] rounded-[14px] border border-white/12 object-cover" />
+							) : (
+								// Photos live in memory only, so a restored chat has none.
+								<div key={id} role="img" aria-label={strings.photoGone} title={strings.photoGone} className="grid size-[72px] place-items-center rounded-[14px] border border-white/12 bg-white/6 text-fg-4">
+									<ImageOff className="size-5" aria-hidden />
+								</div>
+							)
 					))}
 				</div>
 			)}
-			{message.metadata?.tagged && <TaggedChip listing={message.metadata.tagged} small />}
+			{tagged.length > 0 && (
+				<div className="flex flex-wrap justify-end gap-1.5">
+					{tagged.map((l) => (
+						<TaggedChip key={taggedKey(l)} listing={l} small />
+					))}
+				</div>
+			)}
 			{text && (
 				<div data-selectable className="rounded-[20px_20px_6px_20px] bg-accent px-4 py-[11px] text-base leading-[1.45] font-medium tracking-[-0.01em] whitespace-pre-wrap text-bg">
 					{text}

@@ -14,6 +14,8 @@ import { useListingDetail } from "./use-listing-detail";
 // What the search result carries. The panel loads the rest.
 export type DetailListing = {
 	provider: "olx" | "svex";
+	id?: string;
+	postedAt?: string;
 	title: string;
 	price: string;
 	city?: string;

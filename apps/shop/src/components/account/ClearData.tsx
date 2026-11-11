@@ -1,17 +1,19 @@
 import { Trash2 } from "lucide-react";
 import { useRef, useState, type KeyboardEvent } from "react";
+import { clearHistory } from "@/lib/chat-history";
 import { ta } from "@/lib/strings-account";
 import { cn } from "@/lib/utils";
 import { btn } from "./ui";
 
 const HOLD_MS = 1200;
 
-// Removes every key of this app. Reload makes the chat state match.
-function clearAll() {
+// Removes every key of this app and the chat history. Reload makes the chat state match.
+async function clearAll() {
 	for (const store of [localStorage, sessionStorage]) {
 		for (const key of Object.keys(store)) if (key.startsWith("lagano.")) store.removeItem(key);
 	}
 	navigator.vibrate?.(30);
+	await clearHistory().catch(() => {});
 	location.reload();
 }
 
@@ -41,9 +43,9 @@ function useHoldFill(onDone: () => void) {
 }
 
 // First click arms it; then the user holds until the fill completes.
-export default function ClearData({ row }: { row?: boolean }) {
+export function HoldButton({ onDone, label, armedLabel, row }: { onDone: () => void; label: string; armedLabel: string; row?: boolean }) {
 	const [armed, setArmed] = useState(false);
-	const hold = useHoldFill(clearAll);
+	const hold = useHoldFill(onDone);
 	const start = () => armed && hold.start();
 	return (
 		<button
@@ -73,7 +75,11 @@ export default function ClearData({ row }: { row?: boolean }) {
 		>
 			<span ref={hold.fill} aria-hidden className="absolute inset-0 -z-10 origin-left rounded-[inherit] bg-danger/25" style={{ transform: "scaleX(0)" }} />
 			{!row && <Trash2 size={15} aria-hidden />}
-			{armed ? ta.deleteAllConfirm : ta.deleteAll}
+			{armed ? armedLabel : label}
 		</button>
 	);
+}
+
+export default function ClearData({ row }: { row?: boolean }) {
+	return <HoldButton row={row} onDone={clearAll} label={ta.deleteAll} armedLabel={ta.deleteAllConfirm} />;
 }

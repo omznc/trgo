@@ -38,15 +38,15 @@ export const ConversationScrollButton = ({
 }) => {
   const { isAtBottom, scrollToBottom } = useStickToBottomContext();
   if (isAtBottom) return null;
-  // A strip under the list, in the flow: the button never covers content.
+  // Floats just above the docked composer (--composer-h is set by Chat).
   return (
-    <div className="grid h-12 shrink-0 place-items-center">
+    <div className="pointer-events-none absolute inset-x-0 bottom-[calc(var(--composer-h,140px)+8px)] z-10 grid place-items-center">
       <button
         type="button"
         aria-label={strings.scrollBottom}
         onClick={() => scrollToBottom()}
         className={cn(
-          "animate-in fade-in zoom-in-95 duration-150 ease-out glass grid size-10 place-items-center rounded-full text-fg shadow-none",
+          "pointer-events-auto animate-in fade-in zoom-in-95 duration-150 ease-out glass grid size-10 place-items-center rounded-full text-fg shadow-none",
           className
         )}
       >

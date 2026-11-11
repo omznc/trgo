@@ -165,7 +165,7 @@ function stableKeys(cards: DetailListing[]) {
 	});
 }
 
-function Results({ cards, view, loading }: { cards: DetailListing[]; view: ViewMode; loading: boolean }) {
+function Results({ cards, view, loading, mine = false }: { cards: DetailListing[]; view: ViewMode; loading: boolean; mine?: boolean }) {
 	const [expanded, setExpanded] = useState(false);
 	const grid = useRef<HTMLDivElement>(null);
 	const [columns, setColumns] = useState(4);
@@ -202,7 +202,7 @@ function Results({ cards, view, loading }: { cards: DetailListing[]; view: ViewM
 				)}
 			>
 				{cards.slice(0, shown).map((card, i) => (
-					<ListingCard key={keys[i]} card={card} stagger={settled.current ? 0 : Math.min(i, 8) * 70} view={view} />
+					<ListingCard key={keys[i]} card={card} stagger={settled.current ? 0 : Math.min(i, 8) * 70} view={view} own={mine} late={i >= Math.min(perRow, 6)} />
 				))}
 				{loading && [0, 1].map((i) => <SkeletonCard key={i} row={row} />)}
 			</div>
@@ -215,7 +215,7 @@ function Results({ cards, view, loading }: { cards: DetailListing[]; view: ViewM
 						className="glass inline-flex h-10 items-center gap-[7px] rounded-full pr-4 pl-[13px] text-sm font-medium tracking-[-0.01em] shadow-none"
 					>
 						{expanded ? <ArrowUp className="size-[15px]" strokeWidth={2.2} aria-hidden /> : <ArrowDown className="size-[15px]" strokeWidth={2.2} aria-hidden />}
-						{expanded ? strings.showLess : strings.showMore}
+						{expanded ? strings.showLess : `${strings.showMore} (${cards.length - perRow})`}
 					</button>
 				</div>
 			)}
@@ -299,7 +299,7 @@ function LoadedBody({ output, input, mine, failed }: { output: SearchOutput; inp
 		<div className="flex flex-col gap-3.5">
 			<Notes error={output.error} failed={mine ? [] : failed} />
 			{output.listings.length > 1 && <FilterBar maxPrice={input?.maxPrice} controls={controls} onChange={setControls} />}
-			{cards.length === 0 ? <ErrorNote text={strings.noResults} /> : <Results cards={cards} view={controls.view} loading={false} />}
+			{cards.length === 0 ? <ErrorNote text={strings.noResults} /> : <Results cards={cards} view={controls.view} loading={false} mine={mine} />}
 		</div>
 	);
 }

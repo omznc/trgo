@@ -76,7 +76,9 @@ export function trimOutliers(listings: Listing[]): Listing[] {
 }
 
 // The narrowest window with enough listings. The widest window is the last choice.
-export function pickWindow(listings: Listing[], now: number, min = MIN_LISTINGS) {
+// `exact` fixes the window, even if it holds few listings.
+export function pickWindow(listings: Listing[], now: number, min = MIN_LISTINGS, exact?: number) {
+	if (exact) return { days: exact, listings: listings.filter((l) => ageDays(l, now) <= exact) };
 	for (const days of WINDOWS) {
 		const inside = listings.filter((l) => ageDays(l, now) <= days);
 		if (inside.length >= min || days === WINDOWS.at(-1)) return { days, listings: inside };
@@ -84,7 +86,7 @@ export function pickWindow(listings: Listing[], now: number, min = MIN_LISTINGS)
 	throw new Error("unreachable");
 }
 
-export type SelectOptions = FilterOptions & { minPrice?: number; maxPrice?: number; condition?: "new" | "used"; now?: number };
+export type SelectOptions = FilterOptions & { minPrice?: number; maxPrice?: number; condition?: "new" | "used"; now?: number; days?: number };
 export type Selection = {
 	fetched: number;
 	listings: Listing[];
@@ -117,7 +119,7 @@ export function selectComparable(all: Listing[], options: SelectOptions): Select
 		else seen.add(dupKey(l));
 		return !reason;
 	});
-	const windowed = pickWindow(clean, now);
+	const windowed = pickWindow(clean, now, MIN_LISTINGS, options.days);
 	drop("old", clean.length - windowed.listings.length);
 	const listings = trimOutliers(windowed.listings);
 	drop("outlier", windowed.listings.length - listings.length);
