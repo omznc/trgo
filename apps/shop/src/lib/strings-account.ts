@@ -92,6 +92,7 @@ export const ta = {
 	tagPlaceholder: "Pitaj nešto o ovom oglasu…",
 	tagPlaceholderMany: "Pitaj nešto o ovim oglasima…",
 	tagRemove: "Ukloni oglas iz poruke",
+	tagLess: "Manje",
 	tagSelect: "Označi oglas",	editApproveTitle: "Trgo želi izmijeniti tvoj oglas",
 	editApprove: "Odobri",
 	editReject: "Odbij",

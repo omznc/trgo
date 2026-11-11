@@ -243,7 +243,8 @@ input::placeholder {
 /* Messages fade out as they pass under the docked composer, so text does not show through the glass. */
 .chat-fade {
 	--fade-end: calc(100% - var(--composer-h, 140px) + 28px);
-	mask-image: linear-gradient(to bottom, #000 calc(var(--fade-end) - 56px), transparent var(--fade-end));
+	/* The top edge fades too, now that the header has no bar. */
+	mask-image: linear-gradient(to bottom, transparent 0, #000 24px, #000 calc(var(--fade-end) - 56px), transparent var(--fade-end));
 }
 
 /* Kept so old markup does not break. The pixel font is gone. */

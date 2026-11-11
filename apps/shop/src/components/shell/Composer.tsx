@@ -1,5 +1,5 @@
 import { ArrowUp, Check, ImagePlus } from "lucide-react";
-import { type MutableRefObject, type Ref, useEffect } from "react";
+import { type MutableRefObject, type Ref, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FileUIPart } from "ai";
 import {
 	PromptInput,
@@ -45,9 +45,43 @@ function ClearHandle({ clearRef }: { clearRef: MutableRefObject<(() => void) | n
 	return null;
 }
 
-// The listing that the user tagged from Moji oglasi or the detail panel.
+const GAP = 6;
+const MORE_W = 44;
+
+// How many pills fit in one row with room left for the "+N" pill. A hidden copy of the row gives the widths.
+function useFit(tagged: unknown[]) {
+	const row = useRef<HTMLDivElement>(null);
+	const probe = useRef<HTMLDivElement>(null);
+	const [fit, setFit] = useState(tagged.length);
+	useLayoutEffect(() => {
+		const measure = () => {
+			const max = row.current?.clientWidth ?? 0;
+			const widths = [...(probe.current?.children ?? [])].map((c) => (c as HTMLElement).offsetWidth);
+			const total = widths.reduce((s, w) => s + w + GAP, -GAP);
+			if (total <= max) return setFit(widths.length);
+			let used = MORE_W;
+			let k = 0;
+			while (k < widths.length && used + widths[k]! + GAP <= max) used += widths[k++]! + GAP;
+			setFit(Math.max(1, k));
+		};
+		measure();
+		const ro = new ResizeObserver(measure);
+		if (row.current) ro.observe(row.current);
+		return () => ro.disconnect();
+	}, [tagged]);
+	return { row, probe, fit };
+}
+
+// The listings that the user tagged. Pills that do not fit hide behind a "+N" pill that opens all of them.
 function TaggedSlot() {
 	const tagged = useTaggedListings();
+	const { row, probe, fit } = useFit(tagged);
+	const [all, setAll] = useState(false);
+	const hidden = tagged.length - fit;
+	useEffect(() => {
+		if (hidden <= 0) setAll(false);
+	}, [hidden]);
+	const shown = all ? tagged : tagged.slice(0, fit);
 	return (
 		<AnimatePresence initial={false}>
 			{tagged.length > 0 && (
@@ -57,13 +91,27 @@ function TaggedSlot() {
 					animate={{ opacity: 1, scale: 1, height: "auto" }}
 					exit={{ opacity: 0, scale: 0.96, height: 0 }}
 					transition={{ duration: 0.18, ease: "easeOut" }}
-					className="origin-left overflow-hidden px-2 pt-1.5"
+					className="relative origin-left overflow-hidden px-2 pt-1.5"
 				>
-					{/* One row. More pills scroll sideways. */}
-					<div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] [&>*]:shrink-0 [&::-webkit-scrollbar]:hidden">
+					<div aria-hidden ref={probe} className="pointer-events-none invisible absolute flex gap-1.5 [&>*]:shrink-0">
 						{tagged.map((l) => (
+							<TaggedChip key={taggedKey(l)} listing={l} onRemove={() => {}} />
+						))}
+					</div>
+					<div ref={row} className={cn("flex min-w-0 gap-1.5", all ? "flex-wrap" : "[&>*]:shrink-0")}>
+						{shown.map((l) => (
 							<TaggedChip key={taggedKey(l)} listing={l} onRemove={() => untagListing(l)} />
 						))}
+						{hidden > 0 && (
+							<button
+								type="button"
+								aria-expanded={all}
+								onClick={() => setAll((v) => !v)}
+								className="h-7 flex-none cursor-pointer rounded-full border border-accent/25 bg-accent/12 px-2.5 text-[13px] font-medium text-fg hover:bg-accent/20"
+							>
+								{all ? ta.tagLess : `+${hidden}`}
+							</button>
+						)}
 					</div>
 				</motion.div>
 			)}

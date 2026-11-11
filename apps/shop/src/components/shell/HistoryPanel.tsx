@@ -1,6 +1,7 @@
 import { Pencil, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { HoldButton } from "@/components/account/ClearData";
+import { plural } from "@/components/detail/format";
 import { PanelBody, PanelHeader, Section } from "@/components/account/ui";
 import { useSidePanel } from "@/components/shell/side-panel";
 import type { StoredChat } from "@/lib/chat-history";
@@ -21,13 +22,18 @@ export function groupOf(ts: number, now: number): Group {
 
 function relTime(ts: number, now: number) {
 	const mins = Math.floor((now - ts) / 60_000);
+	// Browsers have no "bs" data for Intl.RelativeTimeFormat (it gives "-2 min"), so the words are ours.
 	if (mins < 1) return strings.historyNow;
-	const rtf = new Intl.RelativeTimeFormat("bs", { numeric: "auto" });
-	if (mins < 60) return rtf.format(-mins, "minute");
+	if (mins < 60) return `prije ${mins} min`;
 	const group = groupOf(ts, now);
-	if (group === "today") return rtf.format(-Math.floor(mins / 60), "hour");
-	if (group === "older") return new Date(ts).toLocaleDateString("bs", { day: "numeric", month: "short" });
-	return rtf.format(-Math.round((startOfDay(now) - startOfDay(ts)) / DAY), "day");
+	if (group === "today") {
+		const h = Math.floor(mins / 60);
+		return `prije ${h} ${plural(h, { one: "sat", few: "sata", other: "sati" })}`;
+	}
+	if (group === "yesterday") return "jučer";
+	if (group === "older") return new Date(ts).toLocaleDateString("sr-Latn", { day: "numeric", month: "long" });
+	const days = Math.round((startOfDay(now) - startOfDay(ts)) / DAY);
+	return `prije ${days} ${plural(days, { one: "dan", few: "dana", other: "dana" })}`;
 }
 
 type RowProps = { chat: StoredChat; current: boolean; now: number; onPick: () => void; onDelete: () => void };
@@ -66,7 +72,11 @@ type Props = { chats: StoredChat[]; currentId: string; onPick: (id: string) => v
 export function HistoryPanel({ chats, currentId, onPick, onDelete, onNew, onClear }: Props) {
 	const { closeHistory } = useSidePanel();
 	// The relative times are fixed while the panel is open.
-	const [now] = useState(Date.now);
+	const [now, setNow] = useState(Date.now);
+	useEffect(() => {
+		const id = setInterval(() => setNow(Date.now()), 30_000);
+		return () => clearInterval(id);
+	}, []);
 	return (
 		<>
 			<PanelHeader title={strings.historyTitle} onClose={closeHistory} />
