@@ -1,0 +1,24 @@
+{
+	"ps5": {
+		"kept": [
+			"Playstation 5 disc",
+			"PS5 slim 1TB",
+			"Sony PlayStation 5 825GB + 2 kontrolera",
+			"PS 5 konzola + FIFA 24 igrica",
+			"PlayStation5 Digital Edition",
+			"Ps5 u kutiji, očuvan"
+		],
+		"rejected": {
+			"Igrica FIFA 24 PS5": "accessory",
+			"Kontroler PS5 DualSense": "accessory",
+			"Futrola za PS5 kontroler": "accessory",
+			"PlayStation 5 Pro 2TB": "variant",
+			"PS5 neispravan, za dijelove": "reject",
+			"Playstation 5 PS5 neispravan": "reject",
+			"Kupujem PS5 konzolu": "reject",
+			"Mijenjam PS5 za Xbox": "reject",
+			"PS4 Slim 500GB": "mismatch",
+			"Punjač za PS5 kontrolere": "accessory"
+		}
+	}
+}

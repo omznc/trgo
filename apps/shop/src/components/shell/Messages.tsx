@@ -67,7 +67,7 @@ function PartView({ part, caret, onRespond, searchOpen }: { part: Part; caret: b
 		case "tool-search_listings":
 		case "tool-list_my_listings":
 			return <SearchPart part={part} defaultOpen={searchOpen} />;
-		case "tool-show_price_check":
+		case "tool-price_check":
 			return <PriceCheckPart part={part} />;
 		case "tool-create_listing":
 			return <ListingApprovalPart part={part} onRespond={onRespond} />;
@@ -93,7 +93,7 @@ export function AssistantMessage({
 	// Only the last search starts open. A price card is the main result, so it closes all of them.
 	const isSearch = (p: Part) => p.type === "tool-search_listings" || p.type === "tool-list_my_listings";
 	const lastSearch = message.parts.findLastIndex(isSearch);
-	const hasPriceCard = message.parts.some((p) => p.type === "tool-show_price_check");
+	const hasPriceCard = message.parts.some((p) => p.type === "tool-price_check");
 	return (
 		<div className="in flex items-start gap-3">
 			<div className="w-8 shrink-0 pt-0.5">

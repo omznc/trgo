@@ -41,6 +41,8 @@ export type SearchQuery = {
 	condition?: "new" | "used";
 	sort?: "relevance" | "price_asc" | "price_desc" | "newest";
 	limit?: number;
+	// 1-based page of `limit` results.
+	page?: number;
 };
 
 export type SearchResult = {

@@ -56,6 +56,7 @@ export function olxSearchParams(query: SearchQuery) {
 	return {
 		q: query.q,
 		per_page: query.limit ?? 20,
+		page: query.page,
 		price_from: query.minPrice,
 		price_to: query.maxPrice,
 		state: query.condition,

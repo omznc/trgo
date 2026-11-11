@@ -1,15 +1,22 @@
+import { quantile, type Selection } from "@lagano/providers";
+
 export type Bucket = { from: number; to: number; count: number };
 export type PriceStats = { count: number; min: number; max: number; median: number; p25: number; p75: number; buckets: Bucket[]; peak: number };
+export type PriceReport = {
+	stats: PriceStats;
+	fetched: number;
+	windowDays: number;
+	// Number of dropped listings by reason.
+	dropped: Record<string, number>;
+	newMedian?: number;
+	usedMedian?: number;
+	// Change of the median of the last 30 days against the rest of the window, in percent.
+	trendPct?: number;
+};
 
 const BINS = 12;
-
-// Linear interpolation between the closest ranks. The input is sorted.
-function quantile(sorted: number[], q: number) {
-	const pos = (sorted.length - 1) * q;
-	const lo = Math.floor(pos);
-	const hi = Math.ceil(pos);
-	return sorted[lo]! + (sorted[hi]! - sorted[lo]!) * (pos - lo);
-}
+const MIN_SIDE = 5;
+const DAY_MS = 86_400_000;
 
 // Prices of 0, null or NaN ("Na upit") are ignored. Returns null when no price is left.
 export function priceStats(prices: (number | null | undefined)[]): PriceStats | null {
@@ -23,4 +30,28 @@ export function priceStats(prices: (number | null | undefined)[]): PriceStats | 
 	for (const p of sorted) buckets[width === 0 ? 0 : Math.min(n - 1, Math.floor((p - min) / width))]!.count++;
 	const peak = buckets.reduce((best, b, i) => (b.count > buckets[best]!.count ? i : best), 0);
 	return { count: sorted.length, min, max, median: quantile(sorted, 0.5), p25: quantile(sorted, 0.25), p75: quantile(sorted, 0.75), buckets, peak };
+}
+
+// Median of a group, only when the group has enough prices.
+function medianOf(prices: number[]): number | undefined {
+	return prices.length < MIN_SIDE ? undefined : priceStats(prices)?.median;
+}
+
+export function priceReport(selection: Selection, now = Date.now()): PriceReport | null {
+	const { listings } = selection;
+	const stats = priceStats(listings.map((l) => l.price));
+	if (!stats) return null;
+	const prices = (keep: (l: (typeof listings)[number]) => boolean) => listings.filter(keep).map((l) => l.price!);
+	const isRecent = (l: (typeof listings)[number]) => now - Date.parse(l.postedAt!) <= 30 * DAY_MS;
+	const recent = medianOf(prices(isRecent));
+	const rest = medianOf(prices((l) => !isRecent(l)));
+	return {
+		stats,
+		fetched: selection.fetched,
+		windowDays: selection.windowDays,
+		dropped: selection.dropped,
+		newMedian: medianOf(prices((l) => l.condition === "new")),
+		usedMedian: medianOf(prices((l) => l.condition === "used")),
+		trendPct: recent && rest ? Math.round((recent / rest - 1) * 100) : undefined,
+	};
 }

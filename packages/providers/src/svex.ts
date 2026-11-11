@@ -45,6 +45,8 @@ export function svexSearchParams(query: SearchQuery, condition?: string) {
 	return {
 		q: query.q,
 		limit: query.limit ?? 20,
+		// The cursor is the offset of the first result.
+		cursor: query.page ? (query.page - 1) * (query.limit ?? 20) : undefined,
 		priceMin: query.minPrice,
 		priceMax: query.maxPrice,
 		condition,

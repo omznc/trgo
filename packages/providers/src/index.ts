@@ -5,5 +5,6 @@ export { OLX_SHIPPING_NOTE, olxDescription } from "./olx-account";
 export type { MineStatus, MyListing, RefreshResult } from "./mine";
 export { discoverActions, KNOWN_ACTIONS } from "./svex-actions";
 export { getListing, listingIdFromUrl } from "./detail";
+export { fetchRecent, quantile, selectComparable, type Selection } from "./price-sample";
 export { searchAll } from "./search-all";
 export { createListingTool, listMyListingsTool, searchListingsTool } from "./tool";

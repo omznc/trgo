@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { priceStats } from "./price-stats";
+import { priceReport, priceStats } from "./price-stats";
 
 test("ignores zero, null and NaN", () => {
 	const s = priceStats([0, null, Number.NaN, 100, 200, undefined]);
@@ -32,4 +32,24 @@ test("equal prices make one bucket", () => {
 	const s = priceStats([500, 500])!;
 	expect(s.buckets).toEqual([{ from: 500, to: 500, count: 2 }]);
 	expect(s.median).toBe(500);
+});
+
+const listing = (price: number, age: number, condition?: "new" | "used") =>
+	({ price, condition, postedAt: new Date(NOW - age * 86_400_000).toISOString() }) as never;
+const NOW = Date.parse("2026-11-11T12:00:00Z");
+
+test("report: new/used medians and trend need 5 on each side", () => {
+	const recent = [700, 710, 720, 730, 740].map((p) => listing(p, 5, "used"));
+	const older = [600, 610, 620, 630, 640].map((p) => listing(p, 60, "new"));
+	const r = priceReport({ fetched: 40, listings: [...recent, ...older], windowDays: 90, dropped: { accessory: 3 } }, NOW)!;
+	expect(r.usedMedian).toBe(720);
+	expect(r.newMedian).toBe(620);
+	expect(r.trendPct).toBe(16);
+	expect(r.fetched).toBe(40);
+});
+
+test("report: no trend or split with fewer than 5", () => {
+	const r = priceReport({ fetched: 4, listings: [700, 710, 720, 730].map((p) => listing(p, 5, "used")), windowDays: 90, dropped: {} }, NOW)!;
+	expect(r.usedMedian).toBeUndefined();
+	expect(r.trendPct).toBeUndefined();
 });

@@ -1,9 +1,9 @@
 import type { ToolUIPart } from "ai";
 import { Tag } from "lucide-react";
-import type { PriceStats } from "@/lib/price-stats";
+import type { PriceCheckOutput } from "@/lib/price-check";
+import type { PriceReport, PriceStats } from "@/lib/price-stats";
 import { strings } from "@/lib/strings";
 
-type PriceOutput = { item: string; stats: PriceStats | null };
 
 const km = (n: number) => Math.round(n).toLocaleString("de-DE");
 
@@ -24,18 +24,60 @@ function Histogram({ stats }: { stats: PriceStats }) {
 	);
 }
 
-export function PriceCheckPart({ part }: { part: ToolUIPart }) {
-	if (part.state !== "output-available") return null;
-	const { item, stats } = part.output as PriceOutput;
-	if (!stats) return null;
+const shell = "glass in flex max-w-[560px] flex-col gap-4 rounded-panel p-5 shadow-none";
+
+function Title({ item }: { item?: string }) {
 	return (
-		<section className="glass in flex max-w-[560px] flex-col gap-4 rounded-panel p-5 shadow-none" style={{ animationDelay: "120ms" }}>
-			<div className="flex items-baseline justify-between gap-3">
-				<div className="flex items-center gap-2">
-					<Tag className="size-4 shrink-0 text-accent" strokeWidth={2.2} aria-hidden />
-					<h3 className="m-0 text-[15px] font-semibold">{strings.priceTitle(item)}</h3>
-				</div>
-				<span className="shrink-0 text-xs text-fg-3">{strings.priceMeta(stats.count)}</span>
+		<div className="flex items-center gap-2">
+			<Tag className="size-4 shrink-0 text-accent" strokeWidth={2.2} aria-hidden />
+			<h3 className="m-0 text-[15px] font-semibold">{strings.priceTitle(item ?? "")}</h3>
+		</div>
+	);
+}
+
+function Loading({ item, fetched }: { item?: string; fetched: number }) {
+	return (
+		<section className={shell} style={{ animationDelay: "120ms" }} aria-busy>
+			<Title item={item} />
+			<div className="text-xs text-fg-3" role="status">{strings.priceLoading(fetched)}</div>
+			<div className="shim h-[46px] w-40 rounded-md" />
+			<div className="shim h-[72px] rounded-md" />
+		</section>
+	);
+}
+
+// Dropped counts, largest first, as "61 dodatak, 12 neispravnih cijena".
+function droppedText(dropped: Record<string, number>) {
+	return Object.entries(dropped)
+		.filter(([, n]) => n > 0)
+		.sort((a, b) => b[1] - a[1])
+		.map(([reason, n]) => `${n} ${strings.priceDropped[reason] ?? reason}`)
+		.join(", ");
+}
+
+function Extras({ report }: { report: PriceReport }) {
+	const { newMedian, usedMedian, trendPct } = report;
+	const parts = [
+		usedMedian && `${strings.priceUsed}: ${km(usedMedian)} KM`,
+		newMedian && `${strings.priceNew}: ${km(newMedian)} KM`,
+		trendPct !== undefined && strings.priceTrend(trendPct),
+	].filter(Boolean);
+	return parts.length ? <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-fg-2">{parts.map((p) => <span key={String(p)}>{p}</span>)}</div> : null;
+}
+
+export function PriceCheckPart({ part }: { part: ToolUIPart }) {
+	const output = part.state === "output-available" ? (part.output as PriceCheckOutput) : undefined;
+	const item = (part.input as { item?: string } | undefined)?.item;
+	if (part.state === "output-error") return null;
+	if (!output || "loading" in output) return <Loading item={item} fetched={output && "loading" in output ? output.fetched : 0} />;
+	const { report } = output;
+	if (!report) return <section className={shell}><Title item={output.item} /><p className="m-0 text-sm text-fg-2">{strings.priceEmpty(output.item)}</p></section>;
+	const { stats } = report;
+	return (
+		<section className={shell} style={{ animationDelay: "120ms" }}>
+			<div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+				<Title item={output.item} />
+				<span className="shrink-0 text-xs text-fg-3">{strings.priceMeta(stats.count, report.windowDays)}</span>
 			</div>
 			<div className="flex flex-wrap items-end gap-7">
 				<div>
@@ -49,12 +91,14 @@ export function PriceCheckPart({ part }: { part: ToolUIPart }) {
 					</div>
 				</div>
 			</div>
+			<Extras report={report} />
 			<Histogram stats={stats} />
 			<div className="flex justify-between text-xs text-fg-3">
 				<span>{km(stats.min)} KM</span>
 				<span>{km((stats.min + stats.max) / 2)}</span>
 				<span>{km(stats.max)} KM</span>
 			</div>
+			<div className="text-xs text-fg-3">{strings.priceAnalyzed(stats.count, report.fetched, droppedText(report.dropped))}</div>
 		</section>
 	);
 }
