@@ -14,9 +14,24 @@ export type Listing = {
 	postedAt?: string;
 };
 
+export type ListingSeller = { name: string; type: "shop" | "private"; since?: string };
+
+export type ListingDelivery = {
+	shipping?: boolean;
+	pickup?: boolean;
+	freeShipping?: boolean;
+	// Shipping price in KM, when the seller states one.
+	price?: number | null;
+};
+
 export type ListingDetail = Listing & {
+	// Plain text. Line breaks are "\n". No HTML.
 	description: string;
 	imageUrls: string[];
+	views?: number;
+	seller?: ListingSeller;
+	attributes: { name: string; value: string }[];
+	delivery: ListingDelivery;
 };
 
 export type SearchQuery = {

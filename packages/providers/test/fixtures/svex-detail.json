@@ -1,0 +1,37 @@
+{
+  "id": "80945785-7da9-4c30-a8cd-2c3d3dd41eec",
+  "title": "3D Printer Creality Ender 3 Pro",
+  "price": "400",
+  "currency": "BAM",
+  "condition": "new_sealed",
+  "publishedAt": "2026-10-23T15:12:51.395Z",
+  "slug": "3d-printer-creality-ender-3-pro-mvl3zvz17c49",
+  "description": "Tehnologija štampe: FDM (FFF)\nRadni volumen: 220 × 220 × 250 mm\nDebljina sloja: 0,1 – 0,4 mm\nPromjer mlaznice: 0,4 mm\nFilament: 1,75 mm\nPodržani materijali: PLA, PETG, TPU, ABS i drugi\nGrijana magnetna podloga (C-MAG)\nMaks. temperatura mlaznice: 255°C\nMaks. temperatura podloge: 110°C\nPovezivanje: SD kartica / USB\nLCD ekran\nFunkcija nastavka štampe nakon nestanka struje\n\n\nNa stanju dva komada. \nZajedno može za 600KM!",
+  "attributes": {
+    "marka": "creality",
+    "vrsta_opreme": "3d-printer"
+  },
+  "deliveryShipping": null,
+  "deliveryPickup": null,
+  "deliveryPrice": null,
+  "viewsCount": 1,
+  "cityNames": [
+    "Bihać"
+  ],
+  "images": [
+    {
+      "url": "https://d3crc1dm59gy8z.cloudfront.net/listing_image/e3db3ba8-3dfa-4bd5-9935-f498945c7ab2/045c335b-f043-4a9c-9674-445bd2e5cd15_large.webp"
+    },
+    {
+      "url": "https://d3crc1dm59gy8z.cloudfront.net/listing_image/e3db3ba8-3dfa-4bd5-9935-f498945c7ab2/840374bb-6efc-4d5f-b6de-3d46ece42242_large.webp"
+    }
+  ],
+  "seller": {
+    "username": "mesud_mesic10",
+    "displayName": null,
+    "hideUsername": false,
+    "accountType": "private",
+    "isCompany": false,
+    "createdAt": "2026-10-21T12:54:40.777Z"
+  }
+}

@@ -1,17 +1,20 @@
 import { Copy, RefreshCw } from "lucide-react";
 import { MessageResponse } from "@/components/ai-elements/message";
+import { EditApprovalPart } from "@/components/EditApproval";
 import { ListingApprovalPart } from "@/components/ListingApproval";
 import { SearchPart } from "@/components/ListingCards";
+import { PriceCheckPart } from "@/components/PriceCard";
 import { Mascot, type MascotMood } from "@/components/Mascot";
 import type { LaganoMessage } from "@/lib/agent";
 import { getPhoto } from "@/lib/photos";
 import { strings } from "@/lib/strings";
+import { TaggedChip } from "./TaggedChip";
 
 type Part = LaganoMessage["parts"][number];
 export type Respond = (id: string, approved: boolean) => void;
 
 // The attached-photo and source notes are for the model, not for the user.
-const MODEL_NOTE = /\n\n\[(?:Attached photos|Search only on):[^\]]*\]/g;
+const MODEL_NOTE = /\n\n\[(?:Attached photos|Search only on|Tagged listing):[^\]]*\]/g;
 export const stripNotes = (text: string) => text.replace(MODEL_NOTE, "");
 
 export function textOf(message: LaganoMessage) {
@@ -30,6 +33,7 @@ function UserMessage({ message }: { message: LaganoMessage }) {
 					))}
 				</div>
 			)}
+			{message.metadata?.tagged && <TaggedChip listing={message.metadata.tagged} small />}
 			{text && (
 				<div data-selectable className="rounded-[20px_20px_6px_20px] bg-accent px-4 py-[11px] text-base leading-[1.45] font-medium tracking-[-0.01em] whitespace-pre-wrap text-bg">
 					{text}
@@ -52,7 +56,7 @@ function moodOf(parts: Part[], streaming: boolean): MascotMood {
 	return streaming ? "thinking" : "calm";
 }
 
-function PartView({ part, caret, onRespond }: { part: Part; caret: boolean; onRespond: Respond }) {
+function PartView({ part, caret, onRespond, searchOpen }: { part: Part; caret: boolean; onRespond: Respond; searchOpen: boolean }) {
 	switch (part.type) {
 		case "text":
 			return part.text ? (
@@ -62,9 +66,13 @@ function PartView({ part, caret, onRespond }: { part: Part; caret: boolean; onRe
 			) : null;
 		case "tool-search_listings":
 		case "tool-list_my_listings":
-			return <SearchPart part={part} />;
+			return <SearchPart part={part} defaultOpen={searchOpen} />;
+		case "tool-show_price_check":
+			return <PriceCheckPart part={part} />;
 		case "tool-create_listing":
 			return <ListingApprovalPart part={part} onRespond={onRespond} />;
+		case "tool-edit_my_listing":
+			return <EditApprovalPart part={part} onRespond={onRespond} />;
 		default:
 			return null;
 	}
@@ -82,6 +90,10 @@ export function AssistantMessage({
 	onRespond: Respond;
 }) {
 	const last = message.parts.length - 1;
+	// Only the last search starts open. A price card is the main result, so it closes all of them.
+	const isSearch = (p: Part) => p.type === "tool-search_listings" || p.type === "tool-list_my_listings";
+	const lastSearch = message.parts.findLastIndex(isSearch);
+	const hasPriceCard = message.parts.some((p) => p.type === "tool-show_price_check");
 	return (
 		<div className="in flex items-start gap-3">
 			<div className="w-8 shrink-0 pt-0.5">
@@ -89,7 +101,7 @@ export function AssistantMessage({
 			</div>
 			<div className="flex min-w-0 flex-1 flex-col gap-3.5">
 				{message.parts.map((part, i) => (
-					<PartView key={i} part={part} caret={streaming && i === last} onRespond={onRespond} />
+					<PartView key={i} part={part} caret={streaming && i === last} onRespond={onRespond} searchOpen={!hasPriceCard && i === lastSearch} />
 				))}
 				{actions}
 			</div>

@@ -68,6 +68,66 @@ export function mergeSvexResults(results: SearchResult[], query: SearchQuery): S
 	return { listings: all.slice(0, query.limit ?? 20), total: results.reduce((sum, r) => sum + r.total, 0) };
 }
 
+type SvexDetail = SvexItem & {
+	description?: string;
+	images?: { url: string }[];
+	cityNames?: string[];
+	viewsCount?: number;
+	attributes?: Record<string, unknown>;
+	deliveryShipping?: boolean | null;
+	deliveryPickup?: boolean | null;
+	deliveryPrice?: number | string | null;
+	seller?: {
+		username?: string;
+		displayName?: string | null;
+		hideUsername?: boolean;
+		accountType?: string;
+		isCompany?: boolean;
+		createdAt?: string;
+	};
+};
+
+// "vrsta_opreme" becomes "Vrsta opreme".
+const humanize = (key: string) => {
+	const text = key.replace(/[_-]+/g, " ").trim();
+	return text.charAt(0).toUpperCase() + text.slice(1);
+};
+
+export function mapSvexDetail(d: SvexDetail): ListingDetail {
+	const listing = mapSvexItem({ ...d, city: d.city ?? d.cityNames?.[0] });
+	const imageUrls = (d.images ?? []).map((i) => i.url);
+	return {
+		...listing,
+		imageUrl: imageUrls[0] ?? listing.imageUrl,
+		description: d.description ?? "",
+		imageUrls,
+		views: d.viewsCount,
+		seller: svexSeller(d.seller),
+		attributes: Object.entries(d.attributes ?? {})
+			.filter(([, v]) => typeof v === "string" || typeof v === "number")
+			.map(([k, v]) => ({ name: humanize(k), value: humanize(String(v)) })),
+		delivery: svexDelivery(d),
+	};
+}
+
+function svexSeller(s: SvexDetail["seller"]): ListingDetail["seller"] {
+	if (!s) return undefined;
+	const name = s.displayName || (s.hideUsername ? undefined : s.username);
+	if (!name) return undefined;
+	const isShop = s.isCompany || (s.accountType ?? "private") !== "private";
+	return { name, type: isShop ? "shop" : "private", since: s.createdAt };
+}
+
+function svexDelivery(d: SvexDetail): ListingDetail["delivery"] {
+	const price = d.deliveryPrice == null ? d.deliveryPrice : Number(d.deliveryPrice);
+	return {
+		shipping: d.deliveryShipping ?? undefined,
+		pickup: d.deliveryPickup ?? undefined,
+		freeShipping: price === 0 ? true : undefined,
+		price,
+	};
+}
+
 export function createSvexProvider(options: ProviderOptions): Provider & ReturnType<typeof createSvexAccount> {
 	const getJson = createGetJson(options);
 	const account = createSvexAccount(options);
@@ -88,12 +148,7 @@ export function createSvexProvider(options: ProviderOptions): Provider & ReturnT
 			return mergeSvexResults(results, query);
 		},
 		async getListing(id): Promise<ListingDetail> {
-			const d = await getJson<
-				SvexItem & { description?: string; images?: { url: string }[]; cityNames?: string[] }
-			>(`/svex-listing/v1/listings/${id}`);
-			const listing = mapSvexItem({ ...d, city: d.city ?? d.cityNames?.[0] });
-			const imageUrls = (d.images ?? []).map((i) => i.url);
-			return { ...listing, imageUrl: imageUrls[0] ?? listing.imageUrl, description: d.description ?? "", imageUrls };
+			return mapSvexDetail(await getJson<SvexDetail>(`/svex-listing/v1/listings/${id}`));
 		},
 	};
 }

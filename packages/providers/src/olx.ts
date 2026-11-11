@@ -63,14 +63,66 @@ export function olxSearchParams(query: SearchQuery) {
 	};
 }
 
-function htmlToText(html: string): string {
+// Keeps text, <br> and <p> only. The result is plain text: the UI must not render it as HTML.
+export function htmlToText(html: string): string {
 	return html
 		.replace(/<\/p>|<br\s*\/?>/gi, "\n")
 		.replace(/<[^>]+>/g, "")
 		.replace(/&nbsp;/g, " ")
+		.replace(/&lt;/g, "<")
+		.replace(/&gt;/g, ">")
+		.replace(/&quot;/g, '"')
+		.replace(/&#0?39;/g, "'")
 		.replace(/&amp;/g, "&")
 		.replace(/\n{3,}/g, "\n\n")
 		.trim();
+}
+
+type OlxDetail = OlxItem & {
+	views?: number;
+	additional?: { description?: string; created_at?: number };
+	images?: string[];
+	cities?: { name: string }[];
+	user?: { username?: string; type?: string; created_at?: number };
+	attributes?: { name: string; value: string }[];
+	shipping?: string;
+	free_delivery?: boolean;
+	shipping_available?: boolean;
+};
+
+// OLX sends booleans as the strings "true" and "false".
+const olxAttrValue = (value: string) => (value === "true" ? "Da" : value === "false" ? "Ne" : value);
+
+export function mapOlxDetail(d: OlxDetail): ListingDetail {
+	const listing = mapOlxItem(d);
+	const created = d.additional?.created_at;
+	const images = d.images ?? [];
+	return {
+		...listing,
+		city: d.cities?.[0]?.name,
+		imageUrl: images[0] ?? listing.imageUrl,
+		postedAt: created ? new Date(created * 1000).toISOString() : listing.postedAt,
+		description: htmlToText(d.additional?.description ?? ""),
+		imageUrls: images,
+		views: d.views,
+		seller: olxSeller(d.user),
+		attributes: (d.attributes ?? []).filter((a) => a.value).map((a) => ({ name: a.name, value: olxAttrValue(a.value) })),
+		delivery: olxDelivery(d),
+	};
+}
+
+function olxSeller(user: OlxDetail["user"]): ListingDetail["seller"] {
+	if (!user?.username) return undefined;
+	return {
+		name: user.username,
+		type: user.type === "shop" ? "shop" : "private",
+		since: user.created_at ? new Date(user.created_at * 1000).toISOString() : undefined,
+	};
+}
+
+function olxDelivery(d: OlxDetail): ListingDetail["delivery"] {
+	const shipping = d.shipping_available !== false && d.shipping !== undefined && d.shipping !== "no_shipping";
+	return { shipping, freeShipping: d.free_delivery };
 }
 
 export function createOlxProvider(options: ProviderOptions): Provider & ReturnType<typeof createOlxAccount> {
@@ -96,17 +148,7 @@ export function createOlxProvider(options: ProviderOptions): Provider & ReturnTy
 			};
 		},
 		async getListing(id): Promise<ListingDetail> {
-			const d = await getJson<
-				OlxItem & { additional?: { description?: string }; images?: string[]; cities?: { name: string }[] }
-			>(`/olx/listings/${id}`);
-			const listing = mapOlxItem(d);
-			return {
-				...listing,
-				city: d.cities?.[0]?.name,
-				imageUrl: d.images?.[0] ?? listing.imageUrl,
-				description: htmlToText(d.additional?.description ?? ""),
-				imageUrls: d.images ?? [],
-			};
+			return mapOlxDetail(await getJson<OlxDetail>(`/olx/listings/${id}`));
 		},
 	};
 }

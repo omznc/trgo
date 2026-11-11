@@ -2,9 +2,12 @@ import { describe, expect, test } from "bun:test";
 import olxCities from "./fixtures/olx-cities.json";
 import olxSearch from "./fixtures/olx-search.json";
 import svexSearch from "./fixtures/svex-search.json";
-import { flattenOlxCities, mapOlxItem, olxSearchParams } from "../src/olx";
+import olxDetail from "./fixtures/olx-detail.json";
+import svexDetail from "./fixtures/svex-detail.json";
+import { listingIdFromUrl } from "../src/detail";
+import { flattenOlxCities, htmlToText, mapOlxDetail, mapOlxItem, olxSearchParams } from "../src/olx";
 import { searchAll } from "../src/search-all";
-import { mapSvexItem, svexSearchParams } from "../src/svex";
+import { mapSvexDetail, mapSvexItem, svexSearchParams } from "../src/svex";
 import type { Provider } from "../src/types";
 
 describe("olx", () => {
@@ -85,5 +88,36 @@ describe("searchAll", () => {
 		expect(res.listings).toHaveLength(1);
 		expect(res.total).toBe(9);
 		expect(res.errors).toEqual([{ provider: "svex", message: "HTTP 502" }]);
+	});
+});
+
+describe("listing detail", () => {
+	test("maps an OLX detail and strips HTML", () => {
+		const d = mapOlxDetail(olxDetail);
+		expect(d).toMatchObject({ id: "73497222", city: "Tuzla", views: 111, seller: { name: "GameLand", type: "shop" } });
+		expect(d.description).not.toMatch(/[<>]/);
+		expect(d.description).toContain("\n");
+		expect(d.imageUrls).toHaveLength(1);
+		expect(d.attributes).toContainEqual({ name: "Original", value: "Da" });
+		expect(d.postedAt).toBe(new Date(olxDetail.additional.created_at * 1000).toISOString());
+	});
+
+	test("htmlToText drops tags and decodes entities", () => {
+		expect(htmlToText("<p>a &amp; b<script>x</script></p><p>&lt;i&gt;</p>")).toBe("a & bx\n<i>");
+	});
+
+	test("maps a SVEX detail", () => {
+		const d = mapSvexDetail(svexDetail);
+		expect(d).toMatchObject({ views: 1, seller: { name: "mesud_mesic10", type: "private" } });
+		expect(d.imageUrls).toHaveLength(2);
+		expect(d.attributes).toContainEqual({ name: "Vrsta opreme", value: "3d printer" });
+		expect(d.description).toContain("Radni volumen");
+	});
+
+	test("reads the id from a listing URL", () => {
+		expect(listingIdFromUrl("olx", "https://olx.ba/artikal/73497222")).toBe("73497222");
+		expect(listingIdFromUrl("svex", `https://svex.ba/oglas/${svexDetail.id}-slug`)).toBe(svexDetail.id);
+		expect(listingIdFromUrl("olx", "123")).toBe("123");
+		expect(() => listingIdFromUrl("olx", "https://olx.ba/x")).toThrow();
 	});
 });

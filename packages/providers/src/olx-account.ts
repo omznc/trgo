@@ -1,8 +1,11 @@
 import { createRequest, readJson } from "./http";
-import { flattenOlxCities, mapOlxItem } from "./olx";
-import type { Listing, NamedId, OlxListingInput, OlxSession, ProviderOptions } from "./types";
+import { type MyListing, mapOlxMine, OLX_STATES, type RefreshResult } from "./mine";
+import { flattenOlxCities } from "./olx";
+import type { NamedId, OlxListingInput, OlxSession, ProviderOptions } from "./types";
 
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+const MAX_PAGES = 5;
+type RefreshLimits = { free_limit: number; free_count: number; paid_count: number; listing_count: number };
 const DEVICE_NAME = "lagano-shop";
 
 // The OLX API has no field for shipping, so the UI shows this to the user.
@@ -82,10 +85,37 @@ export function createOlxAccount(options: ProviderOptions) {
 		return readJson<unknown>(res, "OLX image upload");
 	}
 
-	async function listMine(s: OlxSession): Promise<Listing[]> {
+	async function listPages(path: string, s: OlxSession) {
+		const items: Parameters<typeof mapOlxMine>[0][] = [];
+		for (let page = 1; page <= MAX_PAGES; page++) {
+			const res = await readJson<{ data?: typeof items; meta?: { last_page?: number } }>(
+				await request(`/olx${path}?per_page=50&page=${page}`, { headers: auth(s) }),
+				`OLX ${path}`,
+			);
+			items.push(...(res.data ?? []));
+			if (page >= (res.meta?.last_page ?? 1)) break;
+		}
+		return items;
+	}
+
+	// The active list needs the username. The other lists need the numeric id.
+	async function listMine(s: OlxSession): Promise<MyListing[]> {
 		const user = await me(s);
-		const items = await get<Parameters<typeof mapOlxItem>[0][]>(`/users/${user.id}/listings`, s);
-		return items.map((item) => mapOlxItem(item));
+		const lists = await Promise.all(
+			OLX_STATES.map(async ([state, status]) => {
+				const path = state === "active" ? `/users/${user.username}/listings` : `/users/${user.id}/listings/${state}`;
+				return (await listPages(path, s)).map((item) => mapOlxMine(item, status));
+			}),
+		);
+		return lists.flat();
+	}
+
+	async function refresh(s: OlxSession, id: number): Promise<RefreshResult> {
+		const before = await send<RefreshLimits>("GET", "/listing/refresh/limits", s).catch(() => undefined);
+		await send<unknown>("PUT", `/listings/${id}/refresh`, s);
+		if (!before) return {};
+		const left = before.free_limit - before.free_count;
+		return { freeLeft: Math.max(0, left - 1), paid: left <= 0 };
 	}
 
 	return {
@@ -101,6 +131,13 @@ export function createOlxAccount(options: ProviderOptions) {
 		uploadImages,
 		publish: (s: OlxSession, id: number) => send<unknown>("POST", `/listings/${id}/publish`, s),
 		listMine,
+		refresh,
+		refreshLimits: (s: OlxSession) => send<RefreshLimits>("GET", "/listing/refresh/limits", s),
+		hide: (s: OlxSession, id: number) => send<unknown>("POST", `/listings/${id}/hide`, s),
+		unhide: (s: OlxSession, id: number) => send<unknown>("POST", `/listings/${id}/unhide`, s),
+		finish: (s: OlxSession, id: number) => send<unknown>("POST", `/listings/${id}/finish`, s),
+		// Never call this on a draft: OLX publishes it.
+		updatePrice: (s: OlxSession, id: number, price: number) => send<unknown>("PUT", `/listings/${id}`, s, { price }),
 		deleteListing: (s: OlxSession, id: number) => send<unknown>("DELETE", `/listings/${id}`, s),
 	};
 }

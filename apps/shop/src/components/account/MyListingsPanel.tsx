@@ -1,114 +1,38 @@
-import type { Listing } from "@lagano/providers";
-import { Check, EyeOff, ExternalLink, ImageOff, MoreHorizontal, Pencil, RefreshCw, TriangleAlert, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import type { MineStatus, MyListing, ProviderId } from "@lagano/providers";
+import { Check, Plus, RefreshCw, Trash2, TriangleAlert } from "lucide-react";
+import { useState } from "react";
+import { useChatActions } from "@/components/shell/chat-actions";
 import { useSidePanel } from "@/components/shell/side-panel";
-import { olxAccount } from "@/lib/publish";
-import { expireSession, getSession, isAuthError, useSessions } from "@/lib/sessions";
+import { tagAndFocus } from "@/components/shell/tagged-listing";
+import { PROVIDER_NAME } from "@/lib/mine-api";
+import { useSessions } from "@/lib/sessions";
 import { strings } from "@/lib/strings";
 import { ta } from "@/lib/strings-account";
+import MineRow, { type RowActions } from "./MineRow";
 import { btn, PanelBody, PanelHeader } from "./ui";
+import { keyOf, type Notice as NoticeState, useMine } from "./use-mine";
 
-type Load = { state: "loading" } | { state: "ready"; items: Listing[] } | { state: "error" } | { state: "expired" };
+const PROVIDERS: ProviderId[] = ["olx", "svex"];
+// Same order as ta.tabs: Svi, Aktivni, Skice, Skriveni, Prodani, Istekli.
+const TAB_STATUS: (MineStatus | null)[] = [null, "active", "draft", "hidden", "sold", "expired"];
+const TOGGLE = "h-9 min-h-9 pointer-coarse:h-11 pointer-coarse:min-h-11 gap-1.5 px-3";
 
-function useMine(connected: boolean) {
-	const [load, setLoad] = useState<Load>({ state: "loading" });
-	const reload = useCallback(async () => {
-		const session = getSession("olx");
-		if (!session) return;
-		setLoad({ state: "loading" });
-		try {
-			setLoad({ state: "ready", items: await olxAccount.listMine(session) });
-		} catch (error) {
-			if (isAuthError(error)) {
-				expireSession("olx");
-				setLoad({ state: "expired" });
-			} else setLoad({ state: "error" });
-		}
-	}, []);
-	useEffect(() => {
-		if (connected) void reload();
-	}, [connected, reload]);
-	return { load, reload, remove: (id: string) => setLoad((l) => (l.state === "ready" ? { state: "ready", items: l.items.filter((i) => i.id !== id) } : l)) };
-}
-
-const ITEM = "flex h-11 cursor-pointer items-center gap-2.5 rounded-[10px] px-2.5 text-[14px] text-fg focus:bg-white/8 focus:text-fg aria-disabled:opacity-40";
-
-const MENU_ICONS = [RefreshCw, EyeOff, Check, Pencil];
-
-function RowMenu({ onDelete }: { onDelete: () => void }) {
-	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<button type="button" aria-label={ta.moreAria} className={btn("chip", "w-11 p-0")}>
-					<MoreHorizontal size={16} aria-hidden />
-				</button>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" className="solid w-[230px] rounded-[16px] p-1.5">
-				{ta.menu.map((label, i) => {
-					const Icon = MENU_ICONS[i]!;
-					return (
-						<DropdownMenuItem key={label} aria-disabled title={ta.notYet} onSelect={(e) => e.preventDefault()} className={ITEM}>
-							<Icon size={15} aria-hidden /> {label}
-						</DropdownMenuItem>
-					);
-				})}
-				<DropdownMenuItem onSelect={onDelete} className={`${ITEM} text-danger focus:text-danger`}>
-					<Trash2 size={15} aria-hidden className="text-danger" /> {ta.menuDelete}
-				</DropdownMenuItem>
-			</DropdownMenuContent>
-		</DropdownMenu>
-	);
-}
-
-function ListingRow({ item, onDelete }: { item: Listing; onDelete: () => void }) {
-	return (
-		<li className="glass relative flex items-center gap-3 rounded-[20px] p-2.5 shadow-none">
-			{item.imageUrl ? (
-				<img src={item.imageUrl} alt="" className="size-16 flex-none rounded-[14px] object-cover" />
-			) : (
-				<span className="grid size-16 flex-none place-items-center rounded-[14px] bg-card-img text-fg-3">
-					<ImageOff size={20} aria-hidden />
-				</span>
-			)}
-			<div className="flex min-w-0 grow flex-col gap-1">
-				<span className="line-clamp-2 text-[15px] font-semibold leading-[1.3]">{item.title}</span>
-				<span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/7 px-2.5 py-1 text-[12px] font-semibold">
-					<span aria-hidden className="size-2 rounded-full bg-ok" /> OLX · {ta.statusActive}
-				</span>
-				<span className="text-[13px] text-fg-3">
-					<b className="text-[15px] font-bold tracking-[-0.02em] text-fg">{item.priceText}</b>
-					{item.city ? ` · ${item.city}` : ""}
-				</span>
-			</div>
-			<div className="flex flex-none gap-1">
-				<a href={item.url} target="_blank" rel="noopener noreferrer" aria-label={`${ta.open}: ${item.title}`} title={ta.open} className={btn("chip", "w-11 p-0")}>
-					<ExternalLink size={15} aria-hidden />
-				</a>
-				<RowMenu onDelete={onDelete} />
-			</div>
-		</li>
-	);
-}
-
-function Tabs({ total }: { total: number }) {
+function Tabs({ items, tab, onTab }: { items: MyListing[]; tab: number; onTab: (i: number) => void }) {
 	return (
 		<div role="tablist" aria-label={ta.tabsAria} className="flex flex-wrap gap-1.5">
 			{ta.tabs.map((label, i) => {
-				const live = i < 2;
-				const selected = i === 0;
+				const status = TAB_STATUS[i];
+				const count = status ? items.filter((x) => x.status === status).length : items.length;
 				return (
 					<button
 						key={label}
 						type="button"
 						role="tab"
-						aria-selected={selected}
-						aria-disabled={!live}
-						title={live ? undefined : ta.tabNoStatus}
-						onClick={(e) => !live && e.preventDefault()}
-						className={btn(selected ? "primary" : "chip", "h-9 min-h-9 pointer-coarse:h-11 pointer-coarse:min-h-11 px-3.5 font-medium aria-disabled:cursor-not-allowed")}
+						aria-selected={i === tab}
+						onClick={() => onTab(i)}
+						className={btn(i === tab ? "primary" : "chip", "h-9 min-h-9 pointer-coarse:h-11 pointer-coarse:min-h-11 px-3.5 font-medium")}
 					>
-						{label} <span className="opacity-60">{live ? total : 0}</span>
+						{label} <span className="opacity-60">{count}</span>
 					</button>
 				);
 			})}
@@ -116,43 +40,63 @@ function Tabs({ total }: { total: number }) {
 	);
 }
 
-function DeleteConfirm({ item, onCancel, onDone }: { item: Listing; onCancel: () => void; onDone: () => void }) {
-	const [busy, setBusy] = useState(false);
-	const [failed, setFailed] = useState(false);
-	async function confirm() {
-		const session = getSession("olx");
-		if (!session) return;
-		setBusy(true);
-		setFailed(false);
-		try {
-			await olxAccount.deleteListing(session, Number(item.id));
-			onDone();
-		} catch (error) {
-			if (isAuthError(error)) expireSession("olx");
-			setFailed(true);
-			setBusy(false);
-		}
-	}
+function SourceToggles({
+	connected,
+	on,
+	onToggle,
+}: {
+	connected: Record<ProviderId, boolean>;
+	on: Record<ProviderId, boolean>;
+	onToggle: (p: ProviderId) => void;
+}) {
+	return (
+		<div className="flex flex-wrap items-center gap-1.5">
+			{PROVIDERS.map((p) => {
+				const pressed = connected[p] && on[p];
+				return (
+					<button
+						key={p}
+						type="button"
+						aria-pressed={pressed}
+						aria-disabled={!connected[p] || undefined}
+						title={connected[p] ? undefined : ta.sourceNotConnected(PROVIDER_NAME[p])}
+						onClick={() => connected[p] && onToggle(p)}
+						className={btn("chip", `${TOGGLE} ${pressed ? "pl-2.5" : ""}`)}
+					>
+						{pressed && <Check size={13} strokeWidth={2.8} aria-hidden className="text-accent" />} {PROVIDER_NAME[p]}
+					</button>
+				);
+			})}
+		</div>
+	);
+}
+
+function DeleteConfirm({ item, onCancel, onConfirm }: { item: MyListing; onCancel: () => void; onConfirm: () => void }) {
+	const name = PROVIDER_NAME[item.provider];
 	return (
 		<div role="alertdialog" aria-labelledby="del-t" className="animate-in fade-in slide-in-from-bottom-2 duration-200 ease-out solid mx-5 mb-5 flex flex-none flex-col gap-2.5 rounded-[20px] p-4">
 			<strong id="del-t" className="text-[15px]">
 				{ta.deleteTitle(item.title)}
 			</strong>
-			<p className="m-0 text-[14px] leading-[1.45] text-fg-3">{ta.deleteBody}</p>
-			{failed && (
-				<p role="alert" className="m-0 flex items-center gap-2 text-[13px] text-danger">
-					<TriangleAlert size={14} aria-hidden /> {ta.deleteFailed}
-				</p>
-			)}
+			<p className="m-0 text-[14px] leading-[1.45] text-fg-3">{ta.deleteBody(name)}</p>
 			<div className="flex flex-wrap justify-end gap-2">
 				<button type="button" onClick={onCancel} className={btn("ghost")}>
 					{ta.cancel}
 				</button>
-				<button type="button" disabled={busy} onClick={confirm} className={btn("danger")}>
-					<Trash2 size={15} aria-hidden /> {ta.deleteConfirm}
+				<button type="button" onClick={onConfirm} className={btn("danger")}>
+					<Trash2 size={15} aria-hidden /> {ta.deleteConfirm(name)}
 				</button>
 			</div>
 		</div>
+	);
+}
+
+function Banner({ notice }: { notice: NonNullable<NoticeState> }) {
+	const error = notice.kind === "error";
+	return (
+		<p role={error ? "alert" : "status"} className={`m-0 flex items-center gap-2 rounded-[14px] bg-white/6 px-3.5 py-2.5 text-[13px] ${error ? "text-danger" : "text-fg-3"}`}>
+			{error && <TriangleAlert size={14} aria-hidden className="flex-none" />} {notice.text}
+		</p>
 	);
 }
 
@@ -166,11 +110,24 @@ function Notice({ title, body, children }: { title?: string; body: string; child
 	);
 }
 
+function LoadError({ provider, kind, onRetry, onConnect }: { provider: ProviderId; kind?: "error" | "expired"; onRetry: () => void; onConnect: () => void }) {
+	if (!kind) return null;
+	const name = PROVIDER_NAME[provider];
+	const expired = kind === "expired";
+	return (
+		<Notice body={expired ? ta.expired(name) : ta.listFailed(name)}>
+			<button type="button" onClick={expired ? onConnect : onRetry} className={btn("chip")}>
+				<RefreshCw size={15} aria-hidden /> {expired ? ta.connect : ta.retry}
+			</button>
+		</Notice>
+	);
+}
+
 function Skeleton() {
 	return (
 		<ul aria-label={ta.listLoading} className="m-0 flex list-none flex-col gap-2.5 p-0">
 			{[0, 1, 2].map((i) => (
-				<li key={i} className="h-[84px] rounded-[20px] bg-white/6 animate-pulse" />
+				<li key={i} className="h-[112px] animate-pulse rounded-[20px] bg-white/6" />
 			))}
 		</ul>
 	);
@@ -178,36 +135,52 @@ function Skeleton() {
 
 export default function MyListingsPanel() {
 	const { close, requireConnection } = useSidePanel();
-	const { olx } = useSessions();
-	const { load, reload, remove } = useMine(olx);
-	const [deleting, setDeleting] = useState<Listing | null>(null);
-	const connectOlx = () => requireConnection("olx", strings.needMine);
-	const items = load.state === "ready" ? load.items : [];
+	const { ask } = useChatActions();
+	const connected = useSessions();
+	const [on, setOn] = useState<Record<ProviderId, boolean>>({ olx: true, svex: true });
+	const [tab, setTab] = useState(0);
+	const [deleting, setDeleting] = useState<MyListing | null>(null);
+	const live = PROVIDERS.filter((p) => connected[p]);
+	const { data, loading, busy, notice, reload, run } = useMine(live);
+
+	const shown = PROVIDERS.filter((p) => connected[p] && on[p]);
+	const inSources = data.items.filter((i) => shown.includes(i.provider));
+	const status = TAB_STATUS[tab];
+	const rows = status ? inSources.filter((i) => i.status === status) : inSources;
+
+	function startSell(text = "") {
+		close();
+		ask(ta.sellPrompt + text);
+	}
+	// The panel stays open in the split view. Elsewhere it would cover the composer.
+	function tag(item: MyListing) {
+		tagAndFocus({ provider: item.provider, id: item.id, title: item.title, priceText: item.priceText, url: item.url, imageUrl: item.imageUrl, own: true }, close);
+	}
+	const actions: RowActions = {
+		tag,
+		run: (item, op, price) => void run(item, op, price),
+		askDelete: setDeleting,
+		continueDraft: (item) => startSell(item.title),
+	};
 
 	let body: React.ReactNode;
-	if (!olx || load.state === "expired") {
+	if (!live.length)
 		body = (
-			<Notice body={load.state === "expired" ? ta.expired : ta.olxNeeded}>
-				<button type="button" onClick={connectOlx} className={btn("primary")}>
-					{ta.connectOlx}
+			<Notice body={ta.olxNeeded}>
+				<button type="button" onClick={() => requireConnection("olx", strings.needMine)} className={btn("primary")}>
+					{ta.connectAny}
 				</button>
 			</Notice>
 		);
-	} else if (load.state === "loading") body = <Skeleton />;
-	else if (load.state === "error")
-		body = (
-			<Notice body={ta.listFailed}>
-				<button type="button" onClick={reload} className={btn("chip")}>
-					<RefreshCw size={15} aria-hidden /> {ta.retry}
-				</button>
-			</Notice>
-		);
-	else if (!items.length) body = <Notice title={ta.emptyTitle} body={ta.emptyBody} />;
+	else if (!shown.length) body = <Notice body={ta.noSource} />;
+	else if (loading && !data.items.length) body = <Skeleton />;
+	else if (!rows.length && !Object.keys(data.errors).length)
+		body = <Notice title={ta.emptyTitle} body={inSources.length ? ta.emptyBody : ta.emptyNone} />;
 	else
 		body = (
 			<ul className="m-0 flex list-none flex-col gap-2.5 p-0">
-				{items.map((item) => (
-					<ListingRow key={item.id} item={item} onDelete={() => setDeleting(item)} />
+				{rows.map((item) => (
+					<MineRow key={keyOf(item)} item={item} actions={actions} busy={busy.has(keyOf(item))} />
 				))}
 			</ul>
 		);
@@ -216,25 +189,26 @@ export default function MyListingsPanel() {
 		<div className="flex h-full min-h-0 flex-col">
 			<PanelHeader title={ta.myListings} onClose={close} />
 			<PanelBody>
-				<p className="m-0 -mt-1 text-[14px] leading-[1.45] text-fg-3">{ta.myListingsSub}</p>
-				<div className="flex flex-wrap items-center gap-1.5">
-					<button type="button" aria-pressed="true" className={btn("chip", "h-9 min-h-9 pointer-coarse:h-11 pointer-coarse:min-h-11 gap-1.5 px-3 pl-2.5")}>
-						<Check size={13} strokeWidth={2.8} aria-hidden className="text-accent" /> OLX
-					</button>
-					<button type="button" aria-pressed="false" aria-disabled title={ta.svexUnsupported} onClick={(e) => e.preventDefault()} className={btn("chip", "h-9 min-h-9 pointer-coarse:h-11 pointer-coarse:min-h-11 px-3")}>
-						SVEX
+				<div className="flex flex-wrap items-center justify-between gap-2">
+					<p className="m-0 text-[14px] leading-[1.45] text-fg-3">{ta.myListingsSub}</p>
+					<button type="button" onClick={() => startSell()} className={btn("accent", "h-9 min-h-9 pointer-coarse:h-11 pointer-coarse:min-h-11 pl-3 pr-4 text-[13px]")}>
+						<Plus size={15} aria-hidden /> {ta.newListing}
 					</button>
 				</div>
-				<p className="m-0 -mt-3.5 text-[12px] text-fg-4">{ta.svexUnsupported}</p>
-				<Tabs total={items.length} />
+				<SourceToggles connected={connected} on={on} onToggle={(p) => setOn((s) => ({ ...s, [p]: !s[p] }))} />
+				<Tabs items={inSources} tab={tab} onTab={setTab} />
+				{notice && <Banner notice={notice} />}
+				{shown.map((p) => (
+					<LoadError key={p} provider={p} kind={data.errors[p]} onRetry={reload} onConnect={() => requireConnection(p, strings.needMine)} />
+				))}
 				{body}
 			</PanelBody>
 			{deleting && (
 				<DeleteConfirm
 					item={deleting}
 					onCancel={() => setDeleting(null)}
-					onDone={() => {
-						remove(deleting.id);
+					onConfirm={() => {
+						void run(deleting, "delete");
 						setDeleting(null);
 					}}
 				/>

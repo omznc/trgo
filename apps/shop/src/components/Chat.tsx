@@ -12,6 +12,7 @@ import { ErrorCard, type ChatErrorKind } from "@/components/shell/ErrorCard";
 import { Header } from "@/components/shell/Header";
 import { Horizon } from "@/components/shell/Horizon";
 import { AnswerActions, Message, stripNotes, textOf, Thinking } from "@/components/shell/Messages";
+import { clearTaggedListing, getTaggedListing, taggedNote } from "@/components/shell/tagged-listing";
 import { usePendingSend } from "@/components/shell/use-pending-send";
 import { SidePanelRegion, useSidePanel } from "@/components/shell/side-panel";
 import type { LaganoMessage } from "@/lib/agent";
@@ -92,7 +93,7 @@ function MessageList({
 	const canAct = (m: LaganoMessage) => m === last && m.role === "assistant" && status === "ready" && !!textOf(m);
 	return (
 		<Conversation className="min-h-0 flex-1" aria-label={strings.conversation}>
-			<ConversationContent scrollClassName="scroll" className="mx-auto w-full max-w-[1040px] gap-7 px-6 pt-8 pb-6 max-sm:gap-3.5 max-sm:px-3.5 max-sm:pt-4">
+			<ConversationContent scrollClassName="scroll min-h-0 flex-1" className="mx-auto w-full max-w-[1040px] gap-7 px-6 pt-8 pb-6 max-sm:gap-3.5 max-sm:px-3.5 max-sm:pt-4">
 				{messages.map((m) => (
 					<Message
 						key={m.id}
@@ -139,7 +140,10 @@ export function Chat() {
 		// A photo that cannot be decoded is skipped.
 		const added = await Promise.allSettled(files.map(async (f) => addPhoto(await (await fetch(f.url)).blob())));
 		const ids = added.flatMap((r) => (r.status === "fulfilled" ? [r.value.id] : []));
-		chat.sendMessage({ text: text.trim() + photoNote(ids) + sourceNote(sources), metadata: { photoIds: ids } });
+		const tagged = getTaggedListing();
+		const note = tagged ? taggedNote(tagged) : "";
+		chat.sendMessage({ text: text.trim() + photoNote(ids) + note + sourceNote(sources), metadata: { photoIds: ids, tagged: tagged ?? undefined } });
+		clearTaggedListing();
 	};
 	const hold = usePendingSend({ apiKey, send, textarea, box, clearAttachments });
 	// A throw keeps the attached photos in the composer.

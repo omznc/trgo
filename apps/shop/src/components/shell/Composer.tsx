@@ -9,9 +9,13 @@ import {
 	usePromptInputAttachments,
 } from "@/components/ai-elements/prompt-input";
 import { strings } from "@/lib/strings";
+import { ta } from "@/lib/strings-account";
 import { useSuggestions } from "@/lib/suggestions";
+import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { ModelButton } from "./Header";
+import { clearTaggedListing, useTaggedListing } from "./tagged-listing";
+import { TaggedChip } from "./TaggedChip";
 
 export type Sources = { olx: boolean; svex: boolean };
 
@@ -39,6 +43,27 @@ function ClearHandle({ clearRef }: { clearRef: MutableRefObject<(() => void) | n
 		};
 	}, [clear, clearRef]);
 	return null;
+}
+
+// The listing that the user tagged from Moji oglasi or the detail panel.
+function TaggedSlot() {
+	const tagged = useTaggedListing();
+	return (
+		<AnimatePresence initial={false}>
+			{tagged && (
+				<motion.div
+					key={`${tagged.provider}:${tagged.id}`}
+					initial={{ opacity: 0, scale: 0.96, height: 0 }}
+					animate={{ opacity: 1, scale: 1, height: "auto" }}
+					exit={{ opacity: 0, scale: 0.96, height: 0 }}
+					transition={{ duration: 0.18, ease: "easeOut" }}
+					className="origin-left overflow-hidden px-2 pt-1.5"
+				>
+					<TaggedChip listing={tagged} onRemove={clearTaggedListing} />
+				</motion.div>
+			)}
+		</AnimatePresence>
+	);
 }
 
 function SourceToggle({ name, on, onToggle }: { name: string; on: boolean; onToggle: () => void }) {
@@ -101,6 +126,7 @@ export function Composer({
 	clearRef: MutableRefObject<(() => void) | null>;
 }) {
 	const { placeholder } = useSuggestions();
+	const tagged = useTaggedListing();
 	// One source must stay on, or the search has nowhere to look.
 	const toggle = (key: keyof Sources) => {
 		const next = { ...sources, [key]: !sources[key] };
@@ -119,6 +145,7 @@ export function Composer({
 			)}
 		>
 			<ClearHandle clearRef={clearRef} />
+			<TaggedSlot />
 			<PromptInputAttachments className="p-0 px-2 pt-1.5">{(file) => <PromptInputAttachment data={file} />}</PromptInputAttachments>
 			<label htmlFor="prompt" className="sr">
 				Poruka
@@ -127,7 +154,7 @@ export function Composer({
 				id="prompt"
 				ref={textareaRef}
 				rows={started ? 1 : 3}
-				placeholder={started ? strings.placeholderFollowUp : placeholder}
+				placeholder={tagged ? (tagged.own ? ta.tagPlaceholderOwn : ta.tagPlaceholder) : started ? strings.placeholderFollowUp : placeholder}
 				className={cn(
 					"resize-none border-0 bg-transparent text-base leading-normal tracking-[-0.01em] text-fg shadow-none outline-none focus-visible:ring-0 focus-visible:outline-none md:text-base",
 					started ? "max-h-[200px] min-h-0 px-3.5 pt-2.5 pb-1" : "max-h-60 min-h-24 px-[18px] pt-4 pb-1.5 md:text-[17px]",

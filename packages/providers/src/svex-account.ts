@@ -1,7 +1,8 @@
 import { cookieHeader, parseSetCookies } from "./cookies";
 import { createRequest, readJson } from "./http";
 import { actionData, parseActionReply } from "./rsc";
-import { type ActionIds, type ActionName, discoverActions, KNOWN_ACTIONS } from "./svex-actions";
+import { type MyListing, parseSvexMine } from "./mine";
+import { type ActionIds, type ActionName, discoverActions, KNOWN_ACTIONS, MINE_NAMES } from "./svex-actions";
 import type { NamedId, ProviderOptions, SvexListingInput, SvexMedia, SvexSession } from "./types";
 
 const MAX_TITLE = 8;
@@ -65,6 +66,19 @@ export function createSvexAccount(options: ProviderOptions) {
 		return result;
 	};
 
+	// The /moji-oglasi chunks hold the listing actions. The page needs the session.
+	const rediscoverMine = async (cookies: Record<string, string>) => {
+		const result = await discoverActions(
+			async (path) => {
+				const res = await request(`/svex${path}`, { headers: cookies });
+				if (!res.ok) throw new Error(`${path} failed with HTTP ${res.status}`);
+				return res.text();
+			},
+			{ pages: ["/moji-oglasi"], names: MINE_NAMES },
+		);
+		ids = { ...ids, ...result.ids };
+	};
+
 	const post = (path: string, name: ActionName, args: unknown[], cookies: Record<string, string>) =>
 		request(`/svex${path}`, {
 			method: "POST",
@@ -85,7 +99,7 @@ export function createSvexAccount(options: ProviderOptions) {
 		const cookies = svexCookies(session);
 		let res = await post(path, name, args, cookies);
 		if (await notFound(res)) {
-			await rediscover();
+			await (MINE_NAMES.includes(name) && name !== "publishListingAction" ? rediscoverMine(cookies) : rediscover());
 			res = await post(path, name, args, cookies);
 		}
 		return res;
@@ -167,6 +181,31 @@ export function createSvexAccount(options: ProviderOptions) {
 		return actionData(parseActionReply(await res.text()), "SVEX publishListing");
 	}
 
+	async function listMine(session: SvexSession): Promise<MyListing[]> {
+		const res = await request("/svex/moji-oglasi", { headers: svexCookies(session) });
+		if (!res.ok) throw new Error(`SVEX my listings failed with HTTP ${res.status}`);
+		return parseSvexMine(await res.text());
+	}
+
+	// One call for a listing action. The reply has `ok` and `data`.
+	async function mineAction<T = unknown>(session: SvexSession, name: ActionName, args: unknown[], label: string) {
+		const res = await callAction("/moji-oglasi", name, args, session);
+		if (!res.ok) throw new Error(`SVEX ${label} failed with HTTP ${res.status}`);
+		return actionData<T>(parseActionReply<T>(await res.text()), `SVEX ${label}`);
+	}
+
+	// SVEX has no single price action. The bulk action takes one id.
+	async function updatePrice(session: SvexSession, id: string, price: number) {
+		const data = await mineAction<{ results: { id: string; ok: boolean; skipped?: string }[] }>(
+			session,
+			"bulkListingsAction",
+			[{ ids: [id], action: "price", price }],
+			"updatePrice",
+		);
+		const row = data.results.find((r) => r.id === id);
+		if (!row?.ok || row.skipped) throw new Error(`SVEX updatePrice was refused${row?.skipped ? `: ${row.skipped}` : ""}`);
+	}
+
 	const publicList = async (path: string) =>
 		readJson<NamedId[]>(await request(`${LISTING_API}${path}`), `SVEX ${path}`);
 
@@ -176,6 +215,14 @@ export function createSvexAccount(options: ProviderOptions) {
 		uploadPhoto,
 		createListing,
 		publishListing,
+		listMine,
+		hide: (s: SvexSession, id: string) => mineAction(s, "pauseListingAction", [id], "hide"),
+		unhide: (s: SvexSession, id: string) => mineAction(s, "publishListingAction", [id], "unhide"),
+		refresh: (s: SvexSession, id: string) =>
+			mineAction<{ expiresAt?: string }>(s, "renewListingAction", [id], "refresh"),
+		finish: (s: SvexSession, id: string) => mineAction(s, "markSoldListingAction", [id], "finish"),
+		updatePrice,
+		deleteListing: (s: SvexSession, id: string) => mineAction(s, "deleteListingPermanentlyAction", [id], "delete"),
 		categories: () => publicList("/categories"),
 		cities: () => publicList("/cities?country=ba"),
 		discoverActions: rediscover,

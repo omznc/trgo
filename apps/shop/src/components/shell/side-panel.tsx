@@ -4,6 +4,8 @@ import ConnectPanel from "@/components/account/ConnectPanel";
 import MyListingsPanel from "@/components/account/MyListingsPanel";
 import SettingsPanel from "@/components/account/SettingsPanel";
 import { DetailPanel, type DetailListing } from "@/components/detail/DetailPanel";
+import { listingIdFromUrl } from "@lagano/providers";
+import { tagAndFocus } from "./tagged-listing";
 
 export type SidePanelView =
 	| { kind: "detail"; listing: DetailListing }
@@ -87,10 +89,16 @@ export function useSidePanel() {
 	return ctx;
 }
 
+// A listing from a search belongs to a stranger, so the model note says own=no.
+function tagSearchListing(l: DetailListing, close: () => void) {
+	tagAndFocus({ provider: l.provider, id: listingIdFromUrl(l.provider, l.url), title: l.title, priceText: l.price, url: l.url, imageUrl: l.imageUrl, own: false }, close);
+}
+
 function Content({ view }: { view: SidePanelView }) {
+	const { close } = useSidePanel();
 	switch (view.kind) {
 		case "detail":
-			return <DetailPanel listing={view.listing} />;
+			return <DetailPanel listing={view.listing} onAsk={(l) => tagSearchListing(l, close)} />;
 		case "settings":
 			return <SettingsPanel />;
 		case "my-listings":
@@ -107,18 +115,24 @@ const LABELS: Record<SidePanelView["kind"], string> = {
 	connect: "Povezivanje",
 };
 
-type PageCtx = { dir: number };
+type PageCtx = { dir: number; wide: boolean };
 
 // Push: new page in from the right, old page moves 30% left, fades and blurs. Back mirrors it.
 // Exit uses tweens only, so the node leaves exactly when the motion ends.
 const EASE = [0.32, 0.72, 0, 1] as const;
 const FADE = { duration: 0.28, ease: "easeOut" } as const;
-const OFF = { opacity: 0, filter: "blur(8px)" };
+// A filter blur repaints on each frame, so only the wide tiers use it.
+const off = (wide: boolean) => (wide ? { opacity: 0, filter: "blur(8px)" } : { opacity: 0 });
 const PAGE: Variants = {
-	enter: ({ dir }: PageCtx) => ({ ...OFF, x: dir > 0 ? "100%" : dir < 0 ? "-30%" : 0 }),
-	center: { x: 0, opacity: 1, filter: "blur(0px)", transition: { x: { type: "spring", stiffness: 400, damping: 40 }, opacity: FADE, filter: FADE } },
-	exit: ({ dir }: PageCtx) => ({
-		...OFF,
+	enter: ({ dir, wide }: PageCtx) => ({ ...off(wide), x: dir > 0 ? "100%" : dir < 0 ? "-30%" : 0 }),
+	center: ({ wide }: PageCtx) => ({
+		x: 0,
+		opacity: 1,
+		...(wide && { filter: "blur(0px)" }),
+		transition: { x: { type: "spring", stiffness: 400, damping: 40 }, opacity: FADE, filter: FADE },
+	}),
+	exit: ({ dir, wide }: PageCtx) => ({
+		...off(wide),
 		x: dir > 0 ? "-30%" : dir < 0 ? "100%" : 0,
 		transition: { x: { duration: 0.34, ease: EASE }, opacity: FADE, filter: FADE },
 	}),
@@ -168,7 +182,7 @@ export function SidePanelRegion() {
 	useEffect(() => {
 		if (!view) return;
 		vel.current = 0;
-		const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
+		const onKey = (e: KeyboardEvent) => e.key === "Escape" && !e.defaultPrevented && close();
 		window.addEventListener("keydown", onKey);
 		return () => window.removeEventListener("keydown", onKey);
 	}, [view, close]);
@@ -188,7 +202,7 @@ function Island({ view, close, pageKey, dir, canGoBack, ctx }: IslandProps) {
 	const controls = useDragControls();
 	const y = useMotionValue(wide ? 0 : sheetHeight());
 	const scrim = useTransform(y, [0, sheetHeight()], [1, 0]);
-	const pageCtx = { dir };
+	const pageCtx = { dir, wide };
 	// Drag starts from the grabber and the header, not from the scrolling body or a control.
 	const onPointerDown = (e: React.PointerEvent) => {
 		if (wide || (e.target as HTMLElement).closest(".scroll, button, a, input, select, textarea")) return;

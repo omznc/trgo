@@ -1,0 +1,53 @@
+{
+  "id": 73497222,
+  "title": "Ender Magnolia Bloom In The Mist (PS5 - PlayStation 5)",
+  "price": 79.0,
+  "display_price": "79 KM",
+  "state": "new",
+  "views": 111,
+  "additional": {
+    "description": "<p>🎮 <strong>TR GameLand</strong> 🎮</p><p><br></p><p>📍 Bingo City Centar (BCC) Tuzla, 1 Etaž</p><p>Radno vrijeme: 09:00 - 21:00</p><p>☎️ +387 62 367 777 Viber | WhatsApp</p><p>🚚 Dostava širom BiH (10,⁰⁰KM)</p><p><br></p><p>*Slike su ilustrativne prirode</p><p>*Cijene izražene za gotovinsko plaćanje</p><p>*Zadržavamo pravo izmjene cijena</p>",
+    "created_at": 1768055114,
+    "updated_at": 1768055114
+  },
+  "images": [
+    "https://d4n0y8dshd77z.cloudfront.net/listings/73497222/lg/img-1768055804-65fe456bbfbb.jpg"
+  ],
+  "cities": [
+    {
+      "id": 37,
+      "name": "Tuzla",
+      "location": {
+        "lat": "44.5391105",
+        "lon": "18.675193"
+      },
+      "canton_id": 3
+    }
+  ],
+  "user": {
+    "username": "GameLand",
+    "type": "shop",
+    "created_at": 1518126704
+  },
+  "attributes": [
+    {
+      "name": "Platforma igre",
+      "value": "PS5"
+    },
+    {
+      "name": "Vrsta",
+      "value": "Fizički medij"
+    },
+    {
+      "name": "Accounti za igre",
+      "value": "false"
+    },
+    {
+      "name": "Original",
+      "value": "true"
+    }
+  ],
+  "shipping": "no_shipping",
+  "free_delivery": false,
+  "shipping_available": true
+}
