@@ -97,6 +97,18 @@ body {
 
 /* In a layer, so utility classes such as text-bg still win. */
 @layer base {
+/* App chrome is not selectable; only chat text and fields are. */
+body {
+	-webkit-user-select: none;
+	user-select: none;
+}
+input,
+textarea,
+[contenteditable],
+[data-selectable] {
+	-webkit-user-select: text;
+	user-select: text;
+}
 button:not(:disabled),
 [role="button"]:not([aria-disabled="true"]),
 summary,

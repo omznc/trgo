@@ -60,6 +60,8 @@ export const ta = {
 	cancel: "Odustani",
 	save: "Spremi",
 	loginTitle: (name: string) => `Prijava na ${name}`,
+	balance: (v: string) => `stanje ${v}`,
+	keyLeft: (left: string, limit: string) => `ključ: još ${left} od ${limit}`,
 	userLabel: "Korisničko ime ili email",
 	passLabel: "Lozinka",
 	loginNote: (name: string) => `Lozinka ide samo do ${name}-a preko otvorenog proxyja, ne čuvamo je i ostaje u ovom pregledniku.`,

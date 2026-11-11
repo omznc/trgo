@@ -9,7 +9,7 @@ A small Cloudflare Worker (`src/index.ts`, about 180 lines). The browser cannot 
 - Rate limit: 60 requests per 60 seconds for each client IP (`cf-connecting-ip`).
 - Login routes have a stricter limit: 5 per 60 seconds. These are `POST /olx/auth/login` and `POST /svex/prijava`.
 - A request over the limit gets 429 and `{"error":"too many requests"}`.
-- The limits are the `RL_API` and `RL_LOGIN` bindings in `cloudflare.config.ts`. In local dev they are absent, so there is no limit.
+- The limits are the `RL_API` and `RL_LOGIN` bindings in `cloudflare.config.ts`. For local dev, set `DEV_NO_RATE_LIMIT=1` in `.dev.vars`.
 
 ## Routes
 
@@ -44,9 +44,22 @@ The path has the form `/<upstream-key>/<path>`. The allowlist is the `UPSTREAMS`
 - The upstream `set-cookie` headers return in the response header `x-lagano-set-cookie`, as a JSON array of strings.
 - For the `svex` key, the Worker sets `origin` and `referer` to `https://svex.ba`.
 
+## Free AI route
+
+`POST /ai/chat/completions` is a chat route for the free mode of the shop. It needs an allowed `Origin`.
+
+- The Worker keeps only the allowed request fields. It sets the model and limits `max_tokens` to 4000.
+- It sends the request to OpenRouter with a key that belongs to the owner. Both values are Worker secrets: `FREE_MODEL` and `OPENROUTER_KEY`.
+- In the response, the `model` field is `trgo-free` and the `provider` field is removed.
+- If a secret is missing, the route returns 503 `{"error":"free-unavailable"}`.
+- Limits per client IP: 12 requests per 60 seconds (`RL_FREE`) and 150 requests per UTC day (`FREE_KV`).
+- A request over a limit gets 429 `{"error":"free-limit","scope":"minute"|"day"}` and a `Retry-After` header.
+
 ## What the proxy never stores or logs
 
-- It has no KV, no D1 and no cache.
+- It does not store or log the content of a request or a response.
+- The only stored data is the daily counter of the free route. The key is a SHA-256 hash of the client IP and the date. It expires after 2 days.
+- There is no D1 and no cache.
 - It does not log bodies, headers or URLs. Observability is off.
 - It does not keep a session. The browser keeps the cookies.
 

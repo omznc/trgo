@@ -23,6 +23,7 @@ export function ModelButton({
 	className?: string;
 }) {
 	const panel = useSidePanel();
+	const needKey = () => panel.requireConnection("openrouter", strings.needConnect.openrouter);
 	const list = (MODELS as readonly string[]).includes(model) ? MODELS : [model, ...MODELS];
 	return (
 		<DropdownMenu>
@@ -37,19 +38,20 @@ export function ModelButton({
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="solid min-w-56 rounded-2xl p-1.5">
-				<DropdownMenuRadioGroup value={model} onValueChange={onChange}>
+				<DropdownMenuRadioGroup value={model} onValueChange={(m) => (!connected && !isFreeModel(m) ? needKey() : onChange(m))}>
 					{list.map((m) => {
 	const locked = !connected && !isFreeModel(m);
 	return (
-						<DropdownMenuRadioItem key={m} value={m} disabled={locked} className="min-h-10 rounded-xl text-sm">
+						<DropdownMenuRadioItem key={m} value={m} aria-disabled={locked} className={cn("min-h-10 rounded-xl text-sm", locked && "opacity-60")}>
 							{shortModel(m)}
 							{locked && <span className="ml-2 text-xs text-fg-4">{strings.modelNeedsConnect}</span>}
 						</DropdownMenuRadioItem>
 					);
 				})}
 				</DropdownMenuRadioGroup>
-				<DropdownMenuItem className="min-h-10 rounded-xl pl-8 text-sm" onSelect={() => (connected ? panel.open({ kind: "settings" }, { fresh: true }) : panel.requireConnection("openrouter", strings.needConnect.openrouter))}>
+				<DropdownMenuItem className={cn("min-h-10 rounded-xl pl-8 text-sm", !connected && "opacity-60")} onSelect={() => (connected ? panel.open({ kind: "settings" }, { fresh: true }) : needKey())}>
 					{strings.otherModelMenu}
+					{!connected && <span className="ml-2 text-xs text-fg-4">{strings.modelNeedsConnect}</span>}
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

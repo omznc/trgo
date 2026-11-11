@@ -61,7 +61,7 @@ function renderBlock(block: string, key: number, caret: boolean): ReactNode {
 export function Markdown({ text, className, caret }: { text: string; className?: string; caret?: boolean }) {
   const blocks = text.trim().split(/\n{2,}/).filter(Boolean);
   return (
-    <div className={className}>
+    <div data-selectable className={className}>
       {blocks.map((b, i) => renderBlock(b, i, !!caret && i === blocks.length - 1))}
     </div>
   );

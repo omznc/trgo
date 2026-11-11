@@ -131,14 +131,19 @@ const MODEL_LABELS: Record<string, string> = {
 };
 export const modelLabel = (id: string) => MODEL_LABELS[id] ?? knownModelName(id) ?? id.split("/").pop() ?? id;
 
+function freeCode(error: APICallError) {
+	const body = error.responseBody ?? "";
+	if (error.statusCode === 503 && body.includes("free-unavailable")) return "free-down";
+	if (error.statusCode === 429 && body.includes("free-limit")) return body.includes('"day"') ? "free-day" : "free-minute";
+	return null;
+}
+
 // The chat error is shown to the user, so only a short code leaves this layer.
 function errorCode(error: unknown) {
 	if (!APICallError.isInstance(error)) return "error";
 	// The free route answers with a JSON code in the body.
-	if (error.statusCode === 503 && error.responseBody?.includes("free-unavailable")) return "free-down";
-	if (error.statusCode === 429 && error.responseBody?.includes("free-limit")) {
-		return error.responseBody.includes('"day"') ? "free-day" : "free-minute";
-	}
+	const free = freeCode(error);
+	if (free) return free;
 	// OpenRouter answers 400 "... is not a valid model ID" for an unknown model.
 	if (error.statusCode === 400 && /model/i.test(error.message)) return "404";
 	return String(error.statusCode ?? "error");
@@ -158,6 +163,8 @@ export function createTransport(apiKey: string | null, model: string) {
 		instructions: SYSTEM_PROMPT,
 		tools,
 		stopWhen: isStepCount(8),
+		// A retry would spend more of the free limit. Our own limit answers 429.
+		...(isFreeModel(model) && { maxRetries: 0 }),
 		toolApproval: { create_listing: "user-approval" },
 	});
 	return new DirectChatTransport<never, typeof tools>({ agent, onError: errorCode });

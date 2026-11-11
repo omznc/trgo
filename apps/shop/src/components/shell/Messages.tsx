@@ -31,7 +31,7 @@ function UserMessage({ message }: { message: LaganoMessage }) {
 				</div>
 			)}
 			{text && (
-				<div className="rounded-[20px_20px_6px_20px] bg-accent px-4 py-[11px] text-base leading-[1.45] font-medium tracking-[-0.01em] whitespace-pre-wrap text-bg">
+				<div data-selectable className="rounded-[20px_20px_6px_20px] bg-accent px-4 py-[11px] text-base leading-[1.45] font-medium tracking-[-0.01em] whitespace-pre-wrap text-bg">
 					{text}
 				</div>
 			)}

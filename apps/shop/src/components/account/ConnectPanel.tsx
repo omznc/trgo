@@ -1,4 +1,5 @@
 import { ExternalLink, KeyRound, Loader2, Lock, ShieldCheck, TriangleAlert } from "lucide-react";
+import { formatUsd, useCredits, type Credits } from "@/lib/openrouter-credits";
 import { useEffect, useId, useRef, useState } from "react";
 import { useSidePanel } from "@/components/shell/side-panel";
 import { startLogin } from "@/lib/openrouter-auth";
@@ -270,6 +271,13 @@ function LoginPage({ provider, reason }: { provider: "olx" | "svex"; reason?: st
 	);
 }
 
+// The key's own limit matters more than the account balance when it is set.
+function creditsLine(masked: string, c: Credits | null) {
+	if (!c) return masked;
+	if (c.keyLimit !== null && c.keyRemaining !== null) return `${masked} · ${ta.keyLeft(formatUsd(c.keyRemaining), formatUsd(c.keyLimit))}`;
+	return `${masked} · ${ta.balance(formatUsd(c.balance))}`;
+}
+
 export default function ConnectPanel({ provider }: { provider?: Provider }) {
 	const { close, cue, open } = useSidePanel();
 	const root = useRef<HTMLDivElement>(null);
@@ -280,8 +288,9 @@ export default function ConnectPanel({ provider }: { provider?: Provider }) {
 	const [form, setForm] = useState<Form>(initialForm(provider));
 	useEffect(() => setForm(initialForm(provider)), [provider]);
 	const done = () => setForm(null);
+	const credits = useCredits(key);
 	const rows: Row[] = [
-		{ id: "openrouter", name: "OpenRouter", on: !!key, detail: key ? maskKey(key) : undefined, connect: () => startLogin(), disconnect: removeKey },
+		{ id: "openrouter", name: "OpenRouter", on: !!key, detail: key ? creditsLine(maskKey(key), credits) : undefined, connect: () => startLogin(), disconnect: removeKey },
 		{ id: "olx", name: "OLX", on: sessions.olx, connect: () => open({ kind: "connect", provider: "olx" }), disconnect: () => clearSession("olx") },
 		{ id: "svex", name: "SVEX", on: sessions.svex, connect: () => open({ kind: "connect", provider: "svex" }), disconnect: () => clearSession("svex") },
 	];

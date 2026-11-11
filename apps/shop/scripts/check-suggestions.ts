@@ -30,7 +30,7 @@ async function prices(q: string, max?: number): Promise<number[]> {
 
 let failed = 0;
 for (const p of POOL) {
-	if (p.kind === "sell") continue;
+	if (p.kind === "sell" || (process.argv[2] && !p.text.includes(process.argv[2]))) continue;
 	try {
 		if (p.kind === "search") {
 			// Prices under 15% of the ceiling are mostly accessories, so they do not count.

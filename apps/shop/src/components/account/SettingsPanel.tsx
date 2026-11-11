@@ -31,6 +31,7 @@ function ModelList({ connected }: { connected: boolean }) {
 		setState(m);
 		notifySettings();
 	};
+	const needKey = () => requireConnection("openrouter", strings.needConnect.openrouter);
 	const showOther = other || !isPreset(model);
 	return (
 		<Group>
@@ -38,8 +39,8 @@ function ModelList({ connected }: { connected: boolean }) {
 				{MODELS.map((m) => {
 					const locked = !connected && !isFreeModel(m);
 					return (
-						<label key={m} className={`${MODEL_ROW} ${locked ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}>
-							<input type="radio" name="model" value={m} disabled={locked} checked={model === m && !other} onChange={() => (setOther(false), pick(m))} className="sr-only" />
+						<label key={m} className={`${MODEL_ROW} cursor-pointer ${locked ? "opacity-60" : ""}`}>
+							<input type="radio" name="model" value={m} aria-disabled={locked} checked={model === m && !other} onChange={() => (locked ? needKey() : (setOther(false), pick(m)))} className="sr-only" />
 							<span className="min-w-0 grow">
 								<span className="block text-[15px]">{ta.modelName[m] ?? modelLabel(m)}</span>
 								<span className="block text-[13px] text-fg-4">{locked ? ta.modelNeedKey : ta.modelDesc[m]}</span>
@@ -50,18 +51,19 @@ function ModelList({ connected }: { connected: boolean }) {
 						</label>
 					);
 				})}
-				<label className={`${MODEL_ROW} cursor-pointer`}>
+				<label className={`${MODEL_ROW} cursor-pointer ${connected ? "" : "opacity-60"}`}>
 					<input
 						type="radio"
 						name="model"
 						value="other"
-						checked={showOther}
-						onChange={() => (connected ? setOther(true) : requireConnection("openrouter", strings.needConnect.openrouter))}
+						aria-disabled={!connected}
+						checked={connected && showOther}
+						onChange={() => (connected ? setOther(true) : needKey())}
 						className="sr-only"
 					/>
 					<span className="min-w-0 grow">
 						<span className="block text-[15px]">{ta.modelOther}</span>
-						<span className="block text-[13px] text-fg-4">{isPreset(model) ? ta.modelOtherDesc : modelLabel(model)}</span>
+						<span className="block text-[13px] text-fg-4">{!connected ? ta.modelNeedKey : isPreset(model) ? ta.modelOtherDesc : modelLabel(model)}</span>
 					</span>
 					<span aria-hidden className="grid w-5 place-items-center">
 						{showOther && <Check size={18} strokeWidth={2.8} className="text-accent" />}

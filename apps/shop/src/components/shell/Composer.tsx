@@ -9,6 +9,7 @@ import {
 	usePromptInputAttachments,
 } from "@/components/ai-elements/prompt-input";
 import { strings } from "@/lib/strings";
+import { useSuggestions } from "@/lib/suggestions";
 import { cn } from "@/lib/utils";
 import { ModelButton } from "./Header";
 
@@ -99,6 +100,7 @@ export function Composer({
 	textareaRef: Ref<HTMLTextAreaElement>;
 	clearRef: MutableRefObject<(() => void) | null>;
 }) {
+	const { placeholder } = useSuggestions();
 	// One source must stay on, or the search has nowhere to look.
 	const toggle = (key: keyof Sources) => {
 		const next = { ...sources, [key]: !sources[key] };
@@ -125,7 +127,7 @@ export function Composer({
 				id="prompt"
 				ref={textareaRef}
 				rows={started ? 1 : 3}
-				placeholder={started ? strings.placeholderFollowUp : strings.placeholder}
+				placeholder={started ? strings.placeholderFollowUp : placeholder}
 				className={cn(
 					"resize-none border-0 bg-transparent text-base leading-normal tracking-[-0.01em] text-fg shadow-none outline-none focus-visible:ring-0 focus-visible:outline-none md:text-base",
 					started ? "max-h-[200px] min-h-0 px-3.5 pt-2.5 pb-1" : "max-h-60 min-h-24 px-[18px] pt-4 pb-1.5 md:text-[17px]",

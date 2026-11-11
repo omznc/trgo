@@ -3,6 +3,7 @@ import { type CSSProperties, useEffect, useRef } from "react";
 import { Mascot } from "@/components/Mascot";
 import { startLogin } from "@/lib/openrouter-auth";
 import { strings } from "@/lib/strings";
+import { useSuggestions } from "@/lib/suggestions";
 
 const ICONS = [Search, Tag, Plus];
 
@@ -34,7 +35,6 @@ export function ConnectBanner({ onPasteKey, cue, free }: { onPasteKey: () => voi
 	}, [cue.n, cue.reason]);
 	return (
 		<div ref={ref} style={delay(480)} className="ld glass in flex w-full max-w-[720px] flex-wrap items-center gap-3.5 rounded-[22px] py-3.5 pr-3.5 pl-[18px] shadow-none">
-			<Mascot mood={free ? "found" : "sleeping"} width={44} />
 			<div className="flex min-w-48 flex-1 flex-col gap-0.5">
 				<strong className="text-[15px] font-semibold">{free ? strings.freeBannerTitle : strings.connectTitle}</strong>
 				<span className="text-[13px] text-fg-3">{free ? strings.freeBannerBody : strings.connectSubtitle}</span>
@@ -53,9 +53,10 @@ export function ConnectBanner({ onPasteKey, cue, free }: { onPasteKey: () => voi
 }
 
 export function Suggestions({ onPick }: { onPick: (text: string) => void }) {
+	const { chips } = useSuggestions();
 	return (
 		<div className="flex max-w-[760px] flex-wrap justify-center gap-2">
-			{strings.suggestions.map((s, i) => {
+			{chips.map((s, i) => {
 				const Icon = ICONS[i] ?? Search;
 				return (
 					<button

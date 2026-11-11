@@ -202,16 +202,8 @@ async function freeChat(request: Request, env: Env, cors: Headers): Promise<Resp
 	if (!env.FREE_MODEL || !env.OPENROUTER_KEY) return freeUnavailable(cors);
 	const limited = await freeLimit(request, env, cors);
 	if (limited) return limited;
-	const raw = await request.text();
-	if (raw.length > MAX_FREE_BODY) return jsonError(413, "body too large", cors);
-	let parsed: unknown;
-	try {
-		parsed = JSON.parse(raw);
-	} catch {
-		return jsonError(400, "bad json", cors);
-	}
-	const body = sanitizeBody(parsed, env.FREE_MODEL);
-	if (!body) return jsonError(400, "bad body", cors);
+	const body = await readFreeBody(request, env.FREE_MODEL, cors);
+	if (body instanceof Response) return body;
 	let upstream: Response;
 	try {
 		upstream = await fetch(OPENROUTER_URL, {
@@ -229,6 +221,23 @@ async function freeChat(request: Request, env: Env, cors: Headers): Promise<Resp
 	}
 	// A problem with our own key or quota is not the user's problem.
 	if ([401, 402, 403, 429].includes(upstream.status)) return freeUnavailable(cors);
+	return relayFree(upstream, cors);
+}
+
+async function readFreeBody(request: Request, model: string, cors: Headers): Promise<Record<string, unknown> | Response> {
+	const raw = await request.text();
+	if (raw.length > MAX_FREE_BODY) return jsonError(413, "body too large", cors);
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		return jsonError(400, "bad json", cors);
+	}
+	return sanitizeBody(parsed, model) ?? jsonError(400, "bad body", cors);
+}
+
+// Sends the upstream answer back with the model name and the provider removed.
+async function relayFree(upstream: Response, cors: Headers): Promise<Response> {
 	const headers = new Headers(cors);
 	headers.set("cache-control", "no-store");
 	const type = upstream.headers.get("content-type") ?? "application/json";
