@@ -1,6 +1,6 @@
-import { Check, ChevronRight, ExternalLink } from "lucide-react";
+import { Check, ChevronRight, ChevronsUpDown, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type Lang, lang, setLang } from "@/lib/lang";
 import { useSidePanel } from "@/components/shell/side-panel";
 import { FREE_MODEL_ID, isFreeModel, MODELS, modelLabel } from "@/lib/agent";
@@ -14,6 +14,8 @@ import { Group, notifySettings, PanelBody, PanelHeader, PROXY_SOURCE, Section, u
 
 const ROW = "flex min-h-12 items-center justify-between gap-3.5 px-4 py-2.5 text-[15px] text-fg no-underline";
 const FOCUS = "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus";
+// Each name is in its own language, so it reads the same in both UIs.
+const LANGS: Record<Lang, string> = { bs: "Bosanski", en: "English" };
 
 const MODEL_ROW =
 	"flex min-h-14 items-center gap-3 px-4 py-2.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-focus";
@@ -93,15 +95,21 @@ export default function SettingsPanel() {
 					<Group>
 						<div className={ROW}>
 							<span id="lang-label">{ta.language}</span>
-							<Select value={lang} onValueChange={(v) => v !== lang && setLang(v as Lang)}>
-								<SelectTrigger aria-labelledby="lang-label" className="h-8 border-0 bg-transparent px-2 text-[15px] text-fg-3 shadow-none dark:bg-transparent dark:hover:bg-transparent">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent position="popper" align="end">
-									<SelectItem value="bs">Bosanski</SelectItem>
-									<SelectItem value="en">English</SelectItem>
-								</SelectContent>
-							</Select>
+							<DropdownMenu>
+								<DropdownMenuTrigger aria-labelledby="lang-label" className={`${FOCUS} inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-0 bg-transparent text-fg-3`}>
+									{LANGS[lang]}
+									<ChevronsUpDown size={14} aria-hidden />
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end" className="solid min-w-44 rounded-2xl p-1.5">
+									<DropdownMenuRadioGroup value={lang} onValueChange={(v) => v !== lang && setLang(v as Lang)}>
+										{(Object.keys(LANGS) as Lang[]).map((l) => (
+											<DropdownMenuRadioItem key={l} value={l} className="min-h-10 rounded-xl text-sm">
+												{LANGS[l]}
+											</DropdownMenuRadioItem>
+										))}
+									</DropdownMenuRadioGroup>
+								</DropdownMenuContent>
+							</DropdownMenu>
 						</div>
 					</Group>
 				</Section>
