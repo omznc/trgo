@@ -1,18 +1,43 @@
+<div align="center">
+
 # trgo
 
-trgo is an AI chat that searches listings and posts listings on two Bosnian marketplaces: OLX.ba and SVEX.ba. The live app is https://trgo.omarzunic.com. The mascot is called Trgo.
+**Buy and sell on OLX.ba and SVEX.ba with a chat.**
 
-The code is open source (MIT). You can read it to check how the app uses your data.
+[trgo.omarzunic.com](https://trgo.omarzunic.com)
 
-## Status
+![The trgo home page](docs/screenshot.png)
 
-The chat searches OLX.ba and SVEX.ba. The AI runs in your browser with your own OpenRouter key (OAuth PKCE or a pasted key). The key stays in `localStorage` and goes only to OpenRouter. Marketplace calls go through `apps/proxy`. Posting listings comes later.
+</div>
 
-## Planned parts
+trgo is an AI chat for two Bosnian marketplaces: OLX.ba and SVEX.ba. Tell Trgo, the mascot, what you want. Trgo searches both sites, tells you what an item is worth, and posts your listings.
 
-- `apps/shop`: the chat app (TanStack Start, React, Tailwind CSS v4) for Cloudflare Workers.
-- `apps/proxy`: a proxy for the marketplace requests.
-- `packages/providers`: the OLX.ba and SVEX.ba provider code.
+## Features
+
+- **Search**: one question searches OLX.ba and SVEX.ba. All results show as cards.
+- **Price check**: Trgo reads hundreds of recent listings and removes accessories, wanted ads and bad prices. Then it shows the usual new and used price.
+- **Sell**: send photos and a few facts. Trgo writes the listing, and you approve it before it goes live.
+- **My listings**: see and edit your own OLX listings in the chat.
+- **Free mode**: use the app with no account, with a daily limit. Connect OpenRouter for no limit and a choice of model.
+- **Bosnian and English**: the app uses the language of your system. You can change it in Settings.
+
+## Privacy
+
+Your data stays in your browser:
+
+- The OpenRouter key stays in `localStorage` and goes only to OpenRouter.
+- The OLX and SVEX logins keep only a session. The app does not keep your password.
+- The proxy sends the marketplace requests. It does not write logs and does not keep request content.
+
+The code is open source, so you can check this.
+
+## Project layout
+
+| Path | Content |
+| --- | --- |
+| `apps/shop` | The chat app (TanStack Start, React, Tailwind CSS v4) on Cloudflare Workers. |
+| `apps/proxy` | The proxy for the marketplace requests and the free mode. |
+| `packages/providers` | The OLX.ba and SVEX.ba provider code. |
 
 ## Run locally
 
@@ -23,12 +48,14 @@ bun run --cwd apps/shop dev
 
 Open http://localhost:3000.
 
-Other commands, from `apps/shop`:
+From `apps/shop`:
 
 - `bun run typecheck`: check the types.
+- `bun test`: run the tests.
 - `bun run build`: make a production build.
-- `bun run deploy`: deploy with the `cf` CLI. It reads `cloudflare.config.ts`.
+
+To deploy, run `scripts/deploy.sh shop` or `scripts/deploy.sh proxy`. The script uses the `cf` CLI.
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [`LICENSE`](LICENSE).
