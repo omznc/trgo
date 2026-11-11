@@ -8,6 +8,7 @@ import { priceCheckSchema, runPriceCheck, summarize } from "./price-check";
 import { type SearchCard, type SearchToolOutput, summarizeSearch } from "./search-summary";
 import { olxAccount,proxyUrl, publishListing, svexAccount } from "./publish";
 import { expireSession, getSession, isAuthError } from "./sessions";
+import { lang } from "./lang";
 import { strings } from "./strings";
 import { knownModelName } from "./openrouter-models";
 
@@ -16,7 +17,8 @@ const MAX_MINE = 30;
 
 const SYSTEM_PROMPT = `You are Trgo, a friendly shopping helper for Bosnian online marketplaces.
 You search OLX.ba and SVEX.ba with the search_listings tool. Prices are in KM (BAM).
-Answer in the language of the user. If the language is unclear, use Bosnian.
+Answer in the language of the user. If the language is unclear, use ${lang === "en" ? "English" : "Bosnian"}.
+OLX.ba and SVEX.ba are Bosnian sites. The search words for search_listings and price_check must always be local Bosnian terms (for example "veš mašina", not "washing machine"), even when the user writes in English.
 When the user asks how much an item is worth, what they can get for it, or what it costs (koliko vrijedi, koliko mogu dobiti), call price_check one time. Do not call search_listings first.
 Give price_check the search words. Set minPrice to about half of the usual used price of the item, so that games and accessories are cut. Set maxPrice to about three times the usual new price, so that bigger items that mention the item are cut (a car "sa zimskim gumama" is not a tire set). Use mustInclude and exclude for details that the user said, for example exclude "pro" when the user asks for a normal PS5.
 The app finds many listings, removes accessories and bad prices, and shows a price card. The card is the whole answer: the turn ends after price_check, so do any other work first and call price_check last.
@@ -182,7 +184,7 @@ export const MODELS = [
 ] as const;
 
 const MODEL_LABELS: Record<string, string> = {
-	[FREE_MODEL_ID]: "Besplatno",
+	[FREE_MODEL_ID]: lang === "en" ? "Free" : "Besplatno",
 	"deepseek/deepseek-v4.1-flash-1017": "DeepSeek V4.1 Flash",
 };
 export const modelLabel = (id: string) => MODEL_LABELS[id] ?? knownModelName(id) ?? id.split("/").pop() ?? id;

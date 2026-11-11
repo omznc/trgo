@@ -18,6 +18,7 @@ import { HistoryPanel } from "@/components/shell/HistoryPanel";
 import { HistoryRegion, SidePanelRegion, useSidePanel } from "@/components/shell/side-panel";
 import { useHistory } from "@/components/shell/use-history";
 import type { LaganoMessage } from "@/lib/agent";
+import { applyPageLang } from "@/lib/page-lang";
 import { addPhoto, photoNote } from "@/lib/photos";
 import { useSessionExpired, useSessions } from "@/lib/sessions";
 import { strings } from "@/lib/strings";
@@ -114,6 +115,7 @@ function MessageList({
 }
 
 export function Chat() {
+	useEffect(applyPageLang, []);
 	const chat = useLaganoChat();
 	const { messages, apiKey, status } = chat;
 	const panel = useSidePanel();

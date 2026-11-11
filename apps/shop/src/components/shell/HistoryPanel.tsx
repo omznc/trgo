@@ -1,7 +1,7 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { HoldButton } from "@/components/account/ClearData";
-import { plural } from "@/components/detail/format";
+import { details } from "@/components/detail/strings-detail";
 import { PanelBody, PanelHeader, Section } from "@/components/account/ui";
 import { useSidePanel } from "@/components/shell/side-panel";
 import type { StoredChat } from "@/lib/chat-history";
@@ -24,16 +24,12 @@ function relTime(ts: number, now: number) {
 	const mins = Math.floor((now - ts) / 60_000);
 	// Browsers have no "bs" data for Intl.RelativeTimeFormat (it gives "-2 min"), so the words are ours.
 	if (mins < 1) return strings.historyNow;
-	if (mins < 60) return `prije ${mins} min`;
+	if (mins < 60) return details.ago.minutes(mins);
 	const group = groupOf(ts, now);
-	if (group === "today") {
-		const h = Math.floor(mins / 60);
-		return `prije ${h} ${plural(h, { one: "sat", few: "sata", other: "sati" })}`;
-	}
-	if (group === "yesterday") return "jučer";
-	if (group === "older") return new Date(ts).toLocaleDateString("sr-Latn", { day: "numeric", month: "long" });
-	const days = Math.round((startOfDay(now) - startOfDay(ts)) / DAY);
-	return `prije ${days} ${plural(days, { one: "dan", few: "dana", other: "dana" })}`;
+	if (group === "today") return details.ago.hours(Math.floor(mins / 60));
+	if (group === "yesterday") return details.ago.yesterday;
+	if (group === "older") return new Date(ts).toLocaleDateString(details.dateLocale, { day: "numeric", month: "long" });
+	return details.ago.days(Math.round((startOfDay(now) - startOfDay(ts)) / DAY));
 }
 
 type RowProps = { chat: StoredChat; current: boolean; now: number; onPick: () => void; onDelete: () => void };

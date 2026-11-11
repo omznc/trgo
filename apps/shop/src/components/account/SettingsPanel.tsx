@@ -1,5 +1,7 @@
-import { Check, ChevronRight, ChevronsUpDown, ExternalLink } from "lucide-react";
+import { Check, ChevronRight, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { type Lang, lang, setLang } from "@/lib/lang";
 import { useSidePanel } from "@/components/shell/side-panel";
 import { FREE_MODEL_ID, isFreeModel, MODELS, modelLabel } from "@/lib/agent";
 import { getModel, setModel } from "@/lib/openrouter-auth";
@@ -87,14 +89,19 @@ export default function SettingsPanel() {
 				<Section title={ta.modelHeading}>
 					<ModelList connected={!!key} />
 				</Section>
-				<Section title={ta.appearance} note={ta.languageNote}>
+				<Section title={ta.appearance} note={ta.languageDesc}>
 					<Group>
 						<div className={ROW}>
-							<span>{ta.language}</span>
-							<span className="inline-flex items-center gap-1.5 text-fg-3">
-								{ta.languageValue}
-								<ChevronsUpDown size={14} aria-hidden />
-							</span>
+							<span id="lang-label">{ta.language}</span>
+							<Select value={lang} onValueChange={(v) => v !== lang && setLang(v as Lang)}>
+								<SelectTrigger aria-labelledby="lang-label" className="h-8 border-0 bg-transparent px-2 text-[15px] text-fg-3 shadow-none dark:bg-transparent dark:hover:bg-transparent">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent position="popper" align="end">
+									<SelectItem value="bs">Bosanski</SelectItem>
+									<SelectItem value="en">English</SelectItem>
+								</SelectContent>
+							</Select>
 						</div>
 					</Group>
 				</Section>

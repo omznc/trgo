@@ -1,6 +1,6 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { SidePanelProvider } from "@/components/shell/side-panel";
-import { strings } from "@/lib/strings";
+import { stringsBs as strings } from "@/lib/strings";
 import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({

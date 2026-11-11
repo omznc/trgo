@@ -1,4 +1,5 @@
-import { ArrowUp, Check, ImagePlus } from "lucide-react";
+import { ArrowUp, ChevronDown, ImagePlus } from "lucide-react";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type MutableRefObject, type Ref, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FileUIPart } from "ai";
 import {
@@ -119,20 +120,42 @@ function TaggedSlot() {
 	);
 }
 
-function SourceToggle({ name, on, onToggle }: { name: string; on: boolean; onToggle: () => void }) {
+const MARKETS: { key: keyof Sources; name: string }[] = [
+	{ key: "olx", name: strings.sourceOlx },
+	{ key: "svex", name: strings.sourceSvex },
+];
+
+// "OLX.ba" shows as "OLX" in the trigger.
+const shortName = (name: string) => name.replace(/\.ba$/, "");
+
+function MarketsMenu({ sources, onToggle }: { sources: Sources; onToggle: (key: keyof Sources) => void }) {
+	const on = MARKETS.filter((m) => sources[m.key]);
 	return (
-		<button
-			type="button"
-			aria-pressed={on}
-			onClick={onToggle}
-			className={cn(
-				"inline-flex h-8 items-center gap-1.5 rounded-full text-[13px] font-medium max-sm:hidden",
-				on ? "chip pr-3 pl-[9px] text-fg" : "border border-dashed border-line-dashed px-3 text-fg-3",
-			)}
-		>
-			{on && <Check className="size-[13px] text-accent" strokeWidth={2.8} aria-hidden />}
-			{name}
-		</button>
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<button
+					type="button"
+					aria-label={strings.marketsAria}
+					className="chip inline-flex h-8 items-center gap-1 rounded-full pr-2.5 pl-3 text-[13px] font-medium text-fg max-sm:hidden"
+				>
+					{on.length ? on.map((m) => shortName(m.name)).join(" · ") : strings.markets}
+					<ChevronDown className="size-3.5 shrink-0" aria-hidden />
+				</button>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="start" className="solid min-w-44 rounded-2xl p-1.5">
+				{MARKETS.map((m) => (
+					<DropdownMenuCheckboxItem
+						key={m.key}
+						checked={sources[m.key]}
+						onCheckedChange={() => onToggle(m.key)}
+						onSelect={(event) => event.preventDefault()}
+						className="min-h-10 rounded-xl text-sm"
+					>
+						{m.name}
+					</DropdownMenuCheckboxItem>
+				))}
+			</DropdownMenuContent>
+		</DropdownMenu>
 	);
 }
 
@@ -201,7 +224,7 @@ export function Composer({
 			<TaggedSlot />
 			<PromptInputAttachments className="p-0 px-2 pt-1.5">{(file) => <PromptInputAttachment data={file} />}</PromptInputAttachments>
 			<label htmlFor="prompt" className="sr">
-				Poruka
+				{strings.message}
 			</label>
 			<PromptInputTextarea
 				id="prompt"
@@ -216,8 +239,7 @@ export function Composer({
 			<div className="flex items-center justify-between gap-3 py-1.5 pr-1.5 pl-2.5">
 				<div className="-m-1 flex min-w-0 items-center gap-1.5 overflow-x-auto p-1 [scrollbar-width:none] [&>*]:shrink-0">
 					<AttachButton />
-					<SourceToggle name={strings.sourceOlx} on={sources.olx} onToggle={() => toggle("olx")} />
-					<SourceToggle name={strings.sourceSvex} on={sources.svex} onToggle={() => toggle("svex")} />
+					<MarketsMenu sources={sources} onToggle={toggle} />
 					<ModelButton model={model} connected={connected} onChange={onModel} className="h-8 max-sm:hidden" />
 				</div>
 				<ActionButton busy={busy} onStop={onStop} />

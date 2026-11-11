@@ -1,6 +1,8 @@
-// Bosnian copy of the sell flow. The text is exact from the design artboards.
-export const sell = {
-	steps: { aria: "Koraci objave", list: ["Slike", "Nacrt", "Odobrenje", "Objava"] },
+import { lang } from "./lang";
+
+// Copy of the sell flow. The Bosnian text is exact from the design artboards.
+const bs = {
+	steps: { aria: "Koraci objave", list: ["Slike", "Nacrt", "Odobrenje", "Objava"] as string[] },
 	photos: {
 		userMessage: "Prodajem svoj Ender-3 V3 KE",
 		intro: "Super! Pošalji mi nekoliko slika, a ja ću napisati oglas.",
@@ -99,4 +101,108 @@ export const sell = {
 	},
 	cancelled: "Otkazano",
 	errorAria: "Greška",
-} as const;
+};
+
+const en: typeof bs = {
+	steps: { aria: "Publishing steps", list: ["Images", "Draft", "Approval", "Publish"] },
+	photos: {
+		userMessage: "I am selling my Ender-3 V3 KE",
+		intro: "Great! Send me a few images and I will write the listing.",
+		title: "Listing images",
+		dropPrefix: "Drag images here or",
+		dropPick: "choose",
+		dropHint: "Up to 10 images · JPG, PNG, HEIC · the first is the cover",
+		gridAria: "Images, drag to reorder",
+		tileAlt: (n: number) => `Image ${n}`,
+		cover: "Cover",
+		setCoverAria: (n: number) => `Set image ${n} as the cover`,
+		removeAria: (n: number) => `Remove image ${n}`,
+		gripAria: "Drag to reorder",
+		moveHint: "The left and right arrow keys change the order",
+		processing: "Processing",
+		footerHintStart: "Tap an image to make it the cover · drag",
+		footerHintEnd: "to reorder",
+		makeDraft: "Make a draft",
+		badFile: (name: string) => `The image ${name} is not supported.`,
+		tooMany: "Up to 10 images.",
+	},
+	draft: {
+		intro: "I wrote a draft from the images and similar listings. Change anything you want.",
+		title: "Listing draft",
+		coverAlt: "Cover image",
+		photoCount: (n: number) => `${n} ${n === 1 ? "image" : "images"} · `,
+		editPhotos: "edit",
+		aiTag: "AI",
+		field: {
+			title: "Title",
+			price: "Price",
+			category: "Category",
+			condition: "Condition",
+			city: "City",
+			delivery: "Delivery",
+			description: "Description",
+		},
+		currency: "KM",
+		condition: { new: "New", likeNew: "Like new", used: "Used", damaged: "Damaged" },
+		delivery: { pickup: "Pickup in person", free: "Free delivery", freeNote: "SVEX only" },
+		target: { label: "Where to publish", olx: "OLX", svex: "SVEX", both: "Both" },
+		olxDeliveryWarning: "Turn on delivery in the OLX app. The API cannot set delivery.",
+		discard: "Discard",
+		review: "Review before publishing",
+	},
+	approve: {
+		intro: "Everything is ready. This is exactly what I send:",
+		title: "Publish?",
+		subtitle: "Check exactly what goes to each site. Nothing is published without your approval.",
+		thumbAlt: (n: number) => `Image ${n}`,
+		cardHead: "this goes:",
+		row: {
+			title: "Title",
+			price: "Price",
+			condition: "Condition",
+			city: "City",
+			photos: "Images",
+			category: "Category",
+			delivery: "Delivery",
+		},
+		photosValue: (n: number) => `${n} (cover: 1.)`,
+		deliveryOlx: "Not set",
+		deliverySvex: "Pickup in person",
+		deliverySvexFree: "Free delivery",
+		olxDeliveryWarning: "Turn on delivery in the OLX app. The API cannot set delivery.",
+		cancel: "Cancel",
+		edit: "Edit",
+		editHint: "To change something, write in the chat what to correct.",
+		publish: (names: string) => `Publish on ${names}`,
+		both: "OLX and SVEX",
+	},
+	publish: {
+		title: "Publishing…",
+		done: "Published",
+		pending: "Waiting",
+		sending: (sent: number, total: number) => `Sending images ${sent} / ${total}`,
+		retrying: "Trying again…",
+	},
+	success: {
+		mascotAria: "The mascot celebrates",
+		title: "The listing is published!",
+		subtitle: (title: string, price: number) => `${title} · ${price} KM`,
+		open: (name: string) => `Open on ${name}`,
+		copyLinks: "Copy links",
+		copied: "Links copied",
+		copyFailed: "Copy failed",
+		olxDeliveryNote: "Turn on delivery in the OLX app. The API cannot set delivery.",
+	},
+	partial: {
+		title: "Partly published",
+		titleNone: "Publishing failed",
+		okText: (names: string) => `${names} published the listing.`,
+		failedText: (names: string) => `${names}: publishing failed.`,
+		failed: "Failed",
+		retry: (name: string) => `Try again on ${name}`,
+	},
+	cancelled: "Cancelled",
+	errorAria: "Error",
+};
+
+export const sell = lang === "en" ? en : bs;

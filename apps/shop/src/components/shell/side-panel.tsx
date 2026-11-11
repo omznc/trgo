@@ -309,7 +309,7 @@ function Island({ side, label, close, pageKey, dir, canGoBack, ctx, children }: 
 		>
 			<motion.button
 				type="button"
-				aria-label="Zatvori panel"
+				aria-label={strings.closePanel}
 				tabIndex={-1}
 				onClick={close}
 				variants={wide ? SCRIM : undefined}

@@ -1,6 +1,6 @@
-import { plural } from "./format";
+import { lang, plural } from "@/lib/lang";
 
-export const details = {
+const bs = {
 	prevImage: "Prethodna slika",
 	nextImage: "Sljedeća slika",
 	closeViewer: "Zatvori prikaz slike",
@@ -21,4 +21,53 @@ export const details = {
 	copyLink: "Kopiraj link",
 	linkCopied: "Link kopiran",
 	loadingLabel: "Učitavam detalje",
-} as const;
+	ago: {
+		now: "upravo sada",
+		today: "danas",
+		yesterday: "jučer",
+		minutes: (n: number) => `prije ${n} min`,
+		hours: (n: number) => `prije ${n} ${plural(n, { one: "sat", few: "sata", other: "sati" })}`,
+		days: (n: number) => `prije ${n} ${plural(n, { one: "dan", few: "dana", other: "dana" })}`,
+		weeks: (n: number) => `prije ${n} ${plural(n, { one: "sedmicu", few: "sedmice", other: "sedmica" })}`,
+		months: (n: number) => `prije ${n} ${plural(n, { one: "mjesec", few: "mjeseca", other: "mjeseci" })}`,
+		years: (n: number) => `prije ${n} ${plural(n, { one: "godinu", few: "godine", other: "godina" })}`,
+	},
+	dateLocale: "sr-Latn",
+};
+
+const en: typeof bs = {
+	prevImage: "Previous image",
+	nextImage: "Next image",
+	closeViewer: "Close image viewer",
+	openViewer: (n: number, total: number) => `Open image ${n} of ${total}`,
+	showImage: (n: number) => `Show image ${n}`,
+	description: "Description",
+	specs: "Specifications",
+	delivery: "Delivery",
+	shipping: "Delivery",
+	shippingPrice: (km: number) => `Delivery ${km} KM`,
+	freeShipping: "Free delivery",
+	pickup: "Pickup in person",
+	sellerShop: "Shop",
+	sellerPrivate: "Private seller",
+	sellerSince: (provider: string, year: number) => `On ${provider} since ${year}`,
+	views: (n: number) => `${n} ${plural(n, { one: "view", few: "views", other: "views" })}`,
+	loadFailed: "The details did not load.",
+	copyLink: "Copy link",
+	linkCopied: "Link copied",
+	loadingLabel: "Loading details",
+	ago: {
+		now: "just now",
+		today: "today",
+		yesterday: "yesterday",
+		minutes: (n: number) => `${n} min ago`,
+		hours: (n: number) => `${n} ${n === 1 ? "hour" : "hours"} ago`,
+		days: (n: number) => `${n} ${n === 1 ? "day" : "days"} ago`,
+		weeks: (n: number) => `${n} ${n === 1 ? "week" : "weeks"} ago`,
+		months: (n: number) => `${n} ${n === 1 ? "month" : "months"} ago`,
+		years: (n: number) => `${n} ${n === 1 ? "year" : "years"} ago`,
+	},
+	dateLocale: "en",
+};
+
+export const details = lang === "en" ? en : bs;
