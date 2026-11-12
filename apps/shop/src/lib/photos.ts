@@ -8,7 +8,8 @@ const QUALITY = 0.85;
 const photos = new Map<string, Photo>();
 let counter = 0;
 // A saved chat keeps old ids. The prefix changes on each page load, so a new photo never reuses one.
-const prefix = crypto.randomUUID().slice(0, 6);
+// Made on first use: Workers refuse random values in the global scope, and the server imports this module.
+let prefix: string | undefined;
 
 export const photoId = (pre: string, n: number) => `photo-${pre}-${n}`;
 
@@ -29,6 +30,7 @@ export async function shrinkImage(file: Blob): Promise<Blob> {
 
 export async function addPhoto(file: Blob): Promise<Photo> {
 	// The id is taken before the await, so ids keep the attach order.
+	prefix ??= crypto.randomUUID().slice(0, 6);
 	const id = photoId(prefix, ++counter);
 	const blob = await shrinkImage(file);
 	const photo = { id, blob, url: URL.createObjectURL(blob) };
