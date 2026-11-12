@@ -3,14 +3,16 @@ import type { LaganoMessage } from "@/lib/agent";
 import type { ListingArgs, PublishOutput } from "@/lib/publish";
 import { strings } from "@/lib/strings";
 import { sell } from "@/lib/strings-sell";
+import { useChatActions } from "./shell/chat-actions";
 import { ApprovalCard } from "./sell/ApprovalCard";
 import { PublishProgress } from "./sell/PublishProgress";
 import { PublishResult } from "./sell/SuccessCard";
 
 type Part = Extract<LaganoMessage["parts"][number], { type: "tool-create_listing" }>;
 
-function Output({ input, out }: { input: ListingArgs; out: PublishOutput }) {
-	if (out.done) return <PublishResult input={input} results={out.results} />;
+function Output({ input, out, toolCallId }: { input: ListingArgs; out: PublishOutput; toolCallId: string }) {
+	const { saveResults } = useChatActions();
+	if (out.done) return <PublishResult input={input} results={out.results} onSave={(results) => saveResults(toolCallId, results)} />;
 	return <PublishProgress providers={input.providers} progress={out.progress} results={out.results} />;
 }
 
@@ -27,7 +29,7 @@ export function ListingApprovalPart({ part, onRespond }: { part: Part; onRespond
 			</p>
 		);
 	}
-	if (part.state === "output-available") return <Output input={part.input as ListingArgs} out={part.output as PublishOutput} />;
+	if (part.state === "output-available") return <Output input={part.input as ListingArgs} out={part.output as PublishOutput} toolCallId={part.toolCallId} />;
 	if (part.state === "approval-responded") {
 		const input = part.input as ListingArgs;
 		const [name] = input.providers;

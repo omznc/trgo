@@ -3,6 +3,7 @@ import { Copy, ExternalLink, Info, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { publishListing, type ListingArgs, type ProviderResult } from "@/lib/publish";
 import { useSidePanel } from "@/components/shell/side-panel";
+import { retryMode } from "@/lib/publish-resume";
 import { getSession } from "@/lib/sessions";
 import { strings } from "@/lib/strings";
 import { sell } from "@/lib/strings-sell";
@@ -87,7 +88,8 @@ function Hero({ input, results }: { input: ListingArgs; results: ProviderResult[
 }
 
 // Re-runs one provider with the arguments the user already approved. The other results stay as they are.
-function useRetry(input: ListingArgs, first: ProviderResult[]) {
+// A provider that made a draft or a listing goes on with that id. It never makes a second one.
+function useRetry(input: ListingArgs, first: ProviderResult[], onSave: (results: ProviderResult[]) => void) {
 	const [results, setResults] = useState(first);
 	const [progress, setProgress] = useState<Progress>({});
 	const [busy, setBusy] = useState<ProviderId | null>(null);
@@ -96,12 +98,16 @@ function useRetry(input: ListingArgs, first: ProviderResult[]) {
 		if (!getSession(provider)) return requireConnection(provider, strings.needPublish[provider]);
 		setBusy(provider);
 		let last: ProviderResult | undefined;
-		for await (const out of publishListing({ ...input, providers: [provider] })) {
+		for await (const out of publishListing({ ...input, providers: [provider] }, results)) {
 			if (out.done) last = out.results[0];
 			else setProgress(out.progress);
 		}
 		setProgress({});
-		if (last) setResults((all) => [...all.filter((r) => r.provider !== provider), last]);
+		if (last) {
+			const next = input.providers.flatMap((p) => (p === provider ? [last] : results.filter((r) => r.provider === p)));
+			setResults(next);
+			onSave(next);
+		}
 		setBusy(null);
 	};
 	return { results, progress, busy, retry };
@@ -138,7 +144,7 @@ function Partial({ input, results, progress, busy, retry }: ReturnType<typeof us
 							{sell.success.open(NAMES[r.provider])}
 						</a>
 					))}
-				{failed.map((r) => (
+				{failed.filter((r) => retryMode(r) !== "none").map((r) => (
 					<button
 						key={r.provider}
 						type="button"
@@ -155,8 +161,8 @@ function Partial({ input, results, progress, busy, retry }: ReturnType<typeof us
 	);
 }
 
-export function PublishResult({ input, results }: { input: ListingArgs; results: ProviderResult[] }) {
-	const state = useRetry(input, results);
+export function PublishResult({ input, results, onSave }: { input: ListingArgs; results: ProviderResult[]; onSave: (results: ProviderResult[]) => void }) {
+	const state = useRetry(input, results, onSave);
 	const allOk = state.results.length >= input.providers.length && state.results.every((r) => r.ok);
 	if (allOk && !state.busy) return <Hero input={input} results={state.results} />;
 	return <Partial input={input} {...state} />;

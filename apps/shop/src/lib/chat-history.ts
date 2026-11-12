@@ -90,6 +90,7 @@ export function initHistory() {
 }
 
 export const getChat = (id: string) => chats.find((c) => c.id === id);
+export const listChats = () => chats;
 
 export function persistChat(id: string, messages: LaganoMessage[]) {
 	if (messages.length === 0 || typeof indexedDB === "undefined") return;

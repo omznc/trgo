@@ -20,6 +20,7 @@ import { useHistory } from "@/components/shell/use-history";
 import type { LaganoMessage } from "@/lib/agent";
 import { applyPageLang } from "@/lib/page-lang";
 import { addPhoto, photoNote } from "@/lib/photos";
+import { isPublishing } from "@/lib/publish-resume";
 import { useSessionExpired, useSessions } from "@/lib/sessions";
 import { strings } from "@/lib/strings";
 import { useLaganoChat } from "@/lib/use-lagano-chat";
@@ -138,7 +139,9 @@ export function Chat() {
 		return () => ro.disconnect();
 	}, [started]);
 	const busy = status === "submitted" || status === "streaming";
-	const history = useHistory(chat, setDocked, withTransition);
+	const history = useHistory(chat, setDocked, withTransition, () => setToast(strings.publishWait));
+	// A stop in the middle of a post would leave a draft, so the stop button waits.
+	const publishing = busy && isPublishing(messages);
 	// The first-load reveal (.boot) ends for good once the chat starts.
 	const [boot, setBoot] = useState(true);
 	useEffect(() => {
@@ -185,6 +188,7 @@ export function Chat() {
 				el.setSelectionRange(text.length, text.length);
 			},
 			openConnect: () => openConnect("openrouter"),
+			saveResults: history.saveResults,
 		}),
 		// send reads the latest state on each render, so it is rebuilt with it.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -256,6 +260,7 @@ onRetry={chat.error ? () => chat.regenerate() : undefined} />
 								<Composer
 									started={started}
 									busy={busy}
+									canStop={!publishing}
 									model={chat.model}
 									connected={!!apiKey}
 									onModel={chat.setModel}

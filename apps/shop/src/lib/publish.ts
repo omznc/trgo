@@ -6,12 +6,16 @@ import {
 	svexListingUrl,
 	type NamedId,
 	type OlxListingInput,
+	type OlxSession,
 	type ProviderId,
+	type SvexSession,
 	type SvexCondition,
 } from "@lagano/providers";
 import { expireSession, getSession, isAuthError } from "./sessions";
 import { getPhoto } from "./photos";
+import { outcomeUnknown, savedTrack, type Track, trackOf } from "./publish-resume";
 import { strings } from "./strings";
+import { sell } from "./strings-sell";
 
 export type ListingArgs = {
 	providers: ProviderId[];
@@ -27,7 +31,19 @@ export type ListingArgs = {
 	olxAttributes?: Record<string, string | number | boolean>;
 };
 
-export type ProviderResult = { provider: ProviderId; ok: boolean; url?: string; error?: string; notes?: string[]; unknown?: boolean };
+// A failed result keeps the id of the draft or listing that exists (listingId, slug), and the photos sent to it.
+// "unknown" means the post may have worked, so the user must check My listings.
+export type ProviderResult = {
+	provider: ProviderId;
+	ok: boolean;
+	url?: string;
+	error?: string;
+	notes?: string[];
+	unknown?: boolean;
+	listingId?: string;
+	slug?: string;
+	uploaded?: number;
+};
 export type PublishProgress = { done: false; progress: Partial<Record<ProviderId, string>>; results: ProviderResult[] };
 export type PublishOutput = { done: true; results: ProviderResult[] } | PublishProgress;
 
@@ -111,10 +127,7 @@ const blobsOf = (ids: string[]) =>
 		return photo.blob;
 	});
 
-async function* publishOlx(args: ListingArgs, blobs: Blob[]): Step {
-	const session = getSession("olx");
-	if (!session) throw new Error(strings.notConnected);
-	yield strings.progressPrepare;
+async function createOlxDraft(session: OlxSession, args: ListingArgs): Promise<number> {
 	const [cities, suggestions] = await Promise.all([olx.cities(), olx.suggestCategory(args.categoryHint)]);
 	// OLX ranks its own suggestions, so the first one is the best guess.
 	const category = suggestions[0];
@@ -129,19 +142,34 @@ async function* publishOlx(args: ListingArgs, blobs: Blob[]): Step {
 		state: args.condition,
 		attributes: fillAttributes(attrs as OlxAttribute[], args),
 	};
-	const draft = await olx.createDraft(session, input);
-	for (const [i, blob] of blobs.entries()) {
-		yield strings.progressPhotos(i + 1, blobs.length);
-		await olx.uploadImages(session, draft.id, [blob]);
-	}
-	yield strings.progressPublish;
-	await olx.publish(session, draft.id);
-	return { provider: "olx", ok: true, url: olxListingUrl(draft.id), notes: [OLX_SHIPPING_NOTE] };
+	return (await olx.createDraft(session, input)).id;
 }
 
-async function* publishSvex(args: ListingArgs, blobs: Blob[]): Step {
-	const session = getSession("svex");
+// Without a saved id this makes a draft. With one, it goes on with the photos that are still missing.
+async function* publishOlx(args: ListingArgs, blobs: Blob[], track: Track): Step {
+	const session = getSession("olx");
 	if (!session) throw new Error(strings.notConnected);
+	if (!track.id) {
+		yield strings.progressPrepare;
+		track.id = String(await createOlxDraft(session, args));
+		track.stage = "photos";
+	}
+	const id = Number(track.id);
+	for (const [i, blob] of blobs.entries()) {
+		if (i < track.uploaded) continue;
+		yield strings.progressPhotos(i + 1, blobs.length);
+		await olx.uploadImages(session, id, [blob]);
+		track.uploaded = i + 1;
+	}
+	yield strings.progressPublish;
+	track.stage = "publish";
+	await olx.publish(session, id);
+	return { provider: "olx", ok: true, url: olxListingUrl(id), notes: [OLX_SHIPPING_NOTE] };
+}
+
+type SvexCreated = { id: string; slug: string };
+
+async function* createSvexListing(session: SvexSession, args: ListingArgs, blobs: Blob[]): AsyncGenerator<string, SvexCreated> {
 	yield strings.progressPrepare;
 	const [categories, cities] = await Promise.all([svex.categories() as Promise<SvexCategory[]>, svex.cities()]);
 	const category = pickByName(categories.filter((c) => c.isLeaf), args.categoryHint, "SVEX category");
@@ -167,27 +195,44 @@ async function* publishSvex(args: ListingArgs, blobs: Blob[]): Step {
 		},
 		{ publish: false },
 	);
-	await svex.publishListing(session, created.id);
-	return { provider: "svex", ok: true, url: svexListingUrl(created.id, created.slug) };
+	return created;
 }
 
-function failure(provider: ProviderId, error: unknown): ProviderResult {
-	if (error instanceof AskUser) return { provider, ok: false, error: error.message };
+// Without a saved id this uploads the photos and makes an unpublished listing. With one, it only publishes.
+async function* publishSvex(args: ListingArgs, blobs: Blob[], track: Track): Step {
+	const session = getSession("svex");
+	if (!session) throw new Error(strings.notConnected);
+	if (!track.id) {
+		const created = yield* createSvexListing(session, args, blobs);
+		[track.id, track.slug] = [created.id, created.slug];
+	}
+	yield strings.progressPublish;
+	track.stage = "publish";
+	await svex.publishListing(session, track.id);
+	return { provider: "svex", ok: true, url: svexListingUrl(track.id, track.slug ?? "") };
+}
+
+function failure(provider: ProviderId, error: unknown, track: Track): ProviderResult {
+	const base = { provider, ok: false, ...savedTrack(track) };
+	if (error instanceof AskUser) return { ...base, error: error.message };
+	if (outcomeUnknown(error, track)) return { ...base, unknown: true, error: sell.partial.unknown };
 	if (isAuthError(error)) {
 		expireSession(provider);
-		return { provider, ok: false, error: strings.sessionExpired };
+		return { ...base, error: strings.sessionExpired };
 	}
-	return { provider, ok: false, error: error instanceof Error ? error.message.slice(0, 300) : "Unknown error." };
+	return { ...base, error: error instanceof Error ? error.message.slice(0, 300) : "Unknown error." };
 }
 
 const STEPS = { olx: publishOlx, svex: publishSvex } as const;
 
 // Runs after the user approved. Providers run one after the other, so progress is easy to show.
-export async function* publishListing(args: ListingArgs): AsyncGenerator<PublishOutput> {
+// `previous` holds failed results of an earlier run. A provider with a saved id goes on from it and never makes a second listing.
+export async function* publishListing(args: ListingArgs, previous: ProviderResult[] = []): AsyncGenerator<PublishOutput> {
 	const results: ProviderResult[] = [];
 	for (const provider of args.providers) {
+		const track = trackOf(previous.find((r) => r.provider === provider));
 		try {
-			const step = STEPS[provider](args, blobsOf(args.photoIds));
+			const step = STEPS[provider](args, blobsOf(args.photoIds), track);
 			for (let next = await step.next(); ; next = await step.next()) {
 				if (next.done) {
 					results.push(next.value);
@@ -196,7 +241,7 @@ export async function* publishListing(args: ListingArgs): AsyncGenerator<Publish
 				yield { done: false, progress: { [provider]: next.value }, results: [...results] };
 			}
 		} catch (error) {
-			results.push(failure(provider, error));
+			results.push(failure(provider, error, track));
 		}
 	}
 	yield { done: true, results };

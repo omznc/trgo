@@ -159,10 +159,16 @@ function MarketsMenu({ sources, onToggle }: { sources: Sources; onToggle: (key: 
 	);
 }
 
-function ActionButton({ busy, onStop }: { busy: boolean; onStop: () => void }) {
+function ActionButton({ busy, canStop, onStop }: { busy: boolean; canStop: boolean; onStop: () => void }) {
 	if (busy) {
 		return (
-			<button type="button" aria-label={strings.stop} onClick={onStop} className="grid size-10 shrink-0 place-items-center rounded-full bg-fg text-bg">
+			<button
+				type="button"
+				aria-label={strings.stop}
+				disabled={!canStop}
+				onClick={onStop}
+				className="grid size-10 shrink-0 place-items-center rounded-full bg-fg text-bg disabled:opacity-40"
+			>
 				<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
 					<rect x="5" y="5" width="14" height="14" rx="3" />
 				</svg>
@@ -179,6 +185,7 @@ function ActionButton({ busy, onStop }: { busy: boolean; onStop: () => void }) {
 export function Composer({
 	started,
 	busy,
+	canStop,
 	model,
 	connected,
 	onModel,
@@ -191,6 +198,7 @@ export function Composer({
 }: {
 	started: boolean;
 	busy: boolean;
+	canStop: boolean;
 	model: string;
 	connected: boolean;
 	onModel: (m: string) => void;
@@ -242,7 +250,7 @@ export function Composer({
 					<MarketsMenu sources={sources} onToggle={toggle} />
 					<ModelButton model={model} connected={connected} onChange={onModel} className="h-8 max-sm:hidden" />
 				</div>
-				<ActionButton busy={busy} onStop={onStop} />
+				<ActionButton busy={busy} canStop={canStop} onStop={onStop} />
 			</div>
 		</PromptInput>
 	);
