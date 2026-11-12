@@ -106,6 +106,11 @@ describe("kp provider", () => {
 		expect((await provider.search({ q: "mleko", limit: 5 })).listings).toHaveLength(5);
 	});
 
+	test("a 503 from the proxy throws kp-unavailable", async () => {
+		const provider = createKpProvider({ proxyUrl: "https://p.test", fetch: (async () => Response.json({ error: "kp-unavailable" }, { status: 503 })) as unknown as typeof fetch });
+		await expect(provider.search({ q: "x" })).rejects.toThrow("kp-unavailable");
+	});
+
 	test("an HTTP error throws", async () => {
 		const provider = createKpProvider({ proxyUrl: "https://p.test", fetch: (async () => new Response("no", { status: 502 })) as unknown as typeof fetch });
 		await expect(provider.search({ q: "x" })).rejects.toThrow("HTTP 502");

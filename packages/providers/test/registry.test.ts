@@ -43,7 +43,7 @@ describe("provider registry", () => {
 
 	test("the detail flag is false exactly when getListing rejects as not supported", async () => {
 		for (const id of PROVIDER_IDS) {
-			const offline = createProvider(id, { proxyUrl: "https://proxy.test", fetch: () => Promise.reject(new Error("offline")) });
+			const offline = createProvider(id, { proxyUrl: "https://proxy.test", fetch: (() => Promise.reject(new Error("offline"))) as unknown as typeof fetch });
 			// A real adapter fails here with the network error.
 			const reason = await offline.getListing("1").then(() => "", (e: Error) => e.message);
 			expect(`${id} ${PROVIDERS[id].capabilities.detail}`).toBe(`${id} ${!reason.includes("not supported")}`);

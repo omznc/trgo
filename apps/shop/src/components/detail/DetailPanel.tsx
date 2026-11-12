@@ -18,6 +18,8 @@ export type DetailListing = {
 	postedAt?: string;
 	title: string;
 	price: string;
+	// The price as a number in the unit of the search. Missing in a chat saved before.
+	value?: number | null;
 	city?: string;
 	url: string;
 	imageUrl?: string;

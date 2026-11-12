@@ -1,4 +1,4 @@
-import { idsWith, PROVIDERS, type ProviderId } from "@lagano/providers";
+import { isPartialSelection, PROVIDERS, type ProviderId } from "@lagano/providers";
 import type { FileUIPart } from "ai";
 import { Check, TriangleAlert, WifiOff } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -71,7 +71,8 @@ function useSingleFlight() {
 }
 
 function sourceNote(on: ProviderId[]) {
-	if (on.length === idsWith(PROVIDERS, "search").length) return "";
+	// The default selection of a market names all of its sites, so it needs no note.
+	if (!isPartialSelection(PROVIDERS, on)) return "";
 	return `\n\n[Search only on: ${on.join(", ")}]`;
 }
 

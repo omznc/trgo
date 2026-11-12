@@ -1,5 +1,5 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { displayCurrency, displayLabel, PROVIDERS, queryFor, searchAll, type Currency, type Listing, type ProviderId, type SearchQuery, type Table } from "@lagano/providers";
+import { displayCurrency, displayLabel, inCurrency, PROVIDERS, queryFor, searchAll, type Currency, type Listing, type ProviderId, type SearchAllResult, type SearchQuery, type Table } from "@lagano/providers";
 import { APICallError, DirectChatTransport, hasToolCall, isStepCount, type InferUITools, type UIMessage, ToolLoopAgent, tool } from "ai";
 import { z } from "zod";
 import type { TaggedListing } from "@/components/shell/tagged-listing";
@@ -94,10 +94,14 @@ async function searchListings({ days, providers, ...query }: z.infer<ReturnType<
 	// minPrice and maxPrice are in the display currency. Each provider gets its own currency.
 	const adapt = (id: ProviderId, q: SearchQuery) => queryFor(ctx.table, ctx.currency, id, q);
 	const sites = clientsOf(chosen(providers, ctx.plan.search));
-	const { listings, total, errors } = await searchAll(sites, { ...query, limit, signal, ...(days && { sort: "newest" as const }) }, adapt);
-	const now = Date.now();
+	const result = await searchAll(sites, { ...query, limit, signal, ...(days && { sort: "newest" as const }) }, adapt);
+	return searchOutput(result, sites.map((s) => s.id), { currency: ctx.currency, unit: ctx.unit }, days);
+}
+
+// A card holds its price as a number in the unit of the search, so a sort and a median compare one currency.
+export function searchOutput({ listings, total, errors }: SearchAllResult, searched: ProviderId[], display: { currency: Currency; unit: string }, days?: number, now = Date.now()): SearchToolOutput {
 	const kept = days ? listings.filter((l) => now - Date.parse(l.postedAt ?? "") <= days * DAY_MS) : listings;
-	return { total, errors, days, listings: kept.map(toCard) };
+	return { total, errors, days, listings: kept.map((l) => toCard(inCurrency(l, display.currency))), searched, unit: display.unit };
 }
 
 async function listMine(plan: ToolProviders): Promise<SearchToolOutput & { error?: string }> {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { accountIds, convert, countryProviders, displayCurrency, displayLabel, idsWith, inCurrency, marketCountries, marketSelection, parseSelection, PROVIDERS, queryFor, searchAll, selectionCountry, type SearchQuery, type Table } from "../src";
+import { accountIds, convert, countryProviders, displayCurrency, displayLabel, idsWith, inCurrency, isPartialSelection, marketCountries, marketSelection, parseSelection, PROVIDERS, queryFor, searchAll, selectionCountry, type SearchQuery, type Table } from "../src";
 
 const none = { search: false, detail: false, priceCheck: false, mine: false, publish: false, edit: false };
 // A fake search-only provider in Croatia.
@@ -42,6 +42,16 @@ describe("market helpers", () => {
 		expect(displayLabel(FAKE, ["olx", "svex"])).toBe("KM");
 		expect(displayCurrency(FAKE, ["olx", "fakehr"])).toBe("EUR");
 		expect(displayLabel(FAKE, ["fakehr"])).toBe("EUR");
+	});
+});
+
+describe("partial selection", () => {
+	test("only a strict subset of the own market is partial", () => {
+		expect(isPartialSelection(PROVIDERS, ["olx", "svex"])).toBe(false);
+		expect(isPartialSelection(PROVIDERS, ["kp"])).toBe(false);
+		expect(isPartialSelection(PROVIDERS, ["olx", "svex", "kp"])).toBe(false);
+		expect(isPartialSelection(PROVIDERS, ["olx"])).toBe(true);
+		expect(isPartialSelection(PROVIDERS, ["svex", "kp"])).toBe(true);
 	});
 });
 

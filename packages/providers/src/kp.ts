@@ -21,6 +21,9 @@ type KpAd = {
 
 type KpSearchState = { total: number; pages: number; page: number; adsIds: number[]; byId: Record<string, KpAd> };
 
+// The message of a search error while the relay is down.
+export const KP_UNAVAILABLE = "kp-unavailable";
+
 const KP_SITE = PROVIDERS.kp.site;
 // The search page holds 30 ads. The size is fixed, so `limit` only trims.
 export const KP_PAGE_SIZE = 30;
@@ -96,6 +99,8 @@ export function createKpProvider(options: ProviderOptions): Provider {
 		name: PROVIDERS.kp.name,
 		async search(query) {
 			const res = await request(kpSearchPath(query), query.signal ? { signal: query.signal } : undefined);
+			// The proxy answers 503 kp-unavailable when the relay is not set up or is down.
+			if (res.status === 503) throw new Error(KP_UNAVAILABLE);
 			if (!res.ok) throw new Error(`/kp/pretraga failed with HTTP ${res.status}`);
 			const result = parseKpSearch(await res.text());
 			return query.limit && query.limit < result.listings.length ? { ...result, listings: result.listings.slice(0, query.limit) } : result;

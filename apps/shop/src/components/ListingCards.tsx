@@ -1,4 +1,4 @@
-import { PROVIDER_IDS, PROVIDERS } from "@lagano/providers";
+import { PROVIDERS, type ProviderId } from "@lagano/providers";
 import type { ToolUIPart } from "ai";
 import { AlertCircle, ArrowDown, ArrowDownUp, ArrowUp, Check, ChevronDown, LayoutGrid, List, RefreshCw, Search, TriangleAlert } from "lucide-react";
 import { motion } from "motion/react";
@@ -8,22 +8,17 @@ import { Mascot } from "@/components/Mascot";
 import { CopyImageButton } from "@/components/shell/CopyImageButton";
 import { useChatActions } from "@/components/shell/chat-actions";
 import { ListingCard, SkeletonCard, type ViewMode } from "@/components/shell/ListingCard";
-import { labelOf, useSelection } from "@/lib/market";
+import { isUnavailable, type SearchError, searchedOf, sortValue } from "@/lib/search-summary";
 import { strings } from "@/lib/strings";
 import { cn } from "@/lib/utils";
 
-type SearchOutput = { listings: DetailListing[]; errors: { provider: string }[]; error?: string };
+// `searched` and `unit` are missing in a chat saved before the markets.
+type SearchOutput = { listings: DetailListing[]; errors: SearchError[]; error?: string; searched?: string[]; unit?: string };
 type SearchInput = { q?: string; maxPrice?: number };
 type Condition = "all" | "new" | "used";
 
 const LIST_ROWS = 3;
 const pill = "inline-flex h-[34px] min-h-[34px] items-center gap-[7px] whitespace-nowrap rounded-full pr-4 pl-[13px] text-[13px] font-medium tracking-[-0.01em]";
-
-// "1.250 KM" -> 1250. A listing without a number sorts last.
-export function priceValue(text: string) {
-	const n = Number.parseFloat(text.replaceAll(".", "").replace(",", ".").replace(/[^\d.]/g, ""));
-	return Number.isFinite(n) ? n : Number.POSITIVE_INFINITY;
-}
 
 type Toggle = { open: boolean; onToggle: () => void };
 
@@ -64,16 +59,18 @@ function StatusLine({
 	loading,
 	listings,
 	errors,
+	searched,
 	mine,
 	toggle,
 }: {
 	loading: boolean;
 	listings: DetailListing[];
-	errors: string[];
+	errors: SearchError[];
+	searched: ProviderId[];
 	mine: boolean;
 	toggle?: Toggle;
 }) {
-	const counts = PROVIDER_IDS.map((p) => [p, listings.filter((l) => l.provider === p).length] as const);
+	const counts = searched.map((p) => [p, listings.filter((l) => l.provider === p).length] as const);
 	const Root = toggle ? "button" : "div";
 	const props = toggle
 		? ({ type: "button", "aria-expanded": toggle.open, onClick: toggle.onToggle } as const)
@@ -93,9 +90,10 @@ function StatusLine({
 					<Search className="size-3.5 shrink-0" aria-hidden />
 					<span className={cn(!mine && "max-sm:sr-only")}>{mine ? strings.searchedMine : strings.searchedOn}</span>
 					{!mine &&
-						counts.map(([p, n]) =>
-							errors.includes(p) ? (
-								<span key={p} className="chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-[3px]">
+						counts.map(([p, n]) => {
+							const error = errors.find((e) => e.provider === p);
+							return error ? (
+								<span key={p} title={isUnavailable(error) ? strings.providerUnavailable(PROVIDERS[p].siteName) : undefined} className="chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-[3px]">
 									<TriangleAlert className="size-3 text-danger" aria-hidden />
 									{PROVIDERS[p].name}
 								</span>
@@ -104,8 +102,8 @@ function StatusLine({
 									<Check className="size-3 text-ok" strokeWidth={3} aria-hidden />
 									{strings.count(PROVIDERS[p].name, n)}
 								</span>
-							),
-						)}
+							);
+						})}
 				</>
 			)}
 		</Root>
@@ -121,8 +119,7 @@ const CONDITION_LABEL: Record<Condition, string> = {
 
 type Controls = { condition: Condition; cheapest: boolean; view: ViewMode };
 
-function FilterBar({ maxPrice, controls, onChange }: { maxPrice?: number; controls: Controls; onChange: (c: Controls) => void }) {
-	const unit = labelOf(useSelection());
+function FilterBar({ maxPrice, unit, controls, onChange }: { maxPrice?: number; unit: string; controls: Controls; onChange: (c: Controls) => void }) {
 	const set = (patch: Partial<Controls>) => onChange({ ...controls, ...patch });
 	const viewBtn = (v: ViewMode, label: string, Icon: typeof List) => (
 		<button
@@ -225,9 +222,8 @@ function Results({ cards, view, loading, mine = false }: { cards: DetailListing[
 	);
 }
 
-function EmptyResult({ q, maxPrice }: { q?: string; maxPrice?: number }) {
+function EmptyResult({ q, maxPrice, unit }: { q?: string; maxPrice?: number; unit: string }) {
 	const actions = useChatActions();
-	const unit = labelOf(useSelection());
 	const raised = maxPrice ? Math.round((maxPrice * 1.3) / 10) * 10 : undefined;
 	return (
 		<section className="glass flex max-w-[560px] flex-col items-center gap-2.5 rounded-panel px-5 py-7 text-center shadow-none">
@@ -252,56 +248,60 @@ function ErrorNote({ text }: { text: string }) {
 	);
 }
 
-function PartialBanner({ names }: { names: string[] }) {
+function PartialBanner({ text }: { text: string }) {
 	return (
 		<div role="status" className="flex items-center gap-2.5 rounded-[14px] border border-[#FFB34040] bg-[#FFB3401F] px-3.5 py-2.5 text-sm text-warn">
 			<TriangleAlert className="size-4 shrink-0" strokeWidth={2.2} aria-hidden />
-			<span className="flex-1 text-fg">{strings.providerFailed(names.join(", "))}</span>
+			<span className="flex-1 text-fg">{text}</span>
 		</div>
 	);
 }
 
 function applyControls(listings: DetailListing[], c: Controls) {
 	const filtered = c.condition === "all" ? listings : listings.filter((l) => l.condition === c.condition);
-	return c.cheapest ? [...filtered].sort((a, b) => priceValue(a.price) - priceValue(b.price)) : filtered;
+	return c.cheapest ? [...filtered].sort((a, b) => sortValue(a) - sortValue(b)) : filtered;
 }
 
 function Loaded({ output, input, mine, defaultOpen }: { output: SearchOutput; input?: SearchInput; mine: boolean; defaultOpen: boolean }) {
 	// A click on the header wins over the default from then on.
 	const [clicked, setClicked] = useState<boolean | null>(null);
 	const open = clicked ?? defaultOpen;
-	const failed = output.errors.map((e) => e.provider);
 	const block = useRef<HTMLDivElement>(null);
 	return (
 		<div ref={block}>
 			<div className="flex items-center justify-between gap-1">
-				<StatusLine loading={false} listings={output.listings} errors={failed} mine={mine} toggle={{ open, onToggle: () => setClicked(!open) }} />
+				<StatusLine loading={false} listings={output.listings} errors={output.errors} searched={searchedOf(output)} mine={mine} toggle={{ open, onToggle: () => setClicked(!open) }} />
 				<CopyImageButton target={block} className="-my-1.5" />
 			</div>
 			<Collapsible open={open}>
-				<LoadedBody output={output} input={input} mine={mine} failed={failed} />
+				<LoadedBody output={output} input={input} mine={mine} />
 			</Collapsible>
 		</div>
 	);
 }
 
-function Notes({ error, failed }: { error?: string; failed: string[] }) {
+function Notes({ error, failed }: { error?: string; failed: SearchError[] }) {
+	const down = failed.filter(isUnavailable);
+	const others = failed.filter((e) => !isUnavailable(e));
 	return (
 		<>
 			{error && <ErrorNote text={error} />}
-			{failed.length > 0 && <PartialBanner names={failed.map((p) => p.toUpperCase())} />}
+			{others.length > 0 && <PartialBanner text={strings.providerFailed(others.map((e) => e.provider.toUpperCase()).join(", "))} />}
+			{down.length > 0 && <PartialBanner text={strings.providerUnavailable(down.map((e) => PROVIDERS[e.provider as ProviderId].siteName).join(", "))} />}
 		</>
 	);
 }
 
-function LoadedBody({ output, input, mine, failed }: { output: SearchOutput; input?: SearchInput; mine: boolean; failed: string[] }) {
+function LoadedBody({ output, input, mine }: { output: SearchOutput; input?: SearchInput; mine: boolean }) {
+	const failed = output.errors;
+	const unit = output.unit ?? "KM";
 	const [controls, setControls] = useState<Controls>({ condition: "all", cheapest: false, view: "grid" });
 	const cards = useMemo(() => applyControls(output.listings, controls), [output.listings, controls]);
-	if (output.listings.length === 0 && failed.length === 0) return <EmptyResult q={input?.q} maxPrice={input?.maxPrice} />;
+	if (output.listings.length === 0 && failed.length === 0) return <EmptyResult q={input?.q} maxPrice={input?.maxPrice} unit={unit} />;
 	return (
 		<div className="flex flex-col gap-3.5">
 			<Notes error={output.error} failed={mine ? [] : failed} />
-			{output.listings.length > 1 && <FilterBar maxPrice={input?.maxPrice} controls={controls} onChange={setControls} />}
+			{output.listings.length > 1 && <FilterBar maxPrice={input?.maxPrice} unit={unit} controls={controls} onChange={setControls} />}
 			{cards.length === 0 ? <ErrorNote text={strings.noResults} /> : <Results cards={cards} view={controls.view} loading={false} mine={mine} />}
 		</div>
 	);
@@ -312,7 +312,7 @@ export function SearchPart({ part, defaultOpen = true }: { part: ToolUIPart; def
 	if (part.state === "input-streaming" || part.state === "input-available") {
 		return (
 			<div className="flex flex-col gap-3.5">
-				<StatusLine loading listings={[]} errors={[]} mine={mine} />
+				<StatusLine loading listings={[]} errors={[]} searched={[]} mine={mine} />
 				<Results cards={[]} view="grid" loading />
 			</div>
 		);

@@ -33,6 +33,13 @@ export function marketSelection<K extends string>(table: Table<K>, country: stri
 	return fallback.length ? fallback : idsWith(table, "search");
 }
 
+// True when the selection leaves out a search provider of its own market (the countries of the selected providers).
+export function isPartialSelection(table: Table, selected: readonly string[]): boolean {
+	const countries = new Set(selected.map((id) => table[id]?.country));
+	const market = idsWith(table, "search").filter((id) => countries.has(table[id]!.country));
+	return selected.length < market.length;
+}
+
 // The saved choice: a list of ids that still exist and can search. Null when nothing valid is left.
 export function parseSelection<K extends string>(table: Table<K>, raw: unknown): K[] | null {
 	if (!Array.isArray(raw)) return null;
