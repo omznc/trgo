@@ -1,4 +1,4 @@
-import type { ListingDetail } from "@lagano/providers";
+import { type ListingDetail, PROVIDERS, type ProviderId } from "@lagano/providers";
 import { Calendar, Check, Copy, ExternalLink, MapPin, MessageSquare, Package, Truck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { PanelHeader } from "@/components/account/ui";
@@ -13,7 +13,7 @@ import { useListingDetail } from "./use-listing-detail";
 
 // What the search result carries. The panel loads the rest.
 export type DetailListing = {
-	provider: "olx" | "svex";
+	provider: ProviderId;
 	id?: string;
 	postedAt?: string;
 	title: string;
@@ -25,7 +25,6 @@ export type DetailListing = {
 	available?: boolean;
 };
 
-const NAMES = { olx: "OLX", svex: "SVEX" } as const;
 const CONDITIONS = { new: strings.conditionNew, used: strings.conditionUsed } as const;
 
 function Fact({ icon: Icon, text }: { icon: typeof MapPin; text: string }) {
@@ -171,7 +170,7 @@ export function DetailPanel({ listing, onAsk }: { listing: DetailListing; onAsk?
 	const { close } = useSidePanel();
 	const actions = useChatActions();
 	const { detail, loading, error, retry } = useListingDetail(listing.provider, listing.url);
-	const name = NAMES[listing.provider];
+	const name = PROVIDERS[listing.provider].name;
 	const images = detail?.imageUrls.length ? detail.imageUrls : listing.imageUrl ? [listing.imageUrl] : [];
 	const ask = () => {
 		if (onAsk) return onAsk(listing);

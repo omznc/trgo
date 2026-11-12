@@ -2,9 +2,8 @@ import { AlertCircle, Check } from "lucide-react";
 import { useMine } from "@/components/account/use-mine";
 import type { z } from "zod";
 import type { editSchema, LaganoMessage } from "@/lib/agent";
-import { PROVIDER_NAME } from "@/lib/mine-api";
 import { type EditProblem, editProblem } from "@/lib/mine-rules";
-import type { MineStatus } from "@lagano/providers";
+import { type MineStatus, PROVIDERS } from "@lagano/providers";
 import { useSessions } from "@/lib/sessions";
 import { strings } from "@/lib/strings";
 import { ta } from "@/lib/strings-account";
@@ -14,7 +13,7 @@ type Part = Extract<LaganoMessage["parts"][number], { type: "tool-edit_my_listin
 type Complete = z.infer<typeof editSchema>;
 
 function describe(input: Complete) {
-	return `${ta.editAction[input.action](input.price)} · ${PROVIDER_NAME[input.provider]}`;
+	return `${ta.editAction[input.action](input.price)} · ${PROVIDERS[input.provider].name}`;
 }
 
 function warningFor(problem: EditProblem | null, status?: MineStatus) {

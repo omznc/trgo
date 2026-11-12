@@ -1,3 +1,4 @@
+import { PROVIDER_IDS, PROVIDERS, providersWith } from "@lagano/providers";
 import { ChevronDown, History, Layers, Pencil, Settings, UserRound } from "lucide-react";
 import { Mascot } from "@/components/Mascot";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -5,9 +6,9 @@ import { isFreeModel, MODELS, modelLabel } from "@/lib/agent";
 import { strings } from "@/lib/strings";
 import { cn } from "@/lib/utils";
 import { delay } from "./EmptyState";
-import { useSidePanel } from "./side-panel";
+import { type ConnectTarget, useSidePanel } from "./side-panel";
 
-export type Connections = { openrouter: boolean; olx: boolean; svex: boolean };
+export type Connections = Record<ConnectTarget, boolean>;
 
 const shortModel = (id: string) => modelLabel(id).split("/").pop() ?? id;
 
@@ -58,12 +59,13 @@ export function ModelButton({
 	);
 }
 
-type Provider = "openrouter" | "olx" | "svex";
-const PROVIDER_NAMES: Record<Provider, string> = { openrouter: "OpenRouter", olx: "OLX", svex: "SVEX" };
+type Provider = ConnectTarget;
+const CONNECT_TARGETS: Provider[] = ["openrouter", ...PROVIDER_IDS];
+const nameOf = (p: Provider) => (p === "openrouter" ? "OpenRouter" : PROVIDERS[p].name);
 
 // The state is in the accessible name, not in visible text.
 function Dot({ provider, on, onOpen }: { provider: Provider; on: boolean; onOpen: (p: Provider) => void }) {
-	const name = PROVIDER_NAMES[provider];
+	const name = nameOf(provider);
 	return (
 		<button
 			type="button"
@@ -84,7 +86,7 @@ function StatusChip({ c, onOpen }: { c: Connections; onOpen: (p: Provider) => vo
 			aria-label={strings.statusLabel}
 			className="chip inline-flex h-10 items-center gap-0.5 rounded-full p-1 text-[13px] font-medium max-sm:hidden"
 		>
-			{(["openrouter", "olx", "svex"] as const).map((p) => (
+			{CONNECT_TARGETS.map((p) => (
 				<Dot key={p} provider={p} on={c[p]} onOpen={onOpen} />
 			))}
 		</div>
@@ -94,12 +96,12 @@ function StatusChip({ c, onOpen }: { c: Connections; onOpen: (p: Provider) => vo
 // Phone: one account button. The badge is green for all, accent for some, gray for none.
 function AccountButton({ c, onOpen }: { c: Connections; onOpen: () => void }) {
 	const count = Object.values(c).filter(Boolean).length;
-	const tone = count === 3 ? "bg-ok" : count > 0 ? "bg-accent" : "bg-off";
+	const tone = count === CONNECT_TARGETS.length ? "bg-ok" : count > 0 ? "bg-accent" : "bg-off";
 	return (
 		<button
 			type="button"
 			onClick={onOpen}
-			aria-label={`${strings.statusLabel}: ${count}/3`}
+			aria-label={`${strings.statusLabel}: ${count}/${CONNECT_TARGETS.length}`}
 			title={strings.statusLabel}
 			className="chip relative grid size-11 place-items-center rounded-full text-fg sm:hidden"
 		>
@@ -131,7 +133,8 @@ export function Header({
 		connections[p] ? panel.open({ kind: "connect", provider: p }, { fresh: true }) : panel.requireConnection(p, strings.needConnect[p]);
 	const toggleMine = () => {
 		if (panel.view?.kind === "my-listings") return panel.close();
-		if (!connections.olx && !connections.svex) return panel.requireConnection("olx", strings.needMine);
+		const mine = providersWith("mine");
+		if (!mine.some((p) => connections[p])) return panel.requireConnection(mine[0]!, strings.needMine);
 		panel.open({ kind: "my-listings" }, { fresh: true });
 	};
 	return (

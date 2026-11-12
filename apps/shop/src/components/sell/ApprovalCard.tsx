@@ -6,10 +6,9 @@ import { getSession } from "@/lib/sessions";
 import type { ListingArgs } from "@/lib/publish";
 import { strings } from "@/lib/strings";
 import { sell } from "@/lib/strings-sell";
-import { NAMES } from "./PublishProgress";
 import { SellMascot } from "./SellMascot";
 import { Steps } from "./Steps";
-import type { ProviderId } from "@lagano/providers";
+import { PROVIDERS, type ProviderId } from "@lagano/providers";
 import "./sell.css";
 
 const GRADE_LABEL: Record<string, string> = {
@@ -26,10 +25,11 @@ export function conditionLabel(input: ListingArgs, provider: ProviderId) {
 	return input.condition === "new" ? strings.conditionNew : strings.conditionUsed;
 }
 
-function deliveryLabel(input: ListingArgs, provider: ProviderId) {
-	if (provider === "olx") return sell.approve.deliveryOlx;
-	return input.freeShipping ? sell.approve.deliverySvexFree : sell.approve.deliverySvex;
-}
+// A new provider fails the typecheck here until its delivery text exists.
+const DELIVERY: Record<ProviderId, (input: ListingArgs) => string> = {
+	olx: () => sell.approve.deliveryOlx,
+	svex: (input) => (input.freeShipping ? sell.approve.deliverySvexFree : sell.approve.deliverySvex),
+};
 
 function rowsFor(input: ListingArgs, provider: ProviderId): [string, string][] {
 	const r = sell.approve.row;
@@ -38,12 +38,12 @@ function rowsFor(input: ListingArgs, provider: ProviderId): [string, string][] {
 	const attributes = provider === "olx" ? Object.entries(input.olxAttributes ?? {}).map(([k, v]): [string, string] => [k, bool(v)]) : [];
 	return [
 		[r.title, input.title],
-		[r.price, `${input.price} KM`],
+		[r.price, `${input.price} ${PROVIDERS[provider].currencyLabel}`],
 		[r.condition, conditionLabel(input, provider)],
 		[r.city, input.city],
 		[r.photos, sell.approve.photosValue(input.photoIds.length)],
 		[r.category, input.categoryHint],
-		[r.delivery, deliveryLabel(input, provider)],
+		[r.delivery, DELIVERY[provider](input)],
 		...attributes,
 	];
 }
@@ -52,7 +52,7 @@ function PlatformCard({ input, provider }: { input: ListingArgs; provider: Provi
 	return (
 		<div className="rounded-[18px] border border-[rgba(14,16,32,.08)] bg-white px-4 py-3.5">
 			<div className="mb-1 flex items-center gap-2">
-				<span className="rounded-full bg-bg px-[9px] py-[3px] text-xs font-bold text-fg">{NAMES[provider]}</span>
+				<span className="rounded-full bg-bg px-[9px] py-[3px] text-xs font-bold text-fg">{PROVIDERS[provider].name}</span>
 				<span className="text-[13px] text-[rgba(14,16,32,.6)]">{sell.approve.cardHead}</span>
 			</div>
 			<dl className="m-0">
@@ -115,7 +115,7 @@ export function ApprovalCard({ input, onRespond }: { input: ListingArgs; onRespo
 		setAnswered(true);
 		onRespond(approved);
 	};
-	const names = input.providers.length > 1 ? sell.approve.both : input.providers.map((p) => NAMES[p]).join("");
+	const names = input.providers.length > 1 ? sell.approve.both : input.providers.map((p) => PROVIDERS[p].name).join("");
 	return (
 		<section
 			ref={root}

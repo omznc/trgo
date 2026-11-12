@@ -1,9 +1,9 @@
-import type { MyListing } from "@lagano/providers";
+import { type MyListing, PROVIDERS } from "@lagano/providers";
 import { Check, Eye, EyeOff, ExternalLink, ImageOff, MessageCircle, MoreHorizontal, Pencil, RefreshCw, Trash2, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PROVIDER_NAME, type MineOp } from "@/lib/mine-api";
-import { allowed } from "@/lib/mine-rules";
+import type { MineOp } from "@/lib/mine-api";
+import { allowed, refreshTooEarly } from "@/lib/mine-rules";
 import { ta } from "@/lib/strings-account";
 import { btn, FIELD } from "./ui";
 
@@ -96,7 +96,7 @@ function PriceEdit({ item, onSave, onCancel }: { item: MyListing; onSave: (price
 }
 
 function RowMenu({ item, actions, onPrice }: { item: MyListing; actions: RowActions; onPrice: () => void }) {
-	const tooEarly = item.provider === "olx" && item.status === "active" && item.canRefresh === false;
+	const tooEarly = refreshTooEarly(item);
 	const pricing = useRef(false);
 	// The menu gives focus back to its button on close. The price field needs the focus instead.
 	const focusField = (e: Event) => {
@@ -158,7 +158,7 @@ function RowMenu({ item, actions, onPrice }: { item: MyListing; actions: RowActi
 }
 
 function PrimaryAction({ item, actions, busy }: { item: MyListing; actions: RowActions; busy: boolean }) {
-	const name = PROVIDER_NAME[item.provider];
+	const name = PROVIDERS[item.provider].name;
 	switch (item.status) {
 		case "active":
 			return (
@@ -200,7 +200,7 @@ function PrimaryAction({ item, actions, busy }: { item: MyListing; actions: RowA
 
 export default function MineRow({ item, actions, busy }: { item: MyListing; actions: RowActions; busy: boolean }) {
 	const [editing, setEditing] = useState(false);
-	const name = PROVIDER_NAME[item.provider];
+	const name = PROVIDERS[item.provider].name;
 	const meta = statusMeta(item);
 	return (
 		<li aria-busy={busy} className={`glass relative flex flex-col gap-2 rounded-[20px] p-2.5 shadow-none ${busy ? "opacity-70" : ""}`}>

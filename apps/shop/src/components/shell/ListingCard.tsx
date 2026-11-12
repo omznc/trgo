@@ -1,4 +1,4 @@
-import { listingIdFromUrl } from "@lagano/providers";
+import { listingIdFromUrl, PROVIDERS } from "@lagano/providers";
 import { Check, ImageOff, MapPin } from "lucide-react";
 import { useState } from "react";
 import type { DetailListing } from "@/components/detail/DetailPanel";
@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 import { useSidePanel } from "./side-panel";
 import { taggedKey, toggleTagged, useTaggedListings } from "./tagged-listing";
 
-const NAMES = { olx: "OLX", svex: "SVEX" } as const;
 const CONDITIONS = { new: strings.conditionNew, used: strings.conditionUsed } as const;
 
 export type ViewMode = "grid" | "list";
@@ -32,7 +31,7 @@ function Photo({ card, gone }: { card: DetailListing; gone: boolean }) {
 				</div>
 			)}
 			<span className="absolute top-2 left-2 rounded-full bg-[rgba(14,16,32,.72)] px-[9px] py-1 text-[11px] font-semibold text-fg backdrop-blur-md">
-				{NAMES[card.provider]}
+				{PROVIDERS[card.provider].name}
 			</span>
 			{gone && (
 				<span className="absolute inset-0 grid place-items-center">

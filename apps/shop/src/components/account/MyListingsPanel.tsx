@@ -1,10 +1,9 @@
-import type { MineStatus, MyListing, ProviderId } from "@lagano/providers";
+import { type MineStatus, type MyListing, PROVIDERS, type ProviderId, providersWith } from "@lagano/providers";
 import { Check, Plus, RefreshCw, Trash2, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { useChatActions } from "@/components/shell/chat-actions";
 import { useSidePanel } from "@/components/shell/side-panel";
 import { tagAndFocus } from "@/components/shell/tagged-listing";
-import { PROVIDER_NAME } from "@/lib/mine-api";
 import { useSessions } from "@/lib/sessions";
 import { strings } from "@/lib/strings";
 import { ta } from "@/lib/strings-account";
@@ -12,7 +11,7 @@ import MineRow, { type RowActions } from "./MineRow";
 import { btn, PanelBody, PanelHeader } from "./ui";
 import { keyOf, type Notice as NoticeState, useMine } from "./use-mine";
 
-const PROVIDERS: ProviderId[] = ["olx", "svex"];
+const MINE = providersWith("mine");
 // Same order as ta.tabs: Svi, Aktivni, Skice, Skriveni, Prodani, Istekli.
 const TAB_STATUS: (MineStatus | null)[] = [null, "active", "draft", "hidden", "sold", "expired"];
 const TOGGLE = "h-9 min-h-9 pointer-coarse:h-11 pointer-coarse:min-h-11 gap-1.5 px-3";
@@ -51,7 +50,7 @@ function SourceToggles({
 }) {
 	return (
 		<div className="flex flex-wrap items-center gap-1.5">
-			{PROVIDERS.map((p) => {
+			{MINE.map((p) => {
 				const pressed = connected[p] && on[p];
 				return (
 					<button
@@ -59,11 +58,11 @@ function SourceToggles({
 						type="button"
 						aria-pressed={pressed}
 						aria-disabled={!connected[p] || undefined}
-						title={connected[p] ? undefined : ta.sourceNotConnected(PROVIDER_NAME[p])}
+						title={connected[p] ? undefined : ta.sourceNotConnected(PROVIDERS[p].name)}
 						onClick={() => connected[p] && onToggle(p)}
 						className={btn("chip", `${TOGGLE} ${pressed ? "pl-2.5" : ""}`)}
 					>
-						{pressed && <Check size={13} strokeWidth={2.8} aria-hidden className="text-accent" />} {PROVIDER_NAME[p]}
+						{pressed && <Check size={13} strokeWidth={2.8} aria-hidden className="text-accent" />} {PROVIDERS[p].name}
 					</button>
 				);
 			})}
@@ -72,7 +71,7 @@ function SourceToggles({
 }
 
 function DeleteConfirm({ item, onCancel, onConfirm }: { item: MyListing; onCancel: () => void; onConfirm: () => void }) {
-	const name = PROVIDER_NAME[item.provider];
+	const name = PROVIDERS[item.provider].name;
 	return (
 		<div role="alertdialog" aria-labelledby="del-t" className="animate-in fade-in slide-in-from-bottom-2 duration-200 ease-out solid mx-5 mb-5 flex flex-none flex-col gap-2.5 rounded-[20px] p-4">
 			<strong id="del-t" className="text-[15px]">
@@ -112,7 +111,7 @@ function Notice({ title, body, children }: { title?: string; body: string; child
 
 function LoadError({ provider, kind, onRetry, onConnect }: { provider: ProviderId; kind?: "error" | "expired"; onRetry: () => void; onConnect: () => void }) {
 	if (!kind) return null;
-	const name = PROVIDER_NAME[provider];
+	const name = PROVIDERS[provider].name;
 	const expired = kind === "expired";
 	return (
 		<Notice body={expired ? ta.expired(name) : ta.listFailed(name)}>
@@ -137,13 +136,13 @@ export default function MyListingsPanel() {
 	const { close, requireConnection } = useSidePanel();
 	const { ask } = useChatActions();
 	const connected = useSessions();
-	const [on, setOn] = useState<Record<ProviderId, boolean>>({ olx: true, svex: true });
+	const [on, setOn] = useState(() => Object.fromEntries(MINE.map((p) => [p, true])) as Record<ProviderId, boolean>);
 	const [tab, setTab] = useState(0);
 	const [deleting, setDeleting] = useState<MyListing | null>(null);
-	const live = PROVIDERS.filter((p) => connected[p]);
+	const live = MINE.filter((p) => connected[p]);
 	const { data, loading, busy, notice, reload, run } = useMine(live);
 
-	const shown = PROVIDERS.filter((p) => connected[p] && on[p]);
+	const shown = MINE.filter((p) => connected[p] && on[p]);
 	const inSources = data.items.filter((i) => shown.includes(i.provider));
 	const status = TAB_STATUS[tab];
 	const rows = status ? inSources.filter((i) => i.status === status) : inSources;
@@ -167,7 +166,7 @@ export default function MyListingsPanel() {
 	if (!live.length)
 		body = (
 			<Notice body={ta.olxNeeded}>
-				<button type="button" onClick={() => requireConnection("olx", strings.needMine)} className={btn("primary")}>
+				<button type="button" onClick={() => requireConnection(MINE[0]!, strings.needMine)} className={btn("primary")}>
 					{ta.connectAny}
 				</button>
 			</Notice>
@@ -204,7 +203,7 @@ export default function MyListingsPanel() {
 				{shown
 					.filter((p) => data.truncated.includes(p))
 					.map((p) => (
-						<Notice key={p} body={ta.listCut(PROVIDER_NAME[p])} />
+						<Notice key={p} body={ta.listCut(PROVIDERS[p].name)} />
 					))}
 				{body}
 			</PanelBody>

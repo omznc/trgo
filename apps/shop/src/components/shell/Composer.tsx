@@ -1,3 +1,4 @@
+import { PROVIDER_IDS, PROVIDERS, type ProviderId, providersWith } from "@lagano/providers";
 import { ArrowUp, ChevronDown, ImagePlus } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type MutableRefObject, type Ref, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -18,7 +19,7 @@ import { ModelButton } from "./Header";
 import { taggedKey, untagListing, useTaggedListings } from "./tagged-listing";
 import { TaggedChip } from "./TaggedChip";
 
-export type Sources = { olx: boolean; svex: boolean };
+export type Sources = Record<ProviderId, boolean>;
 
 function AttachButton() {
 	const attachments = usePromptInputAttachments();
@@ -120,13 +121,8 @@ function TaggedSlot() {
 	);
 }
 
-const MARKETS: { key: keyof Sources; name: string }[] = [
-	{ key: "olx", name: strings.sourceOlx },
-	{ key: "svex", name: strings.sourceSvex },
-];
-
-// "OLX.ba" shows as "OLX" in the trigger.
-const shortName = (name: string) => name.replace(/\.ba$/, "");
+// The menu shows the site name, the trigger shows the short name.
+const MARKETS = providersWith("search").map((key) => ({ key, name: PROVIDERS[key].siteName, shortName: PROVIDERS[key].name }));
 
 function MarketsMenu({ sources, onToggle }: { sources: Sources; onToggle: (key: keyof Sources) => void }) {
 	const on = MARKETS.filter((m) => sources[m.key]);
@@ -138,7 +134,7 @@ function MarketsMenu({ sources, onToggle }: { sources: Sources; onToggle: (key: 
 					aria-label={strings.marketsAria}
 					className="chip inline-flex h-8 items-center gap-1 rounded-full pr-2.5 pl-3 text-[13px] font-medium text-fg max-sm:hidden"
 				>
-					{on.length ? on.map((m) => shortName(m.name)).join(" · ") : strings.markets}
+					{on.length ? on.map((m) => m.shortName).join(" · ") : strings.markets}
 					<ChevronDown className="size-3.5 shrink-0" aria-hidden />
 				</button>
 			</DropdownMenuTrigger>
@@ -214,7 +210,7 @@ export function Composer({
 	// One source must stay on, or the search has nowhere to look.
 	const toggle = (key: keyof Sources) => {
 		const next = { ...sources, [key]: !sources[key] };
-		if (next.olx || next.svex) onSources(next);
+		if (PROVIDER_IDS.some((id) => next[id])) onSources(next);
 	};
 	return (
 		<PromptInput

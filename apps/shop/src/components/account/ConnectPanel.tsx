@@ -1,7 +1,8 @@
+import { isProviderId, PROVIDER_IDS, PROVIDERS, type ProviderId } from "@lagano/providers";
 import { ExternalLink, KeyRound, Loader2, Lock, ShieldCheck, TriangleAlert } from "lucide-react";
 import { formatUsd, useCredits, type Credits } from "@/lib/openrouter-credits";
 import { useEffect, useId, useRef, useState } from "react";
-import { useSidePanel } from "@/components/shell/side-panel";
+import { type ConnectTarget, useSidePanel } from "@/components/shell/side-panel";
 import { startLogin } from "@/lib/openrouter-auth";
 import { olxAccount, svexAccount } from "@/lib/publish";
 import { clearSession, setSession, useSessions } from "@/lib/sessions";
@@ -9,10 +10,13 @@ import { ta } from "@/lib/strings-account";
 import ClearData from "./ClearData";
 import { btn, Dot, FIELD, LBL, maskKey, PanelBody, PanelHeader, PROXY_SOURCE, removeKey, saveKey, useOpenRouterKey } from "./ui";
 
-type Provider = "olx" | "svex" | "openrouter";
-type Form = "key" | "olx" | "svex" | null;
+type Form = "key" | ProviderId | null;
 
-const NAMES = { olx: "OLX", svex: "SVEX" } as const;
+// The login call differs by provider. A new provider fails the typecheck here until its call exists.
+const LOGIN: Record<ProviderId, (username: string, password: string) => Promise<void>> = {
+	olx: async (username, password) => setSession("olx", await olxAccount.login({ username, password })),
+	svex: async (username, password) => setSession("svex", await svexAccount.login({ identifier: username, password })),
+};
 const SPIN = "animate-spin";
 const CARD = "rounded-[24px] p-5";
 
@@ -120,9 +124,9 @@ function KeyForm({ onDone, reason }: { onDone: () => void; reason?: string }) {
 	);
 }
 
-function LoginForm({ provider, onDone, reason }: { provider: "olx" | "svex"; onDone: () => void; reason?: string }) {
+function LoginForm({ provider, onDone, reason }: { provider: ProviderId; onDone: () => void; reason?: string }) {
 	const id = useId();
-	const name = NAMES[provider];
+	const name = PROVIDERS[provider].name;
 	const [username, setUsername] = useState("");
 	const [password, setPassword] = useState("");
 	const [busy, setBusy] = useState(false);
@@ -131,8 +135,7 @@ function LoginForm({ provider, onDone, reason }: { provider: "olx" | "svex"; onD
 		setBusy(true);
 		setFailed(false);
 		try {
-			if (provider === "olx") setSession("olx", await olxAccount.login({ username, password }));
-			else setSession("svex", await svexAccount.login({ identifier: username, password }));
+			await LOGIN[provider](username, password);
 			onDone();
 		} catch {
 			setFailed(true);
@@ -208,9 +211,9 @@ function useCue(root: React.RefObject<HTMLElement | null>, n: number) {
 	}, [n, root]);
 }
 
-const initialForm =(p?: Provider): Form => (p === "olx" || p === "svex" ? p : null);
+const initialForm = (p?: ConnectTarget): Form => (isProviderId(p) ? p : null);
 
-type Row = { id: Provider; name: string; on: boolean; detail?: string; connect: () => void; disconnect: () => void };
+type Row = { id: ConnectTarget; name: string; on: boolean; detail?: string; connect: () => void; disconnect: () => void };
 
 function AccountRows({ rows, reason }: { rows: Row[]; reason?: string }) {
 	return (
@@ -259,11 +262,11 @@ function Privacy() {
 }
 
 // OLX and SVEX logins are their own page, so the panel slides to them.
-function LoginPage({ provider, reason }: { provider: "olx" | "svex"; reason?: string }) {
+function LoginPage({ provider, reason }: { provider: ProviderId; reason?: string }) {
 	const { close, back, canGoBack } = useSidePanel();
 	return (
 		<>
-			<PanelHeader title={ta.loginTitle(NAMES[provider])} onClose={close} />
+			<PanelHeader title={ta.loginTitle(PROVIDERS[provider].name)} onClose={close} />
 			<PanelBody>
 				<LoginForm provider={provider} onDone={canGoBack ? back : close} reason={reason} />
 			</PanelBody>
@@ -278,7 +281,7 @@ function creditsLine(masked: string, c: Credits | null) {
 	return `${masked} · ${ta.balance(formatUsd(c.balance))}`;
 }
 
-export default function ConnectPanel({ provider }: { provider?: Provider }) {
+export default function ConnectPanel({ provider }: { provider?: ConnectTarget }) {
 	const { close, cue, open } = useSidePanel();
 	const root = useRef<HTMLDivElement>(null);
 	useCue(root, cue.n);
@@ -291,10 +294,9 @@ export default function ConnectPanel({ provider }: { provider?: Provider }) {
 	const credits = useCredits(key);
 	const rows: Row[] = [
 		{ id: "openrouter", name: "OpenRouter", on: !!key, detail: key ? creditsLine(maskKey(key), credits) : undefined, connect: () => startLogin(), disconnect: removeKey },
-		{ id: "olx", name: "OLX", on: sessions.olx, connect: () => open({ kind: "connect", provider: "olx" }), disconnect: () => clearSession("olx") },
-		{ id: "svex", name: "SVEX", on: sessions.svex, connect: () => open({ kind: "connect", provider: "svex" }), disconnect: () => clearSession("svex") },
+		...PROVIDER_IDS.map((id) => ({ id, name: PROVIDERS[id].name, on: sessions[id], connect: () => open({ kind: "connect", provider: id }), disconnect: () => clearSession(id) })),
 	];
-	if (provider === "olx" || provider === "svex") {
+	if (isProviderId(provider)) {
 		return (
 			<div ref={root} className="flex h-full min-h-0 flex-col">
 				<LoginPage provider={provider} reason={reason} />

@@ -1,10 +1,9 @@
-import type { ProviderId } from "@lagano/providers";
+import { PROVIDERS, type ProviderId } from "@lagano/providers";
 import type { ProviderResult } from "@/lib/publish";
 import { strings } from "@/lib/strings";
 import { sell } from "@/lib/strings-sell";
 import { ProviderRow, type RowState } from "./ProviderRow";
 
-export const NAMES: Record<ProviderId, string> = { olx: "OLX", svex: "SVEX" };
 export type Progress = Partial<Record<ProviderId, string>>;
 
 type RowInfo = { state: RowState; status: string; percent: number };
@@ -32,7 +31,7 @@ export function ProviderList({ providers, progress, results }: { providers: Prov
 	return (
 		<ul className="m-0 mt-3.5 flex list-none flex-col gap-3.5 p-0">
 			{providers.map((p) => (
-				<ProviderRow key={p} name={NAMES[p]} {...rowInfo(p, progress, results)} />
+				<ProviderRow key={p} name={PROVIDERS[p].name} {...rowInfo(p, progress, results)} />
 			))}
 		</ul>
 	);

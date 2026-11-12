@@ -1,4 +1,4 @@
-import type { ProviderId } from "@lagano/providers";
+import { PROVIDERS, type ProviderId } from "@lagano/providers";
 import { Copy, ExternalLink, Info, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { publishListing, type ListingArgs, type ProviderResult } from "@/lib/publish";
@@ -7,7 +7,7 @@ import { retryMode } from "@/lib/publish-resume";
 import { getSession } from "@/lib/sessions";
 import { strings } from "@/lib/strings";
 import { sell } from "@/lib/strings-sell";
-import { NAMES, ProviderList, type Progress } from "./PublishProgress";
+import { ProviderList, type Progress } from "./PublishProgress";
 import { SellMascot } from "./SellMascot";
 import "./sell.css";
 
@@ -72,7 +72,7 @@ function Hero({ input, results }: { input: ListingArgs; results: ProviderResult[
 				{okOf(results).map((r) => (
 					<a key={r.provider} href={r.url} target="_blank" rel="noopener noreferrer" className={LIGHT}>
 						<ExternalLink size={15} strokeWidth={2.2} aria-hidden />
-						{sell.success.open(NAMES[r.provider])}
+						{sell.success.open(PROVIDERS[r.provider].name)}
 					</a>
 				))}
 				<CopyLinks results={results} />
@@ -114,9 +114,9 @@ function useRetry(input: ListingArgs, first: ProviderResult[], onSave: (results:
 }
 
 function Partial({ input, results, progress, busy, retry }: ReturnType<typeof useRetry> & { input: ListingArgs }) {
-	const ok = results.filter((r) => r.ok).map((r) => NAMES[r.provider]);
+	const ok = results.filter((r) => r.ok).map((r) => PROVIDERS[r.provider].name);
 	const failed = results.filter((r) => !r.ok);
-	const text = ok.length ? sell.partial.okText(ok.join(", ")) : sell.partial.failedText(failed.map((r) => NAMES[r.provider]).join(", "));
+	const text = ok.length ? sell.partial.okText(ok.join(", ")) : sell.partial.failedText(failed.map((r) => PROVIDERS[r.provider].name).join(", "));
 	// While one provider retries, its row shows live progress instead of the old error.
 	const shown = busy ? results.filter((r) => r.provider !== busy) : results;
 	const live: Progress = busy ? { ...progress, [busy]: progress[busy] ?? sell.publish.retrying } : {};
@@ -132,7 +132,7 @@ function Partial({ input, results, progress, busy, retry }: ReturnType<typeof us
 			<ProviderList providers={input.providers} progress={live} results={shown} />
 			{failed.filter((r) => r.provider !== busy).map((r) => (
 				<p key={r.provider} role="alert" className="m-0 mt-2.5 break-words text-[13px] text-danger">
-					{NAMES[r.provider]}: {r.error}
+					{PROVIDERS[r.provider].name}: {r.error}
 				</p>
 			))}
 			<div className="mt-3.5 flex flex-wrap justify-end gap-2">
@@ -141,7 +141,7 @@ function Partial({ input, results, progress, busy, retry }: ReturnType<typeof us
 					.map((r) => (
 						<a key={r.provider} href={r.url} target="_blank" rel="noopener noreferrer" className={`${GLASS} !h-11`}>
 							<ExternalLink size={15} strokeWidth={2.2} aria-hidden />
-							{sell.success.open(NAMES[r.provider])}
+							{sell.success.open(PROVIDERS[r.provider].name)}
 						</a>
 					))}
 				{failed.filter((r) => retryMode(r) !== "none").map((r) => (
@@ -153,7 +153,7 @@ function Partial({ input, results, progress, busy, retry }: ReturnType<typeof us
 						className="sell-btn inline-flex h-11 min-h-11 items-center gap-[7px] rounded-full bg-accent pl-[13px] pr-4 text-sm font-semibold text-bg disabled:opacity-50"
 					>
 						<RefreshCw size={15} strokeWidth={2.2} aria-hidden />
-						{sell.partial.retry(NAMES[r.provider])}
+						{sell.partial.retry(PROVIDERS[r.provider].name)}
 					</button>
 				))}
 			</div>

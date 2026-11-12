@@ -4,10 +4,14 @@ import ConnectPanel from "@/components/account/ConnectPanel";
 import MyListingsPanel from "@/components/account/MyListingsPanel";
 import SettingsPanel from "@/components/account/SettingsPanel";
 import { DetailPanel, type DetailListing } from "@/components/detail/DetailPanel";
-import { listingIdFromUrl } from "@lagano/providers";
+import { listingIdFromUrl, type ProviderId } from "@lagano/providers";
 import { strings } from "@/lib/strings";
 import { cn } from "@/lib/utils";
 import { tagAndFocus } from "./tagged-listing";
+
+// What the connect view can open: a marketplace, or the OpenRouter key.
+export type ConnectTarget = ProviderId | "openrouter";
+type Provider = ConnectTarget;
 
 export type SidePanelView =
 	| { kind: "detail"; listing: DetailListing }
@@ -52,7 +56,6 @@ function sameView(a: SidePanelView, b: SidePanelView) {
 	return true;
 }
 
-type Provider = "olx" | "svex" | "openrouter";
 type Entry = { view: SidePanelView; id: number };
 
 export function SidePanelProvider({ children }: { children: ReactNode }) {

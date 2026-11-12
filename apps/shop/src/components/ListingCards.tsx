@@ -1,3 +1,4 @@
+import { PROVIDER_IDS, PROVIDERS } from "@lagano/providers";
 import type { ToolUIPart } from "ai";
 import { AlertCircle, ArrowDown, ArrowDownUp, ArrowUp, Check, ChevronDown, LayoutGrid, List, RefreshCw, Search, TriangleAlert } from "lucide-react";
 import { motion } from "motion/react";
@@ -15,7 +16,6 @@ type SearchInput = { q?: string; maxPrice?: number };
 type Condition = "all" | "new" | "used";
 
 const LIST_ROWS = 3;
-const NAMES = { olx: "OLX", svex: "SVEX" } as const;
 const pill = "inline-flex h-[34px] min-h-[34px] items-center gap-[7px] whitespace-nowrap rounded-full pr-4 pl-[13px] text-[13px] font-medium tracking-[-0.01em]";
 
 // "1.250 KM" -> 1250. A listing without a number sorts last.
@@ -72,7 +72,7 @@ function StatusLine({
 	mine: boolean;
 	toggle?: Toggle;
 }) {
-	const counts = (["olx", "svex"] as const).map((p) => [p, listings.filter((l) => l.provider === p).length] as const);
+	const counts = PROVIDER_IDS.map((p) => [p, listings.filter((l) => l.provider === p).length] as const);
 	const Root = toggle ? "button" : "div";
 	const props = toggle
 		? ({ type: "button", "aria-expanded": toggle.open, onClick: toggle.onToggle } as const)
@@ -96,12 +96,12 @@ function StatusLine({
 							errors.includes(p) ? (
 								<span key={p} className="chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-[3px]">
 									<TriangleAlert className="size-3 text-danger" aria-hidden />
-									{NAMES[p]}
+									{PROVIDERS[p].name}
 								</span>
 							) : (
 								<span key={p} className="chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-[3px]">
 									<Check className="size-3 text-ok" strokeWidth={3} aria-hidden />
-									{strings.count(NAMES[p], n)}
+									{strings.count(PROVIDERS[p].name, n)}
 								</span>
 							),
 						)}

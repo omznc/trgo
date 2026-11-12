@@ -1,3 +1,4 @@
+import { PROVIDER_IDS } from "@lagano/providers";
 import type { FileUIPart } from "ai";
 import { Check, TriangleAlert, WifiOff } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -15,7 +16,7 @@ import { Message, stripNotes, textOf, Thinking } from "@/components/shell/Messag
 import { clearTaggedListing, getTaggedListings, taggedNote } from "@/components/shell/tagged-listing";
 import { usePendingSend } from "@/components/shell/use-pending-send";
 import { HistoryPanel } from "@/components/shell/HistoryPanel";
-import { HistoryRegion, SidePanelRegion, useSidePanel } from "@/components/shell/side-panel";
+import { type ConnectTarget, HistoryRegion, SidePanelRegion, useSidePanel } from "@/components/shell/side-panel";
 import { useHistory } from "@/components/shell/use-history";
 import type { LaganoMessage } from "@/lib/agent";
 import { CHAT_ERRORS, errorKind } from "@/lib/chat-errors";
@@ -68,9 +69,12 @@ function useSingleFlight() {
 	return { run, running, active };
 }
 
+const ALL_SOURCES = Object.fromEntries(PROVIDER_IDS.map((id) => [id, true])) as Sources;
+
 function sourceNote(s: Sources) {
-	if (s.olx && s.svex) return "";
-	return `\n\n[Search only on: ${s.olx ? "olx" : "svex"}]`;
+	const on = PROVIDER_IDS.filter((id) => s[id]);
+	if (on.length === PROVIDER_IDS.length) return "";
+	return `\n\n[Search only on: ${on.join(", ")}]`;
 }
 
 type ToastState = { text: string; warn?: boolean };
@@ -142,7 +146,7 @@ export function Chat() {
 	const panel = useSidePanel();
 	const sessions = useSessions();
 	const online = useOnline();
-	const [sources, setSources] = useState<Sources>({ olx: true, svex: true });
+	const [sources, setSources] = useState<Sources>(ALL_SOURCES);
 	const [docked, setDocked] = useState(false);
 	const [toast, setToast] = useState<ToastState | null>(null);
 	const textarea = useRef<HTMLTextAreaElement>(null);
@@ -179,7 +183,7 @@ export function Chat() {
 		if (started) setBoot(false);
 	}, [started]);
 
-	const openConnect = useCallback((provider?: "olx" | "svex" | "openrouter") => panel.open({ kind: "connect", provider }, { fresh: true }), [panel.open]);
+	const openConnect = useCallback((provider?: ConnectTarget) => panel.open({ kind: "connect", provider }, { fresh: true }), [panel.open]);
 	useSessionExpired(openConnect);
 
 	// Photos shrink before the send. A second Enter in that time would send the same files again.

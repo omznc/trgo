@@ -1,9 +1,8 @@
+import { PROVIDERS } from "@lagano/providers";
 import { X } from "lucide-react";
 import { ta } from "@/lib/strings-account";
 import { cn } from "@/lib/utils";
 import type { TaggedListing } from "./tagged-listing";
-
-const NAMES = { olx: "OLX", svex: "SVEX" } as const;
 
 // The tagged listing as a mention pill. Pass onRemove in the composer. The sent bubble has none.
 export function TaggedChip({ listing, onRemove, small }: { listing: TaggedListing; onRemove?: () => void; small?: boolean }) {
@@ -23,7 +22,7 @@ export function TaggedChip({ listing, onRemove, small }: { listing: TaggedListin
 			)}
 			<span className="min-w-0 truncate font-medium">{listing.title}</span>
 			<span className="flex-none text-fg-3">{listing.priceText}</span>
-			<span className="flex-none text-[10px] font-semibold tracking-[.04em] text-accent">{NAMES[listing.provider]}</span>
+			<span className="flex-none text-[10px] font-semibold tracking-[.04em] text-accent">{PROVIDERS[listing.provider].name}</span>
 			{onRemove && (
 				<button
 					type="button"
