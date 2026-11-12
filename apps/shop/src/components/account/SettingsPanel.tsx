@@ -1,3 +1,5 @@
+import { countryProviders, marketCountries, PROVIDERS, selectionCountry } from "@lagano/providers";
+import { chooseMarket, countryName, useSelection } from "@/lib/market";
 import { Check, ChevronRight, ChevronsUpDown, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -79,6 +81,32 @@ function ModelList({ connected }: { connected: boolean }) {
 	);
 }
 
+// A market is a country. A pick sets the search providers of that country and saves the choice.
+function MarketRow() {
+	const selected = useSelection();
+	const current = selectionCountry(PROVIDERS, selected);
+	return (
+		<div className={ROW}>
+			<span id="market-label">{ta.market}</span>
+			<DropdownMenu>
+				<DropdownMenuTrigger aria-labelledby="market-label" className={`${FOCUS} inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-0 bg-transparent text-fg-3`}>
+					{current ? countryName(current) : ta.marketMixed}
+					<ChevronsUpDown size={14} aria-hidden />
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="end" className="solid min-w-44 rounded-2xl p-1.5">
+					<DropdownMenuRadioGroup value={current ?? ""} onValueChange={(c) => chooseMarket(countryProviders(PROVIDERS, c))}>
+						{marketCountries(PROVIDERS).map((c) => (
+							<DropdownMenuRadioItem key={c} value={c} className="min-h-10 rounded-xl text-sm">
+								{countryName(c)}
+							</DropdownMenuRadioItem>
+						))}
+					</DropdownMenuRadioGroup>
+				</DropdownMenuContent>
+			</DropdownMenu>
+		</div>
+	);
+}
+
 export default function SettingsPanel() {
 	const { open, close } = useSidePanel();
 	const sessions = useSessions();
@@ -90,6 +118,11 @@ export default function SettingsPanel() {
 			<PanelBody>
 				<Section title={ta.modelHeading}>
 					<ModelList connected={!!key} />
+				</Section>
+				<Section title={ta.market} note={ta.marketDesc}>
+					<Group>
+						<MarketRow />
+					</Group>
 				</Section>
 				<Section title={ta.appearance} note={ta.languageDesc}>
 					<Group>

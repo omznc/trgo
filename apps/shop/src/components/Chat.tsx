@@ -1,11 +1,12 @@
-import { PROVIDER_IDS } from "@lagano/providers";
+import { idsWith, PROVIDERS, type ProviderId } from "@lagano/providers";
 import type { FileUIPart } from "ai";
 import { Check, TriangleAlert, WifiOff } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { flushSync } from "react-dom";
 import { Conversation, ConversationContent, ConversationScrollButton } from "@/components/ai-elements/conversation";
-import { Composer, type Sources } from "@/components/shell/Composer";
+import { chooseMarket, initMarket, useSelection } from "@/lib/market";
+import { Composer } from "@/components/shell/Composer";
 import { DropOverlay } from "@/components/shell/DropOverlay";
 import { ChatActionsProvider } from "@/components/shell/chat-actions";
 import { ConnectBanner, delay, Footer, Hero, Suggestions } from "@/components/shell/EmptyState";
@@ -69,11 +70,8 @@ function useSingleFlight() {
 	return { run, running, active };
 }
 
-const ALL_SOURCES = Object.fromEntries(PROVIDER_IDS.map((id) => [id, true])) as Sources;
-
-function sourceNote(s: Sources) {
-	const on = PROVIDER_IDS.filter((id) => s[id]);
-	if (on.length === PROVIDER_IDS.length) return "";
+function sourceNote(on: ProviderId[]) {
+	if (on.length === idsWith(PROVIDERS, "search").length) return "";
 	return `\n\n[Search only on: ${on.join(", ")}]`;
 }
 
@@ -146,7 +144,9 @@ export function Chat() {
 	const panel = useSidePanel();
 	const sessions = useSessions();
 	const online = useOnline();
-	const [sources, setSources] = useState<Sources>(ALL_SOURCES);
+	const sources = useSelection();
+	// Reads the saved market, or asks /geo once when there is none.
+	useEffect(() => void initMarket(), []);
 	const [docked, setDocked] = useState(false);
 	const [toast, setToast] = useState<ToastState | null>(null);
 	const textarea = useRef<HTMLTextAreaElement>(null);
@@ -302,8 +302,8 @@ onRetry={chat.error ? () => chat.regenerate() : undefined} />
 									model={chat.model}
 									connected={!!apiKey}
 									onModel={chat.setModel}
-									sources={sources}
-									onSources={setSources}
+									selected={sources}
+									onSelect={chooseMarket}
 									onSubmit={submit}
 									onStop={chat.stop}
 									textareaRef={textarea}

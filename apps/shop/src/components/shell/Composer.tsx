@@ -1,6 +1,7 @@
-import { PROVIDER_IDS, PROVIDERS, type ProviderId, providersWith } from "@lagano/providers";
+import { countryProviders, marketCountries, PROVIDERS, type ProviderId } from "@lagano/providers";
 import { ArrowUp, ChevronDown, ImagePlus } from "lucide-react";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { countryName } from "@/lib/market";
 import { type MutableRefObject, type Ref, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FileUIPart } from "ai";
 import {
@@ -18,8 +19,6 @@ import { cn } from "@/lib/utils";
 import { ModelButton } from "./Header";
 import { taggedKey, untagListing, useTaggedListings } from "./tagged-listing";
 import { TaggedChip } from "./TaggedChip";
-
-export type Sources = Record<ProviderId, boolean>;
 
 function AttachButton() {
 	const attachments = usePromptInputAttachments();
@@ -121,11 +120,14 @@ function TaggedSlot() {
 	);
 }
 
-// The menu shows the site name, the trigger shows the short name.
-const MARKETS = providersWith("search").map((key) => ({ key, name: PROVIDERS[key].siteName, shortName: PROVIDERS[key].name }));
+// The menu shows the site name under a country heading, the trigger shows the short name.
+const MARKETS = marketCountries(PROVIDERS).map((country) => ({
+	country,
+	providers: countryProviders(PROVIDERS, country).map((key) => ({ key, name: PROVIDERS[key].siteName, shortName: PROVIDERS[key].name })),
+}));
 
-function MarketsMenu({ sources, onToggle }: { sources: Sources; onToggle: (key: keyof Sources) => void }) {
-	const on = MARKETS.filter((m) => sources[m.key]);
+function MarketsMenu({ selected, onToggle }: { selected: ProviderId[]; onToggle: (key: ProviderId) => void }) {
+	const on = MARKETS.flatMap((g) => g.providers).filter((m) => selected.includes(m.key));
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
@@ -139,16 +141,21 @@ function MarketsMenu({ sources, onToggle }: { sources: Sources; onToggle: (key: 
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="solid min-w-44 rounded-2xl p-1.5">
-				{MARKETS.map((m) => (
-					<DropdownMenuCheckboxItem
-						key={m.key}
-						checked={sources[m.key]}
-						onCheckedChange={() => onToggle(m.key)}
-						onSelect={(event) => event.preventDefault()}
-						className="min-h-10 rounded-xl text-sm"
-					>
-						{m.name}
-					</DropdownMenuCheckboxItem>
+				{MARKETS.map((g) => (
+					<DropdownMenuGroup key={g.country}>
+						<DropdownMenuLabel className="px-2 pt-1.5 pb-0.5 text-xs text-fg-4">{countryName(g.country)}</DropdownMenuLabel>
+						{g.providers.map((m) => (
+							<DropdownMenuCheckboxItem
+								key={m.key}
+								checked={selected.includes(m.key)}
+								onCheckedChange={() => onToggle(m.key)}
+								onSelect={(event) => event.preventDefault()}
+								className="min-h-10 rounded-xl text-sm"
+							>
+								{m.name}
+							</DropdownMenuCheckboxItem>
+						))}
+					</DropdownMenuGroup>
 				))}
 			</DropdownMenuContent>
 		</DropdownMenu>
@@ -185,8 +192,8 @@ export function Composer({
 	model,
 	connected,
 	onModel,
-	sources,
-	onSources,
+	selected,
+	onSelect,
 	onSubmit,
 	onStop,
 	textareaRef,
@@ -198,8 +205,8 @@ export function Composer({
 	model: string;
 	connected: boolean;
 	onModel: (m: string) => void;
-	sources: Sources;
-	onSources: (s: Sources) => void;
+	selected: ProviderId[];
+	onSelect: (ids: ProviderId[]) => void;
 	onSubmit: (text: string, files: FileUIPart[]) => void;
 	onStop: () => void;
 	textareaRef: Ref<HTMLTextAreaElement>;
@@ -208,9 +215,9 @@ export function Composer({
 	const { placeholder } = useSuggestions();
 	const tagged = useTaggedListings();
 	// One source must stay on, or the search has nowhere to look.
-	const toggle = (key: keyof Sources) => {
-		const next = { ...sources, [key]: !sources[key] };
-		if (PROVIDER_IDS.some((id) => next[id])) onSources(next);
+	const toggle = (key: ProviderId) => {
+		const next = selected.includes(key) ? selected.filter((id) => id !== key) : [...selected, key];
+		if (next.length) onSelect(next);
 	};
 	return (
 		<PromptInput
@@ -243,7 +250,7 @@ export function Composer({
 			<div className="flex items-center justify-between gap-3 py-1.5 pr-1.5 pl-2.5">
 				<div className="-m-1 flex min-w-0 items-center gap-1.5 overflow-x-auto p-1 [scrollbar-width:none] [&>*]:shrink-0">
 					<AttachButton />
-					<MarketsMenu sources={sources} onToggle={toggle} />
+					<MarketsMenu selected={selected} onToggle={toggle} />
 					<ModelButton model={model} connected={connected} onChange={onModel} className="h-8 max-sm:hidden" />
 				</div>
 				<ActionButton busy={busy} canStop={canStop} onStop={onStop} />
