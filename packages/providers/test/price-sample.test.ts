@@ -132,6 +132,27 @@ describe("fetchRecent", () => {
 		expect(errors).toEqual([]);
 		expect(seen.at(-1)).toBe(450);
 	});
+	test("uses hasMore over the page size, and falls back to a short page", async () => {
+		const withMore = (hasMore: (page: number) => boolean | undefined) => {
+			const calls: number[] = [];
+			const p: Provider = {
+				...fake("olx", 200, []),
+				async search(q) {
+					calls.push(q.page ?? 1);
+					return { total: 999, listings: Array.from({ length: 200 }, () => make("PS5", 700)), hasMore: hasMore(q.page ?? 1) };
+				},
+			};
+			return { p, calls };
+		};
+		// Full pages, but the server says page 2 is the last.
+		const stops = withMore((page) => page < 2);
+		await fetchRecent([stops.p], "ps5", { now: NOW });
+		expect(stops.calls).toEqual([1, 2]);
+		// Full pages and no paging data: the short page rule finds no end, so it runs to perProvider (600 / 200).
+		const unknown = withMore(() => undefined);
+		await fetchRecent([unknown.p], "ps5", { now: NOW });
+		expect(unknown.calls).toEqual([1, 2, 3]);
+	});
 	test("a failing provider does not stop the other", async () => {
 		const bad: Provider = { ...fake("svex", 100, []), search: () => Promise.reject(new Error("down")) };
 		const { listings, errors } = await fetchRecent([bad, fake("olx", 200, [10])], "ps5", { now: NOW });

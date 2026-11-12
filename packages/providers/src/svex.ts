@@ -74,7 +74,12 @@ export function mergeSvexResults(results: SearchResult[], query: SearchQuery): S
 	const sorter = sorters[query.sort ?? "relevance"];
 	const all = [...byId.values()];
 	if (sorter) all.sort(sorter);
-	return { listings: all.slice(0, query.limit ?? 20), total: results.reduce((sum, r) => sum + r.total, 0) };
+	const known = results.filter((r) => r.hasMore !== undefined);
+	return {
+		listings: all.slice(0, query.limit ?? 20),
+		total: results.reduce((sum, r) => sum + r.total, 0),
+		hasMore: known.length ? known.some((r) => r.hasMore) : undefined,
+	};
 }
 
 const GROUP_MARGIN = 2;
@@ -149,11 +154,13 @@ export function createSvexProvider(options: ProviderOptions): Provider & ReturnT
 	const getJson = createGetJson(options);
 	const account = createSvexAccount(options);
 	const searchOne = async (query: SearchQuery, condition?: string): Promise<SearchResult> => {
-		const res = await getJson<{ items: SvexItem[]; total?: number }>(
+		const res = await getJson<{ items: SvexItem[]; total?: number; nextCursor?: string | null }>(
 			"/svex-search/v1/search",
 			svexSearchParams(query, condition),
 		);
-		return { listings: res.items.map(mapSvexItem), total: res.total ?? res.items.length };
+		// Only the fixture shows nextCursor. We assume it is empty or null on the last page.
+		const hasMore = "nextCursor" in res ? Boolean(res.nextCursor) : undefined;
+		return { listings: res.items.map(mapSvexItem), total: res.total ?? res.items.length, hasMore };
 	};
 	return {
 		...account,

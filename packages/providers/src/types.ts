@@ -48,6 +48,8 @@ export type SearchQuery = {
 export type SearchResult = {
 	listings: Listing[];
 	total: number;
+	// From the server paging data. Undefined when the server does not say.
+	hasMore?: boolean;
 };
 
 export interface Provider {

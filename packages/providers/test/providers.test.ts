@@ -184,3 +184,20 @@ describe("olx city list", () => {
 		expect(second.listings[0]!.city).toBe("Tuzla");
 	});
 });
+
+describe("paging data", () => {
+	test("OLX reports hasMore from meta.last_page", async () => {
+		const { f } = stubFetch((u) => (u.pathname === "/olx/cities" ? Response.json(olxCities) : Response.json(olxSearch)));
+		const olx = createOlxProvider({ proxyUrl: "https://p.test", fetch: f });
+		expect((await olx.search({ q: "x", page: 1 })).hasMore).toBe(true);
+		expect((await olx.search({ q: "x", page: 57 })).hasMore).toBe(false);
+	});
+
+	test("SVEX reports hasMore from nextCursor, and undefined without it", async () => {
+		const last = { items: [svexItem("a")], total: 1, nextCursor: null };
+		for (const [body, expected] of [[svexSearch, true], [last, false], [{ items: [], total: 0 }, undefined]] as const) {
+			const svex = createSvexProvider({ proxyUrl: "https://p.test", fetch: stubFetch(() => Response.json(body)).f });
+			expect((await svex.search({ q: "x" })).hasMore).toBe(expected);
+		}
+	});
+});

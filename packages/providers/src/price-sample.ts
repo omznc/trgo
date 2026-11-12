@@ -1,5 +1,5 @@
 import { type FilterOptions, normalizeTitle, rejectTitle } from "./price-filter";
-import type { Listing, Provider, ProviderId } from "./types";
+import type { Listing, Provider, ProviderId, SearchResult } from "./types";
 
 // The largest page that each API accepts.
 const PAGE_SIZE: Record<ProviderId, number> = { olx: 200, svex: 100 };
@@ -20,6 +20,9 @@ export type FetchOptions = {
 
 const ageDays = (l: Listing, now: number) => (l.postedAt ? (now - Date.parse(l.postedAt)) / DAY_MS : Number.POSITIVE_INFINITY);
 
+// The server paging data wins. A short page is the fallback.
+const isLastPage = (r: SearchResult, limit: number) => (r.hasMore === undefined ? r.listings.length < limit : !r.hasMore);
+
 // Pages of one provider, newest first. A batch of pages runs in parallel.
 async function fetchProvider(provider: Provider, q: string, options: FetchOptions, onBatch: (n: number) => void) {
 	const { perProvider = 600, concurrency = 2, now = Date.now() } = options;
@@ -33,8 +36,7 @@ async function fetchProvider(provider: Provider, q: string, options: FetchOption
 		out.push(...batch);
 		onBatch(batch.length);
 		// Stop at the end of the results, or when a whole batch is older than the widest window.
-		const short = results.some((r) => r.listings.length < limit);
-		if (short || batch.every((l) => ageDays(l, now) > WINDOWS.at(-1)!)) break;
+		if (results.some((r) => isLastPage(r, limit)) || batch.every((l) => ageDays(l, now) > WINDOWS.at(-1)!)) break;
 	}
 	return out;
 }

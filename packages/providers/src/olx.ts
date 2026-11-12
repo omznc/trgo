@@ -146,12 +146,13 @@ export function createOlxProvider(options: ProviderOptions): Provider & ReturnTy
 		name: "OLX.ba",
 		async search(query): Promise<SearchResult> {
 			const [res, cityMap] = await Promise.all([
-				getJson<{ data: OlxItem[]; meta?: { total?: number } }>("/olx/search", olxSearchParams(query)),
+				getJson<{ data: OlxItem[]; meta?: { total?: number; last_page?: number } }>("/olx/search", olxSearchParams(query)),
 				loadCities(),
 			]);
 			return {
 				listings: res.data.map((item) => mapOlxItem(item, cityMap)),
 				total: res.meta?.total ?? res.data.length,
+				hasMore: res.meta?.last_page === undefined ? undefined : (query.page ?? 1) < res.meta.last_page,
 			};
 		},
 		async getListing(id): Promise<ListingDetail> {
