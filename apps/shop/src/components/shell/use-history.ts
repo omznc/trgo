@@ -21,9 +21,6 @@ export function useHistory(chat: ChatLike, setDocked: (v: boolean) => void, with
 	live.current = { chatId, messages: chat.messages };
 	const prev = useRef(chat.status);
 
-	// A chat change or a clear frees the photos that the open chat does not show.
-	useEffect(() => releasePhotos(usedPhotoIds(live.current.messages)), [chatId]);
-
 	// An approved post can outlive the page. Save when the user answers, or a reload would show "cancelled".
 	const answered = useRef("");
 	useEffect(() => {
@@ -103,7 +100,11 @@ export function useHistory(chat: ChatLike, setDocked: (v: boolean) => void, with
 		},
 		remove: (id: string) => {
 			if (id === chatId && blocked()) return;
+			const gone = getChat(id)?.messages ?? [];
 			removeChat(id);
+			// The open chat is replaced when it is the deleted one. Otherwise keep what it still shows.
+			if (id === chatId) releasePhotos([...gone, ...live.current.messages], new Set());
+			else releasePhotos(gone, usedPhotoIds(live.current.messages));
 			if (id === chatId) {
 				chat.stop();
 				show(newId(), []);
@@ -112,6 +113,7 @@ export function useHistory(chat: ChatLike, setDocked: (v: boolean) => void, with
 		clear: () => {
 			if (blocked()) return;
 			chat.stop();
+			releasePhotos([...listChats().flatMap((c) => c.messages), ...live.current.messages], new Set());
 			void clearHistory();
 			show(newId(), []);
 			panel.closeHistory();

@@ -46,10 +46,11 @@ export function usedPhotoIds(messages: LaganoMessage[]): Set<string> {
 	return used;
 }
 
-// Frees the photos that the open chat does not use.
-export function releasePhotos(keep: Set<string>) {
-	for (const [id, photo] of photos) {
-		if (keep.has(id)) continue;
+// Frees the photos of chats that are gone. A photo in `keep` stays.
+export function releasePhotos(gone: LaganoMessage[], keep: Set<string>) {
+	for (const id of usedPhotoIds(gone)) {
+		const photo = photos.get(id);
+		if (!photo || keep.has(id)) continue;
 		URL.revokeObjectURL(photo.url);
 		photos.delete(id);
 	}
