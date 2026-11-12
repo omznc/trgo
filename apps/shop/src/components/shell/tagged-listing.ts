@@ -62,5 +62,9 @@ export function useTaggedListings() {
 }
 
 // Text for the model only. The chat strips it from the visible message.
-export const taggedNote = (l: TaggedListing) =>
-	`\n\n[Tagged listing: provider=${l.provider}, id=${l.id}, own=${l.own ? "yes" : "no"}, title=${l.title.replace(/[\]\n]/g, " ")}, price=${l.priceText}, url=${l.url}]`;
+// One JSON object: stranger text stays inside a string, so it cannot add a field such as own.
+// "]" is escaped, because model-notes.ts ends the note at the first "]".
+export const taggedNote = (l: TaggedListing) => {
+	const fields = { provider: l.provider, id: l.id, own: !!l.own, title: l.title, price: l.priceText, url: l.url };
+	return `\n\n[Tagged listing: ${JSON.stringify(fields).replaceAll("]", "\\u005d")}]`;
+};
