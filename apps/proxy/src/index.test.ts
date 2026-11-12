@@ -100,6 +100,44 @@ describe("route allowlist", () => {
 	});
 });
 
+describe("read-only hosts", () => {
+	const secrets = { "x-lagano-cookie": "sid=1", authorization: "Bearer t" };
+
+	test("forwards a GET to an allowed path without cookie or authorization", async () => {
+		let sent = new Headers();
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			fetched.push(String(input));
+			sent = new Headers(init?.headers);
+			return new Response("ok");
+		}) as typeof fetch;
+		expect((await call("/olxbg/api/v1/offers/?query=x", { headers: secrets })).status).toBe(200);
+		expect(fetched).toEqual(["https://www.olx.bg/api/v1/offers/?query=x"]);
+		expect(sent.has("cookie")).toBe(false);
+		expect(sent.has("authorization")).toBe(false);
+	});
+
+	test("still forwards the cookie to the other hosts", async () => {
+		let sent = new Headers();
+		globalThis.fetch = (async (_: RequestInfo | URL, init?: RequestInit) => ((sent = new Headers(init?.headers)), new Response("ok"))) as typeof fetch;
+		await call("/olx/a", { headers: secrets });
+		expect(sent.get("cookie")).toBe("sid=1");
+		expect(sent.get("authorization")).toBe("Bearer t");
+	});
+
+	test("rejects another path", async () => {
+		expect((await call("/bolha/user/login")).status).toBe(400);
+		expect((await call("/willhaben/iad/myprofile")).status).toBe(400);
+		expect(fetched).toEqual([]);
+	});
+
+	test("rejects a method other than GET and HEAD", async () => {
+		for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+			expect((await call("/bolha/search/?q=x", { method, body: "x" })).status).toBe(405);
+		}
+		expect(fetched).toEqual([]);
+	});
+});
+
 describe("origin", () => {
 	test("rejects a missing Origin", async () => {
 		expect((await call("/olx/x", {}, env, null)).status).toBe(403);

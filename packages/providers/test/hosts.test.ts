@@ -1,15 +1,26 @@
 import { describe, expect, test } from "bun:test";
-import { EXTENSION_HOSTS, resolveExtensionTarget, resolveTarget, UPSTREAMS } from "../src/hosts";
+import { EXTENSION_HOSTS, READ_ONLY, resolveExtensionTarget, resolveTarget, UPSTREAMS } from "../src/hosts";
 
 const proxy = (path: string) => resolveTarget(new URL(`https://p.test${path}`));
 
 describe("proxy table", () => {
 	test("resolves a valid path for each upstream", () => {
 		for (const [key, origin] of Object.entries(UPSTREAMS)) {
-			const route = proxy(`/${key}/a/b?x=1`);
+			const path = `${READ_ONLY[key]?.[0] ?? "/"}a/b`;
+			const route = proxy(`/${key}${path}?x=1`);
 			expect(route?.key).toBe(key);
-			expect(route?.target.href).toBe(`${origin}/a/b?x=1`);
+			expect(route?.target.href).toBe(`${origin}${path}?x=1`);
 		}
+	});
+
+	test("gives the read-only hosts their search paths only", () => {
+		expect(proxy("/bolha/search/?q=x")).not.toBeNull();
+		expect(proxy("/olxbg/api/v1/offers/?query=x")).not.toBeNull();
+		expect(proxy("/willhaben/iad/kaufen-und-verkaufen/marktplatz?keyword=x")).not.toBeNull();
+		for (const path of ["/bolha/", "/bolha/user/login", "/olxbg/api/v1/users/me", "/olxbg/", "/willhaben/iad/myprofile", "/willhaben/search/"]) {
+			expect(proxy(path)).toBeNull();
+		}
+		expect(proxy("/olx/anything")).not.toBeNull();
 	});
 
 	test("uses the root path when there is none", () => {

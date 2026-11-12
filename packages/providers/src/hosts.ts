@@ -11,6 +11,15 @@ export const UPSTREAMS: Record<string, string> = {
 	willhaben: "https://www.willhaben.at",
 };
 
+// These hosts are read-only through the proxy: GET only, these path prefixes only, no cookie, no authorization.
+export const READ_ONLY: Record<string, string[]> = {
+	bolha: ["/search/"],
+	olxbg: ["/api/v1/offers/"],
+	willhaben: ["/iad/kaufen-und-verkaufen/marktplatz"],
+};
+
+export const isReadOnly = (key: string) => Object.hasOwn(READ_ONLY, key);
+
 // The header that marks a reply as an error of the extension itself.
 export const EXTENSION_ERROR = "x-trgo-extension-error";
 
@@ -59,6 +68,7 @@ function resolveIn(base: string | undefined, path: string, search: string): URL 
 // Returns the upstream URL, or null when the path is not allowed.
 export function resolveTarget(url: URL): { key: string; target: URL } | null {
 	const { key, path } = splitKey(url.pathname);
+	if (isReadOnly(key) && !READ_ONLY[key]!.some((prefix) => path.startsWith(prefix))) return null;
 	const target = resolveIn(Object.hasOwn(UPSTREAMS, key) ? UPSTREAMS[key] : undefined, path, url.search);
 	return target ? { key, target } : null;
 }

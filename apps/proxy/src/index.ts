@@ -1,7 +1,7 @@
 // Pass-through proxy. It never stores or logs bodies, headers or URLs.
 // The only state is a per-day request counter for the free AI route (see free.ts).
 // Read the whole file in a few minutes.
-import { isSafePath, resolveTarget } from "@lagano/providers/hosts";
+import { isReadOnly, isSafePath, resolveTarget } from "@lagano/providers/hosts";
 import { hmacIp, ipKey, isChatTooLong, MAX_BODY_BYTES, sanitizeBody, scrub, scrubStream, secondsUntilNextUtcDay } from "./free";
 
 const FORWARD_HEADERS = ["content-type", "accept", "authorization", "next-action", "next-router-state-tree"];
@@ -138,8 +138,13 @@ function upstreamHeaders(request: Request, key: string): Headers {
 		const value = request.headers.get(name);
 		if (value) headers.set(name, value);
 	}
-	const cookie = request.headers.get("x-lagano-cookie");
-	if (cookie) headers.set("cookie", cookie);
+	// A read-only host never gets the user's session.
+	if (isReadOnly(key)) {
+		headers.delete("authorization");
+	} else {
+		const cookie = request.headers.get("x-lagano-cookie");
+		if (cookie) headers.set("cookie", cookie);
+	}
 	if (key === "svex") {
 		headers.set("origin", "https://svex.ba");
 		headers.set("referer", "https://svex.ba");
@@ -150,6 +155,7 @@ function upstreamHeaders(request: Request, key: string): Headers {
 
 async function proxy(request: Request, key: string, target: URL, cors: Headers): Promise<Response> {
 	const hasBody = request.method !== "GET" && request.method !== "HEAD";
+	if (hasBody && isReadOnly(key)) return jsonError(405, "use GET", cors);
 	let upstream: Response;
 	try {
 		upstream = await fetch(target, {
