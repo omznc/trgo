@@ -16,6 +16,10 @@ type Form = "key" | ProviderId | null;
 const LOGIN: Record<ProviderId, (username: string, password: string) => Promise<void>> = {
 	olx: async (username, password) => setSession("olx", await olxAccount.login({ username, password })),
 	svex: async (username, password) => setSession("svex", await svexAccount.login({ identifier: username, password })),
+	// KupujemProdajem is search-only. It has no connect chip, so nothing calls this.
+	kp: async () => {
+		throw new Error("KupujemProdajem has no account.");
+	},
 };
 const SPIN = "animate-spin";
 const CARD = "rounded-[24px] p-5";

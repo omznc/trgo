@@ -1,4 +1,5 @@
 import {
+	createKpProvider,
 	createOlxProvider,
 	createSvexProvider,
 	OLX_SHIPPING_NOTE,
@@ -68,7 +69,7 @@ const olx = olxAccount;
 const svex = svexAccount;
 
 // A new provider fails the typecheck here until its client exists.
-const ACCOUNTS: Record<ProviderId, Provider> = { olx: olxAccount, svex: svexAccount };
+const ACCOUNTS: Record<ProviderId, Provider> = { olx: olxAccount, svex: svexAccount, kp: createKpProvider({ proxyUrl }) };
 export const accountsWith = (capability: Capability): Provider[] => providersWith(capability).map((id) => ACCOUNTS[id]);
 export const clientsOf = (ids: readonly ProviderId[]): Provider[] => ids.map((id) => ACCOUNTS[id]);
 
@@ -233,7 +234,12 @@ function failure(provider: ProviderId, error: unknown, track: Track): ProviderRe
 	return { ...base, error: error instanceof Error ? error.message.slice(0, 300) : "Unknown error." };
 }
 
-const STEPS: Record<ProviderId, (args: ListingArgs, track: Track) => Step> = { olx: publishOlx, svex: publishSvex };
+// KupujemProdajem is search-only: no tool plans a publish for it, so this step only reports the error.
+async function* publishKp(): Step {
+	throw new Error("KupujemProdajem does not support publishing.");
+}
+
+const STEPS: Record<ProviderId, (args: ListingArgs, track: Track) => Step> = { olx: publishOlx, svex: publishSvex, kp: publishKp };
 
 // Runs after the user approved. Providers run one after the other, so progress is easy to show.
 // `previous` holds failed results of an earlier run. A provider with a saved id goes on from it and never makes a second listing.

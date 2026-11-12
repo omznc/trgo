@@ -24,7 +24,9 @@ export function promptFacts(ids: readonly string[], table: Table = PROVIDERS) {
 // "KM (BAM)", or "EUR" when the label is the code.
 const currencyText = (p: ProviderRow) => (p.currencyLabel === p.currency ? p.currency : `${p.currencyLabel} (${p.currency})`);
 
-const EXAMPLES: Record<string, string> = { bs: ' (for example "veš mašina", not "washing machine")' };
+const EXAMPLES: Record<string, string> = { bs: ' (for example "veš mašina", not "washing machine")',
+	sr: ' (Latin script and ekavian forms, for example "mleko", "dečji", not "milk")',
+};
 
 // The rule for the language of the search words.
 function searchWordsRule(rows: ProviderRow[], sites: string) {

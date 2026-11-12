@@ -10,8 +10,9 @@ const FAKE: Table = {
 
 describe("market helpers", () => {
 	test("countries and providers by country", () => {
-		expect(marketCountries(PROVIDERS)).toEqual(["BA"]);
-		expect(marketCountries(FAKE)).toEqual(["BA", "HR"]);
+		expect(marketCountries(PROVIDERS)).toEqual(["BA", "RS"]);
+		expect(countryProviders(PROVIDERS, "RS")).toEqual(["kp"]);
+		expect(marketCountries(FAKE)).toEqual(["BA", "RS", "HR"]);
 		expect(countryProviders(FAKE, "HR")).toEqual(["fakehr"]);
 		expect(countryProviders(FAKE, "BA")).toEqual(["olx", "svex"]);
 	});

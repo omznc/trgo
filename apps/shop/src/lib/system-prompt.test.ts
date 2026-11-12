@@ -6,8 +6,15 @@ const fixed = (name: string) => Bun.file(new URL(`./fixtures/${name}`, import.me
 
 // The fixtures are the prompt text on main before the registry. The model must see no change.
 test("the prompt is the same as before the registry", async () => {
-	expect(buildSystemPrompt("bs")).toBe(await fixed("system-prompt.bs.txt"));
-	expect(buildSystemPrompt("en")).toBe(await fixed("system-prompt.en.txt"));
+	expect(buildSystemPrompt("bs", ["olx", "svex"])).toBe(await fixed("system-prompt.bs.txt"));
+	expect(buildSystemPrompt("en", ["olx", "svex"])).toBe(await fixed("system-prompt.en.txt"));
+});
+
+test("a Serbian selection tells the model to use Latin ekavian terms", () => {
+	const prompt = buildSystemPrompt("en", ["kp"]);
+	expect(prompt).toContain("KupujemProdajem.com are Serbian sites");
+	expect(prompt).toContain('Latin script and ekavian forms, for example "mleko", "dečji"');
+	expect(prompt).toContain("Prices are in din (RSD).");
 });
 
 test("the prompt of the Bosnian market is the same when other markets exist", async () => {

@@ -16,13 +16,14 @@ const METHODS = {
 describe("provider registry", () => {
 	test("PROVIDER_IDS matches the keys of PROVIDERS", () => {
 		expect([...PROVIDER_IDS].sort() as string[]).toEqual(Object.keys(PROVIDERS).sort());
-		expect([...PROVIDER_IDS]).toEqual(["olx", "svex"]);
+		expect([...PROVIDER_IDS]).toEqual(["olx", "svex", "kp"]);
 	});
 
-	test("each entry has its own id and the Bosnian facts", () => {
-		for (const id of PROVIDER_IDS) {
+	test("each entry has its own id and the facts of its country", () => {
+		for (const id of ["olx", "svex"] as const) {
 			expect(PROVIDERS[id]).toMatchObject({ id, country: "BA", currency: "BAM", currencyLabel: "KM", searchLanguage: "bs" });
 		}
+		expect(PROVIDERS.kp).toMatchObject({ id: "kp", country: "RS", currency: "RSD", searchLanguage: "sr", siteName: "KupujemProdajem.com" });
 		expect(PROVIDERS.olx.name).toBe("OLX");
 		expect(PROVIDERS.svex.siteName).toBe("SVEX.ba");
 	});
@@ -43,5 +44,11 @@ describe("provider registry", () => {
 
 	test("providersWith lists the ids with a capability", () => {
 		expect(providersWith("publish")).toEqual(["olx", "svex"]);
+		expect(providersWith("search")).toEqual(["olx", "svex", "kp"]);
+	});
+
+	test("kp can search and check prices only", () => {
+		expect(PROVIDERS.kp.capabilities).toEqual({ search: true, priceCheck: true, mine: false, publish: false, edit: false });
+		expect(providersWith("mine")).not.toContain("kp");
 	});
 });

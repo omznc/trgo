@@ -4,6 +4,7 @@ export { type Capability, type Currency, isProviderId, PROVIDER_IDS, PROVIDERS, 
 export { convert, RATES } from "./rates";
 export * from "./market";
 export { createOlxProvider, olxListingUrl } from "./olx";
+export { createKpProvider } from "./kp";
 export { createSvexProvider, svexListingUrl } from "./svex";
 export { OLX_SHIPPING_NOTE, olxDescription } from "./olx-account";
 export type { MineList, MineStatus, MyListing, RefreshResult } from "./mine";

@@ -22,6 +22,8 @@ missing after step 1.
    - the login call in `apps/shop/src/components/account/ConnectPanel.tsx`;
    - the delivery text in `apps/shop/src/components/sell/ApprovalCard.tsx`;
    - `needPublish` and `needConnect` in `apps/shop/src/lib/strings.ts`.
+   - A search-only provider gets a stub in each of these maps (see `kp`).
+     The capability gating hides it, so no code runs the stub.
 4. Proxy. Add the hosts of the site to `UPSTREAMS` in
    `apps/proxy/src/index.ts`. The proxy does not read the registry. The
    allowlist is the security boundary, so edit it by hand.

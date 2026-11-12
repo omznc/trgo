@@ -6,7 +6,7 @@
 // See docs/adding-a-provider.md.
 import type { Currency } from "./rates";
 
-export const PROVIDER_IDS = ["olx", "svex"] as const;
+export const PROVIDER_IDS = ["olx", "svex", "kp"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
 export type Capability = "search" | "priceCheck" | "mine" | "publish" | "edit";
@@ -55,6 +55,18 @@ export const PROVIDERS = {
 		searchLanguage: "bs",
 		searchLanguageName: "Bosnian",
 		capabilities: { search: true, priceCheck: true, mine: true, publish: true, edit: true },
+	},
+	kp: {
+		id: "kp",
+		name: "KP",
+		siteName: "KupujemProdajem.com",
+		site: "https://www.kupujemprodajem.com",
+		country: "RS",
+		currency: "RSD",
+		currencyLabel: "din",
+		searchLanguage: "sr",
+		searchLanguageName: "Serbian",
+		capabilities: { search: true, priceCheck: true, mine: false, publish: false, edit: false },
 	},
 } as const satisfies Record<ProviderId, ProviderInfo>;
 
