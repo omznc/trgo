@@ -101,7 +101,7 @@ async function searchListings({ days, providers, ...query }: z.infer<ReturnType<
 // A card holds its price as a number in the unit of the search, so a sort and a median compare one currency.
 export function searchOutput({ listings, total, errors }: SearchAllResult, searched: ProviderId[], display: { currency: Currency; unit: string }, days?: number, now = Date.now()): SearchToolOutput {
 	const kept = days ? listings.filter((l) => now - Date.parse(l.postedAt ?? "") <= days * DAY_MS) : listings;
-	return { total, errors, days, listings: kept.map((l) => toCard(inCurrency(l, display.currency))), searched, unit: display.unit };
+	return { total, errors, days, listings: kept.map((l) => ({ ...toCard(inCurrency(l, display.currency)), ...(l.currency !== display.currency && { converted: true }) })), searched, unit: display.unit };
 }
 
 async function listMine(plan: ToolProviders): Promise<SearchToolOutput & { error?: string }> {

@@ -1,4 +1,4 @@
-import { KP_UNAVAILABLE, PROVIDER_IDS, PROVIDERS, type ProviderId } from "@lagano/providers";
+import { KP_RATE_LIMITED, KP_UNAVAILABLE, PROVIDER_IDS, PROVIDERS, type ProviderId } from "@lagano/providers";
 
 export type SearchCard = {
 	provider: ProviderId;
@@ -12,6 +12,8 @@ export type SearchCard = {
 	imageUrl?: string;
 	condition?: "new" | "used";
 	postedAt?: string;
+	// True when the value was converted from the currency of the listing.
+	converted?: boolean;
 };
 
 export type SearchError = { provider: string; message?: string };
@@ -31,6 +33,7 @@ const TOP = 12;
 const DAY_MS = 86_400_000;
 
 export const isUnavailable = (e: SearchError) => e.message === KP_UNAVAILABLE;
+export const isRateLimited = (e: SearchError) => e.message === KP_RATE_LIMITED;
 
 // The searched providers in registry order. An old output falls back to the providers that it shows.
 export function searchedOf(output: { searched?: string[]; listings: { provider: string }[]; errors: { provider: string }[] }): ProviderId[] {
@@ -61,8 +64,9 @@ function line(l: SearchCard, now: number) {
 
 function failedText(errors: SearchError[]) {
 	const down = errors.filter(isUnavailable).map((e) => `${PROVIDERS[e.provider as ProviderId]?.siteName ?? e.provider} (${e.provider}) is not available right now.`);
-	const others = errors.filter((e) => !isUnavailable(e)).map((e) => e.provider);
-	return [...down, ...(others.length ? [`Failed providers: ${others.join(", ")}.`] : [])].map((t) => ` ${t}`).join("");
+	const limited = errors.filter(isRateLimited).map((e) => `${PROVIDERS[e.provider as ProviderId]?.siteName ?? e.provider} (${e.provider}) has too many requests. Try again in a minute.`);
+	const others = errors.filter((e) => !isUnavailable(e) && !isRateLimited(e)).map((e) => e.provider);
+	return [...down, ...limited, ...(others.length ? [`Failed providers: ${others.join(", ")}.`] : [])].map((t) => ` ${t}`).join("");
 }
 
 // The model sees this short text. The UI part keeps all the listings.
@@ -72,7 +76,9 @@ export function summarizeSearch(output: SearchToolOutput, now = Date.now()): str
 	if (listings.length === 0) return `No listings found${days ? ` in the last ${days} days` : ""}.${failed} Tell the user.`;
 	const by = (p: string) => listings.filter((l) => l.provider === p).length;
 	const prices = listings.flatMap((l) => (l.value ? [l.value] : [])).sort((a, b) => a - b);
-	const range = prices.length ? ` Price ${output.unit ?? "KM"}: min ${Math.round(prices[0]!)}, median ${Math.round(median(prices))}, max ${Math.round(prices.at(-1)!)}.` : "";
+	// A converted value has fractions: round it. A value in its own currency stays as the site shows it.
+	const round = listings.some((l) => l.converted) ? Math.round : (n: number) => n;
+	const range = prices.length ? ` Price ${output.unit ?? "KM"}: min ${round(prices[0]!)}, median ${Math.round(median(prices))}, max ${round(prices.at(-1)!)}.` : "";
 	return [
 		`The user sees all ${listings.length} listings as cards (${searchedOf(output).map((id) => `${PROVIDERS[id].name} ${by(id)}`).join(", ")}; ${total} found on the sites${days ? `; only the last ${days} days` : ""}).${range}${failed}`,
 		`First ${Math.min(TOP, listings.length)}, format provider:id | title | price | city | condition | age:`,

@@ -62,6 +62,12 @@ describe("search output in one unit", () => {
 		expect(summarizeSearch(out, NOW)).toContain("(OLX 1, SVEX 0;");
 		expect(summarizeSearch(out, NOW)).not.toContain("KP");
 	});
+
+	test("a BA search keeps the fractions as main did", () => {
+		const raw = { listings: [listing("olx", "BAM", 12.5, "1"), listing("olx", "BAM", 20, "2"), listing("svex", "BAM", 30.5, "3")], total: 3, errors: [] };
+		const out = searchOutput(raw, ["olx", "svex"], { currency: "BAM", unit: "KM" });
+		expect(summarizeSearch(out, NOW)).toContain("Price KM: min 12.5, median 20, max 30.5.");
+	});
 });
 
 describe("sort value", () => {
@@ -95,5 +101,12 @@ describe("KP relay down", () => {
 		const text = summarizeSearch({ total: 1, errors: [...errors, { provider: "olx", message: "HTTP 500" }], listings: [card(1)] }, NOW);
 		expect(text).toContain("KupujemProdajem.com (kp) is not available right now.");
 		expect(text).toContain("Failed providers: olx.");
+	});
+
+	test("the model text says that KP has too many requests", () => {
+		const errors = [{ provider: "kp", message: "kp-rate-limited" }];
+		const text = summarizeSearch({ total: 0, errors, listings: [] });
+		expect(text).toContain("KupujemProdajem.com (kp) has too many requests. Try again in a minute.");
+		expect(text).not.toContain("Failed providers");
 	});
 });
