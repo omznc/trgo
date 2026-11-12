@@ -82,14 +82,6 @@ export function mergeSvexResults(results: SearchResult[], query: SearchQuery): S
 	};
 }
 
-const GROUP_MARGIN = 2;
-
-// Without a sort, each group needs only its share. Other sorts can take all results from one group.
-export function groupLimit(query: SearchQuery, groups: number) {
-	const limit = query.limit ?? 20;
-	return (query.sort ?? "relevance") === "relevance" ? Math.min(limit, Math.ceil(limit / groups) + GROUP_MARGIN) : limit;
-}
-
 type SvexDetail = SvexItem & {
 	description?: string;
 	images?: { url: string }[];
@@ -170,8 +162,7 @@ export function createSvexProvider(options: ProviderOptions): Provider & ReturnT
 		async search(query): Promise<SearchResult> {
 			if (!query.condition) return searchOne(query);
 			const conditions = CONDITIONS[query.condition];
-			const perGroup = { ...query, limit: groupLimit(query, conditions.length) };
-			const results = await Promise.all(conditions.map((c) => searchOne(perGroup, c)));
+			const results = await Promise.all(conditions.map((c) => searchOne(query, c)));
 			return mergeSvexResults(results, query);
 		},
 		async getListing(id): Promise<ListingDetail> {

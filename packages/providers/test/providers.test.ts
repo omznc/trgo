@@ -145,12 +145,11 @@ describe("svex condition groups", () => {
 			return Response.json({ items: Array.from({ length: n }, (_, i) => svexItem(`${c}-${i}`)), total: 50 });
 		});
 
-	test("relevance asks each group for its share and interleaves the groups", async () => {
+	test("each group gets the full limit and the groups interleave", async () => {
 		const { f, calls } = grouped();
 		const svex = createSvexProvider({ proxyUrl: "https://p.test", fetch: f });
 		const res = await svex.search({ q: "x", condition: "used", limit: 6 });
-		// ceil(6 / 3) + margin 2
-		expect(calls.map((c) => c.url.searchParams.get("limit"))).toEqual(["4", "4", "4"]);
+		expect(calls.map((c) => c.url.searchParams.get("limit"))).toEqual(["6", "6", "6"]);
 		expect(res.listings.map((l) => l.id)).toEqual([
 			"used_excellent-0",
 			"used_good-0",
@@ -161,11 +160,15 @@ describe("svex condition groups", () => {
 		]);
 	});
 
-	test("a price sort still asks each group for the full limit", async () => {
-		const { f, calls } = grouped();
+	test("a short group does not shorten the merged list", async () => {
+		const { f } = stubFetch((u) => {
+			const c = u.searchParams.get("condition")!;
+			const n = c === "used_excellent" ? Number(u.searchParams.get("limit")) : 1;
+			return Response.json({ items: Array.from({ length: n }, (_, i) => svexItem(`${c}-${i}`)), total: 50 });
+		});
 		const svex = createSvexProvider({ proxyUrl: "https://p.test", fetch: f });
-		await svex.search({ q: "x", condition: "new", limit: 6, sort: "price_asc" });
-		expect(calls.map((c) => c.url.searchParams.get("limit"))).toEqual(["6", "6"]);
+		const res = await svex.search({ q: "x", condition: "used", limit: 20 });
+		expect(res.listings).toHaveLength(20);
 	});
 });
 
