@@ -1,4 +1,4 @@
-import { isProviderId, PROVIDER_IDS, PROVIDERS, type ProviderId } from "@lagano/providers";
+import { accountIds, isProviderId, PROVIDERS, type ProviderId } from "@lagano/providers";
 import { ExternalLink, KeyRound, Loader2, Lock, ShieldCheck, TriangleAlert } from "lucide-react";
 import { formatUsd, useCredits, type Credits } from "@/lib/openrouter-credits";
 import { useEffect, useId, useRef, useState } from "react";
@@ -294,7 +294,7 @@ export default function ConnectPanel({ provider }: { provider?: ConnectTarget })
 	const credits = useCredits(key);
 	const rows: Row[] = [
 		{ id: "openrouter", name: "OpenRouter", on: !!key, detail: key ? creditsLine(maskKey(key), credits) : undefined, connect: () => startLogin(), disconnect: removeKey },
-		...PROVIDER_IDS.map((id) => ({ id, name: PROVIDERS[id].name, on: sessions[id], connect: () => open({ kind: "connect", provider: id }), disconnect: () => clearSession(id) })),
+		...accountIds(PROVIDERS).map((id) => ({ id, name: PROVIDERS[id].name, on: sessions[id], connect: () => open({ kind: "connect", provider: id }), disconnect: () => clearSession(id) })),
 	];
 	if (isProviderId(provider)) {
 		return (

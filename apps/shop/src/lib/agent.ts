@@ -1,5 +1,5 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import { PROVIDER_IDS, PROVIDERS, providersWith, searchAll, type Listing, type ProviderId } from "@lagano/providers";
+import { displayCurrency, displayLabel, PROVIDERS, queryFor, searchAll, type Currency, type Listing, type ProviderId, type SearchQuery, type Table } from "@lagano/providers";
 import { APICallError, DirectChatTransport, hasToolCall, isStepCount, type InferUITools, type UIMessage, ToolLoopAgent, tool } from "ai";
 import { z } from "zod";
 import type { TaggedListing } from "@/components/shell/tagged-listing";
@@ -7,55 +7,68 @@ import { loadMine, mineCall } from "./mine-api";
 import { EDIT_OPS, editProblem } from "./mine-rules";
 import { priceCheckSchema, runPriceCheck, summarize } from "./price-check";
 import { type SearchCard, type SearchToolOutput, summarizeSearch } from "./search-summary";
-import { accountsWith, proxyUrl, publishListing } from "./publish";
+import { clientsOf, proxyUrl, publishListing } from "./publish";
 import { expireSession, getSession, isAuthError } from "./sessions";
 import { lang } from "./lang";
-import { buildSystemPrompt, PRICE_UNIT, SITES, SITES_OR } from "./system-prompt";
+import { getSelection } from "./market";
+import { buildSystemPrompt, promptFacts } from "./system-prompt";
+import { nonEmpty, toolNames, toolProviders, type ToolProviders } from "./tool-gate";
 import { strings } from "./strings";
 import { knownModelName } from "./openrouter-models";
 
 const DEFAULT_LIMIT = 50;
 const MAX_MINE = 30;
 
-const searchSchema = z.object({
-	q: z.string().describe("Search words, for example 'ender 3 printer'."),
-	minPrice: z.number().optional().describe(`Lowest price in ${PRICE_UNIT}.`),
-	maxPrice: z.number().optional().describe(`Highest price in ${PRICE_UNIT}.`),
-	condition: z.enum(["new", "used"]).optional(),
-	sort: z.enum(["relevance", "price_asc", "price_desc", "newest"]).optional(),
-	limit: z.number().int().min(1).max(100).optional().describe("Results per provider. Default 50. The user sees all of them."),
-	days: z.number().int().min(1).max(365).optional().describe("Keep only listings posted in the last N days, for example 90 for 3 months. Listings without a date are dropped."),
-});
+type Ids = [ProviderId, ...ProviderId[]];
+// The gate lets a tool exist only when its list is not empty, so the cast is safe where it is used.
+const idsOf = (list: readonly string[]) => nonEmpty(list) as unknown as Ids;
 
-const createListingSchema = z.object({
-	providers: z.array(z.enum(PROVIDER_IDS)).min(1).describe("Where to post."),
-	title: z.string().min(8).describe("At least 8 characters."),
-	description: z.string().max(8000).describe("Plain text. New lines are allowed."),
-	price: z.number().positive().describe(`Price in ${PRICE_UNIT}.`),
-	condition: z.enum(["new", "used"]),
-	grade: z
-		.enum(["new_sealed", "new_open", "used_excellent", "used_good", "used_fair", "defective"])
-		.optional()
-		.describe("SVEX only. A finer condition. It must match the condition."),
-	categoryHint: z.string().describe("Words that name the category, for example 'fdm 3d printer'."),
-	city: z.string().describe("City name, for example 'Livno'."),
-	freeShipping: z.boolean().optional().describe("SVEX only. OLX has no delivery field."),
-	photoIds: z.array(z.string()).min(1).describe("Photo ids from the user message. The first is the cover."),
-	olxAttributes: z
-		.record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
-		.optional()
-		.describe("OLX required attributes by display name. Use it after a tool error names one."),
-});
+// What a tool needs to know about the market.
+type Ctx = { plan: ToolProviders; table: Table; currency: Currency; unit: string };
 
-export const editSchema = z
-	.object({
-		provider: z.enum(PROVIDER_IDS),
-		id: z.string().min(1).max(64).describe("The listing id from the [Tagged listing] note."),
-		action: z.enum(["set_price", "hide", "unhide", "mark_sold", "refresh"]),
-		price: z.number().positive().optional().describe(`New price in ${PRICE_UNIT}. Needed for set_price.`),
-	})
-	// The OLX calls do Number(id), so an id with other characters must stop here.
-	.refine((v) => v.provider !== "olx" || /^\d+$/.test(v.id), { message: "An OLX id has digits only.", path: ["id"] });
+const searchSchema = (ids: Ids, unit: string) =>
+	z.object({
+		q: z.string().describe("Search words, for example 'ender 3 printer'. Write them in the language of the site."),
+		providers: z.array(z.enum(ids)).min(1).optional().describe("Search only these sites. Leave it out to search all selected sites."),
+		minPrice: z.number().optional().describe(`Lowest price in ${unit}.`),
+		maxPrice: z.number().optional().describe(`Highest price in ${unit}.`),
+		condition: z.enum(["new", "used"]).optional(),
+		sort: z.enum(["relevance", "price_asc", "price_desc", "newest"]).optional(),
+		limit: z.number().int().min(1).max(100).optional().describe("Results per provider. Default 50. The user sees all of them."),
+		days: z.number().int().min(1).max(365).optional().describe("Keep only listings posted in the last N days, for example 90 for 3 months. Listings without a date are dropped."),
+	});
+
+const createListingSchema = (ids: Ids, unit: string) =>
+	z.object({
+		providers: z.array(z.enum(ids)).min(1).describe("Where to post."),
+		title: z.string().min(8).describe("At least 8 characters."),
+		description: z.string().max(8000).describe("Plain text. New lines are allowed."),
+		price: z.number().positive().describe(`Price in ${unit}.`),
+		condition: z.enum(["new", "used"]),
+		grade: z
+			.enum(["new_sealed", "new_open", "used_excellent", "used_good", "used_fair", "defective"])
+			.optional()
+			.describe("SVEX only. A finer condition. It must match the condition."),
+		categoryHint: z.string().describe("Words that name the category, for example 'fdm 3d printer'."),
+		city: z.string().describe("City name, for example 'Livno'."),
+		freeShipping: z.boolean().optional().describe("SVEX only. OLX has no delivery field."),
+		photoIds: z.array(z.string()).min(1).describe("Photo ids from the user message. The first is the cover."),
+		olxAttributes: z
+			.record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+			.optional()
+			.describe("OLX required attributes by display name. Use it after a tool error names one."),
+	});
+
+export const editSchema = (ids: Ids, unit: string) =>
+	z
+		.object({
+			provider: z.enum(ids),
+			id: z.string().min(1).max(64).describe("The listing id from the [Tagged listing] note."),
+			action: z.enum(["set_price", "hide", "unhide", "mark_sold", "refresh"]),
+			price: z.number().positive().optional().describe(`New price in ${unit}. Needed for set_price.`),
+		})
+		// The OLX calls do Number(id), so an id with other characters must stop here.
+		.refine((v) => v.provider !== "olx" || /^\d+$/.test(v.id), { message: "An OLX id has digits only.", path: ["id"] });
 
 const toCard = (l: Listing): SearchCard => ({
 	provider: l.provider,
@@ -72,17 +85,23 @@ const toCard = (l: Listing): SearchCard => ({
 
 const DAY_MS = 86_400_000;
 
-async function searchListings({ days, ...query }: z.infer<typeof searchSchema>, signal?: AbortSignal): Promise<SearchToolOutput> {
+// The sites to search: the ones that the model named, but only inside the market selection.
+const chosen = (named: readonly string[] | undefined, allowed: readonly string[]) => (named ? allowed.filter((id) => named.includes(id)) : allowed) as ProviderId[];
+
+async function searchListings({ days, providers, ...query }: z.infer<ReturnType<typeof searchSchema>>, ctx: Ctx, signal?: AbortSignal): Promise<SearchToolOutput> {
 	// A period filter needs the newest first and a deeper page.
 	const limit = query.limit ?? (days ? 100 : DEFAULT_LIMIT);
-	const { listings, total, errors } = await searchAll(accountsWith("search"), { ...query, limit, signal, ...(days && { sort: "newest" as const }) });
+	// minPrice and maxPrice are in the display currency. Each provider gets its own currency.
+	const adapt = (id: ProviderId, q: SearchQuery) => queryFor(ctx.table, ctx.currency, id, q);
+	const sites = clientsOf(chosen(providers, ctx.plan.search));
+	const { listings, total, errors } = await searchAll(sites, { ...query, limit, signal, ...(days && { sort: "newest" as const }) }, adapt);
 	const now = Date.now();
 	const kept = days ? listings.filter((l) => now - Date.parse(l.postedAt ?? "") <= days * DAY_MS) : listings;
 	return { total, errors, days, listings: kept.map(toCard) };
 }
 
-async function listMine(): Promise<SearchToolOutput & { error?: string }> {
-	const connected = providersWith("mine").filter((p) => getSession(p));
+async function listMine(plan: ToolProviders): Promise<SearchToolOutput & { error?: string }> {
+	const connected = (plan.mine as ProviderId[]).filter((p) => getSession(p));
 	if (!connected.length) return { total: 0, listings: [], errors: [], error: strings.notConnected };
 	// loadMine clears an expired session and keeps the list of the other provider.
 	const { items, errors } = await loadMine(connected);
@@ -94,7 +113,7 @@ async function listMine(): Promise<SearchToolOutput & { error?: string }> {
 }
 
 // The id and the action must match the user's real listing, whatever the model wrote.
-export async function editMine({ provider, id, action, price }: z.infer<typeof editSchema>) {
+export async function editMine({ provider, id, action, price }: z.infer<ReturnType<typeof editSchema>>) {
 	if (action === "set_price" && !price) throw new Error("set_price needs a price. Ask the user for the price.");
 	const connected = !!getSession(provider);
 	const { items, errors, truncated } = await loadMine([provider]);
@@ -106,53 +125,71 @@ export async function editMine({ provider, id, action, price }: z.infer<typeof e
 	return { ok: true as const };
 }
 
-const tools = {
-	search_listings: tool({
-		description: `Search used and new listings on ${SITES}. Prices are in ${PRICE_UNIT}.`,
-		inputSchema: searchSchema,
-		execute: (input, { abortSignal }) => searchListings(input, abortSignal),
-		toModelOutput: ({ output }) => ({ type: "text", value: summarizeSearch(output) }),
-	}),
-	price_check: tool({
-		description:
-			`Show a price card for one item: what it is worth now. The app loads the newest listings from ${SITES}, ` +
-			"removes accessories, bad prices and outliers, and computes the median and range. Pass only search words.",
-		inputSchema: priceCheckSchema,
-		async *execute(input, { abortSignal }) {
-			yield* runPriceCheck(input, accountsWith("priceCheck"), abortSignal);
-		},
-		toModelOutput: ({ output }) => ({ type: "text", value: summarize(output) }),
-	}),
-	create_listing: tool({
-		description:
-			`Prepare a listing for ${SITES}. The user must approve it first. Prices are in ${PRICE_UNIT}. ` +
-			"It posts after approval and returns a result per provider.",
-		inputSchema: createListingSchema,
-		// Runs only after the user approved the card.
-		async *execute(args) {
-			yield* publishListing(args);
-		},
-	}),
-	edit_my_listing: tool({
-		description:
-			`Change one of the user's OWN listings on ${SITES_OR}: set the price, hide, unhide, mark as sold, or refresh. ` +
-			"The user must approve first. Use the provider and id from the [Tagged listing] note. " +
-			"It cannot change the title, the description or the photos. Tell the user to edit those on the site. " +
-			"Give only the provider, the id, the action and the price. The app checks the listing in the user's account and refuses an id or an action that does not fit.",
-		inputSchema: editSchema,
-		execute: editMine,
-	}),
-	list_my_listings: tool({
-		description:
-			`List the active listings of the user's own accounts on ${SITES} (the connected ones). ` +
-			"The user sees all of them as cards. You see a short summary.",
-		inputSchema: z.object({}),
-		execute: listMine,
-		toModelOutput: ({ output }) => ({ type: "text", value: output.error && !output.listings.length ? output.error : summarizeSearch(output) }),
-	}),
+// One maker for each tool. A maker runs only when the gate says the tool has a provider.
+const makers = {
+	search_listings: (c: Ctx) =>
+		tool({
+			description: `Search used and new listings on ${promptFacts(c.plan.search, c.table).sites}. Prices are in ${c.unit}.`,
+			inputSchema: searchSchema(idsOf(c.plan.search), c.unit),
+			execute: (input, { abortSignal }) => searchListings(input, c, abortSignal),
+			toModelOutput: ({ output }) => ({ type: "text", value: summarizeSearch(output) }),
+		}),
+	price_check: (c: Ctx) =>
+		tool({
+			description:
+				`Show a price card for one item: what it is worth now. The app loads the newest listings from ${promptFacts(c.plan.priceCheck, c.table).sites}, ` +
+				"removes accessories, bad prices and outliers, and computes the median and range. Pass only search words.",
+			inputSchema: priceCheckSchema(idsOf(c.plan.priceCheck), c.unit),
+			async *execute(input, { abortSignal }) {
+				yield* runPriceCheck(input, clientsOf(c.plan.priceCheck as ProviderId[]), { currency: c.currency, label: c.unit }, abortSignal, c.table);
+			},
+			toModelOutput: ({ output }) => ({ type: "text", value: summarize(output) }),
+		}),
+	create_listing: (c: Ctx) => {
+		const unit = displayLabel(c.table, c.plan.publish);
+		return tool({
+			description:
+				`Prepare a listing for ${promptFacts(c.plan.publish, c.table).sites}. The user must approve it first. Prices are in ${unit}. ` +
+				"It posts after approval and returns a result per provider.",
+			inputSchema: createListingSchema(idsOf(c.plan.publish), unit),
+			// Runs only after the user approved the card.
+			async *execute(args) {
+				yield* publishListing(args);
+			},
+		});
+	},
+	edit_my_listing: (c: Ctx) =>
+		tool({
+			description:
+				`Change one of the user's OWN listings on ${promptFacts(c.plan.edit, c.table).sitesOr}: set the price, hide, unhide, mark as sold, or refresh. ` +
+				"The user must approve first. Use the provider and id from the [Tagged listing] note. " +
+				"It cannot change the title, the description or the photos. Tell the user to edit those on the site. " +
+				"Give only the provider, the id, the action and the price. The app checks the listing in the user's account and refuses an id or an action that does not fit.",
+			inputSchema: editSchema(idsOf(c.plan.edit), displayLabel(c.table, c.plan.edit)),
+			execute: editMine,
+		}),
+	list_my_listings: (c: Ctx) =>
+		tool({
+			description:
+				`List the active listings of the user's own accounts on ${promptFacts(c.plan.mine, c.table).sites} (the connected ones). ` +
+				"The user sees all of them as cards. You see a short summary.",
+			inputSchema: z.object({}),
+			execute: () => listMine(c.plan),
+			toModelOutput: ({ output }) => ({ type: "text", value: output.error && !output.listings.length ? output.error : summarizeSearch(output) }),
+		}),
 };
 
-export type LaganoMessage = UIMessage<{ photoIds?: string[]; tagged?: TaggedListing[] | TaggedListing }, never, InferUITools<typeof tools>>;
+type Tools = { [K in keyof typeof makers]: ReturnType<(typeof makers)[K]> };
+
+// The tools for a market selection. A tool whose capability has no provider is left out.
+export function buildTools(selected: readonly string[], table: Table = PROVIDERS): Partial<Tools> {
+	const plan = toolProviders(selected, table);
+	const ctx: Ctx = { plan, table, currency: displayCurrency(table, selected), unit: displayLabel(table, selected) };
+	const entries = toolNames(plan).map((name) => [name, makers[name as keyof Tools](ctx)]);
+	return Object.fromEntries(entries) as Partial<Tools>;
+}
+
+export type LaganoMessage = UIMessage<{ photoIds?: string[]; tagged?: TaggedListing[] | TaggedListing }, never, InferUITools<Tools>>;
 
 
 // The free model runs through our proxy. The proxy picks the real model and the UI never names it.
@@ -201,9 +238,12 @@ export function createTransport(apiKey: string | null, model: string) {
 				apiKey: apiKey ?? "",
 				headers: { "HTTP-Referer": location.origin, "X-OpenRouter-Title": "trgo" },
 			});
+	const selected = getSelection();
+	// A tool without a provider is left out at run time. The type keeps all five names.
+	const tools = buildTools(selected) as Tools;
 	const agent = new ToolLoopAgent({
 		model: openrouter(model),
-		instructions: buildSystemPrompt(lang),
+		instructions: buildSystemPrompt(lang, selected),
 		tools,
 		// The price card is the whole answer, so no text follows it.
 		stopWhen: [isStepCount(8), hasToolCall("price_check")],
@@ -211,5 +251,5 @@ export function createTransport(apiKey: string | null, model: string) {
 		...(isFreeModel(model) && { maxRetries: 0 }),
 		toolApproval: { create_listing: "user-approval", edit_my_listing: "user-approval" },
 	});
-	return new DirectChatTransport<never, typeof tools>({ agent, onError: errorCode });
+	return new DirectChatTransport<never, Tools>({ agent, onError: errorCode });
 }

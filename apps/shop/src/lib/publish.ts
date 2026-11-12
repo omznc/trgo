@@ -70,6 +70,7 @@ const svex = svexAccount;
 // A new provider fails the typecheck here until its client exists.
 const ACCOUNTS: Record<ProviderId, Provider> = { olx: olxAccount, svex: svexAccount };
 export const accountsWith = (capability: Capability): Provider[] => providersWith(capability).map((id) => ACCOUNTS[id]);
+export const clientsOf = (ids: readonly ProviderId[]): Provider[] => ids.map((id) => ACCOUNTS[id]);
 
 class AskUser extends Error {}
 
