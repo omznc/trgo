@@ -16,8 +16,9 @@ function Output({ input, out, toolCallId }: { input: ListingArgs; out: PublishOu
 	return <PublishProgress providers={input.providers} progress={out.progress} results={out.results} />;
 }
 
-export function ListingApprovalPart({ part, onRespond }: { part: Part; onRespond: (id: string, approved: boolean) => void }) {
+export function ListingApprovalPart({ part, onRespond, expired }: { part: Part; onRespond: (id: string, approved: boolean) => void; expired: boolean }) {
 	if (part.state === "approval-requested") {
+		if (expired) return <p className="px-2 text-sm text-fg-3">{sell.expired}</p>;
 		return <ApprovalCard input={part.input as ListingArgs} onRespond={(ok) => onRespond(part.approval.id, ok)} />;
 	}
 	if (part.state === "output-denied") return <p className="px-2 text-sm text-fg-3">{sell.cancelled}</p>;

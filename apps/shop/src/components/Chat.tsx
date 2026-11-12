@@ -104,6 +104,7 @@ function MessageList({
 						message={m}
 						streaming={status === "streaming" && m === last}
 						onRespond={onRespond}
+						expired={m !== last}
 						actions={canAct(m) ? <AnswerActions onCopy={() => onCopy(textOf(m))} onRetry={onRetry} /> : undefined}
 					/>
 				))}

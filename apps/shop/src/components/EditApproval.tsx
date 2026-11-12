@@ -64,11 +64,12 @@ function ApprovalBody({ input, onRespond }: { input: Complete; onRespond: (appro
 	);
 }
 
-export function EditApprovalPart({ part, onRespond }: { part: Part; onRespond: (id: string, approved: boolean) => void }) {
+export function EditApprovalPart({ part, onRespond, expired }: { part: Part; onRespond: (id: string, approved: boolean) => void; expired: boolean }) {
 	if (part.state === "approval-requested") {
 		const { provider, id, action, price } = part.input;
 		// An incomplete input cannot be checked, so no card is shown.
 		if (!provider || !id || !action) return null;
+		if (expired) return <p className="px-2 text-sm text-fg-3">{ta.editExpired}</p>;
 		return <ApprovalBody input={{ provider, id, action, price }} onRespond={(approved) => onRespond(part.approval.id, approved)} />;
 	}
 	if (part.state === "output-denied") return <p className="px-2 text-sm text-fg-3">{ta.editCancelled}</p>;

@@ -72,7 +72,7 @@ function moodOf(parts: Part[], streaming: boolean): MascotMood {
 	return streaming ? "thinking" : "calm";
 }
 
-function PartView({ part, caret, onRespond, searchOpen }: { part: Part; caret: boolean; onRespond: Respond; searchOpen: boolean }) {
+function PartView({ part, caret, onRespond, searchOpen, expired }: { part: Part; caret: boolean; onRespond: Respond; searchOpen: boolean; expired: boolean }) {
 	switch (part.type) {
 		case "text":
 			return part.text ? (
@@ -86,9 +86,9 @@ function PartView({ part, caret, onRespond, searchOpen }: { part: Part; caret: b
 		case "tool-price_check":
 			return <PriceCheckPart part={part} />;
 		case "tool-create_listing":
-			return <ListingApprovalPart part={part} onRespond={onRespond} />;
+			return <ListingApprovalPart part={part} onRespond={onRespond} expired={expired} />;
 		case "tool-edit_my_listing":
-			return <EditApprovalPart part={part} onRespond={onRespond} />;
+			return <EditApprovalPart part={part} onRespond={onRespond} expired={expired} />;
 		default:
 			return null;
 	}
@@ -99,11 +99,14 @@ export function AssistantMessage({
 	streaming,
 	actions,
 	onRespond,
+	expired,
 }: {
 	message: LaganoMessage;
 	streaming: boolean;
 	actions?: React.ReactNode;
 	onRespond: Respond;
+	// The SDK reads approvals only in the last message, so an answer here would never be sent.
+	expired: boolean;
 }) {
 	const last = message.parts.length - 1;
 	// Only the last search starts open. A price card is the main result, so it closes all of them.
@@ -117,7 +120,7 @@ export function AssistantMessage({
 			</div>
 			<div className="flex min-w-0 flex-1 flex-col gap-3.5">
 				{message.parts.map((part, i) => (
-					<PartView key={i} part={part} caret={streaming && i === last} onRespond={onRespond} searchOpen={!hasPriceCard && i === lastSearch} />
+					<PartView key={i} part={part} caret={streaming && i === last} onRespond={onRespond} searchOpen={!hasPriceCard && i === lastSearch} expired={expired} />
 				))}
 				{actions}
 			</div>
@@ -125,7 +128,7 @@ export function AssistantMessage({
 	);
 }
 
-export function Message({ message, ...rest }: { message: LaganoMessage; streaming: boolean; actions?: React.ReactNode; onRespond: Respond }) {
+export function Message({ message, ...rest }: { message: LaganoMessage; streaming: boolean; actions?: React.ReactNode; onRespond: Respond; expired: boolean }) {
 	return message.role === "user" ? <UserMessage message={message} /> : <AssistantMessage message={message} {...rest} />;
 }
 

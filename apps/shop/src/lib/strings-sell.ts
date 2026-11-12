@@ -104,6 +104,7 @@ const bs = {
 		unknown: "Ishod nije poznat. Provjeri Moje oglase.",
 	},
 	cancelled: "Otkazano",
+	expired: "Zahtjev je istekao. Zatraži oglas ponovo.",
 	errorAria: "Greška",
 };
 
@@ -210,6 +211,7 @@ const en: typeof bs = {
 		unknown: "The result is unknown. Check My listings.",
 	},
 	cancelled: "Cancelled",
+	expired: "This request expired. Ask for the listing again.",
 	errorAria: "Error",
 };
 
