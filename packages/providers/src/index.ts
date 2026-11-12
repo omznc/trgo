@@ -1,6 +1,6 @@
 export * from "./types";
 export { createProvider } from "./adapters";
-export { type Capability, type Currency, PROVIDER_IDS, PROVIDERS, type ProviderInfo, providersWith } from "./registry";
+export { type Capability, type Currency, isProviderId, PROVIDER_IDS, PROVIDERS, type ProviderInfo, providersWith } from "./registry";
 export { createOlxProvider, olxListingUrl } from "./olx";
 export { createSvexProvider, svexListingUrl } from "./svex";
 export { OLX_SHIPPING_NOTE, olxDescription } from "./olx-account";

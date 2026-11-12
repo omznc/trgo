@@ -58,4 +58,6 @@ export const PROVIDERS = {
 
 export type Currency = (typeof PROVIDERS)[ProviderId]["currency"];
 
+export const isProviderId = (value: unknown): value is ProviderId => (PROVIDER_IDS as readonly unknown[]).includes(value);
+
 export const providersWith = (capability: Capability): ProviderId[] => PROVIDER_IDS.filter((id) => PROVIDERS[id].capabilities[capability]);
