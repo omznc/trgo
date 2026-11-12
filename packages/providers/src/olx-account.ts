@@ -4,6 +4,7 @@ import { flattenOlxCities } from "./olx";
 import type { NamedId, OlxListingInput, OlxSession, ProviderOptions } from "./types";
 
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+// Each state reads at most 5 pages of 50. listMine returns a plain array, so it cannot flag the cut.
 const MAX_PAGES = 5;
 type RefreshLimits = { free_limit: number; free_count: number; paid_count: number; listing_count: number };
 const DEVICE_NAME = "lagano-shop";
@@ -103,7 +104,7 @@ export function createOlxAccount(options: ProviderOptions) {
 		const user = await me(s);
 		const lists = await Promise.all(
 			OLX_STATES.map(async ([state, status]) => {
-				const path = state === "active" ? `/users/${user.username}/listings` : `/users/${user.id}/listings/${state}`;
+				const path = state === "active" ? `/users/${encodeURIComponent(user.username)}/listings` : `/users/${user.id}/listings/${state}`;
 				return (await listPages(path, s)).map((item) => mapOlxMine(item, status));
 			}),
 		);
