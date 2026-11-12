@@ -1,6 +1,7 @@
 import { EXTENSION_HOSTS, splitKey } from "./hosts";
 
-export type ExtensionCall = (request: { key: string; path: string; search: string; accept: string }) => Promise<{
+// The signal lets the call drop its listener at once when the request is aborted.
+export type ExtensionCall = (request: { key: string; path: string; search: string; accept: string }, signal?: AbortSignal) => Promise<{
 	status: number;
 	statusText: string;
 	headers: Record<string, string>;
@@ -31,7 +32,7 @@ export function createExtensionFetch({ proxyUrl, call, fallback = fetch }: Optio
 		const { signal, ...request } = route;
 		signal?.throwIfAborted();
 		const aborted = new Promise<never>((_, reject) => signal?.addEventListener("abort", () => reject(signal.reason), { once: true }));
-		const res = await Promise.race([call(request), aborted]);
+		const res = await Promise.race([call(request, signal), aborted]);
 		// A null-body status must not get a body.
 		return new Response(res.body === "" ? null : res.body, { status: res.status, statusText: res.statusText, headers: res.headers });
 	}) as typeof fetch;

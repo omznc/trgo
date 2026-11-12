@@ -15,7 +15,7 @@ const METHODS = {
 describe("provider registry", () => {
 	test("PROVIDER_IDS matches the keys of PROVIDERS", () => {
 		expect([...PROVIDER_IDS].sort() as string[]).toEqual(Object.keys(PROVIDERS).sort());
-		expect([...PROVIDER_IDS]).toEqual(["olx", "svex", "kp"]);
+		expect([...PROVIDER_IDS]).toEqual(["olx", "svex", "kp", "njuskalo"]);
 	});
 
 	test("each entry has its own id and the facts of its country", () => {
@@ -52,11 +52,19 @@ describe("provider registry", () => {
 
 	test("providersWith lists the ids with a capability", () => {
 		expect(providersWith("publish")).toEqual(["olx", "svex"]);
-		expect(providersWith("search")).toEqual(["olx", "svex", "kp"]);
+		expect(providersWith("search")).toEqual(["olx", "svex", "kp", "njuskalo"]);
 	});
 
 	test("kp can search and check prices only", () => {
 		expect(PROVIDERS.kp.capabilities).toEqual({ search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false });
 		expect(providersWith("mine")).not.toContain("kp");
+	});
+
+	test("njuskalo searches and checks prices only, and needs the extension", () => {
+		expect(PROVIDERS.njuskalo).toMatchObject({ id: "njuskalo", country: "HR", currency: "EUR", searchLanguage: "hr", siteName: "Njuškalo.hr", needsExtension: true });
+		expect(PROVIDERS.njuskalo.capabilities).toEqual({ search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false });
+		// The page holds 25 listings, so 6 pages are at most 150.
+		expect(PROVIDERS.njuskalo.priceSampleMax).toBe(150);
+		for (const id of PROVIDER_IDS) if (id !== "njuskalo") expect("needsExtension" in PROVIDERS[id]).toBe(false);
 	});
 });

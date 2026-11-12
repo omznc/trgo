@@ -5,7 +5,7 @@ import type { ListingDetail, ProviderId, ProviderOptions } from "./types";
 export function listingIdFromUrl(provider: ProviderId, idOrUrl: string): string {
 	if (!idOrUrl.includes("/")) return idOrUrl;
 	const path = new URL(idOrUrl).pathname;
-	const patterns: Record<ProviderId, RegExp> = { olx: /\/artikal\/(\d+)/, svex: /\/oglas\/([0-9a-f-]{36})/i, kp: /\/oglas\/(\d+)/ };
+	const patterns: Record<ProviderId, RegExp> = { olx: /\/artikal\/(\d+)/, svex: /\/oglas\/([0-9a-f-]{36})/i, kp: /\/oglas\/(\d+)/, njuskalo: /-oglas-(\d+)\/?$/ };
 	const id = patterns[provider].exec(path)?.[1];
 	if (!id) throw new Error(`Not a ${provider} listing URL: ${idOrUrl}`);
 	return id;

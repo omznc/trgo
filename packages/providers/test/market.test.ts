@@ -1,16 +1,16 @@
 import { describe, expect, test } from "bun:test";
-import { accountIds, convert, countryProviders, displayCurrency, displayLabel, idsWith, inCurrency, isPartialSelection, marketCountries, marketSelection, parseSelection, PROVIDERS, queryFor, searchAll, selectionCountry, type SearchQuery, type Table } from "../src";
+import { accountIds, availableTable, convert, countryProviders, displayCurrency, displayLabel, idsWith, inCurrency, isPartialSelection, marketCountries, marketSelection, parseSelection, PROVIDERS, queryFor, searchAll, selectionCountry, type SearchQuery, type Table } from "../src";
 
 const none = { search: false, detail: false, priceCheck: false, mine: false, publish: false, edit: false };
 // A fake search-only provider in Croatia.
 const FAKE: Table = {
-	...PROVIDERS,
+	...availableTable(PROVIDERS, false),
 	fakehr: { id: "fakehr", name: "Fake", siteName: "fake.hr", site: "https://fake.hr", country: "HR", currency: "EUR", currencyLabel: "EUR", searchLanguage: "hr", searchLanguageName: "Croatian", capabilities: { ...none, search: true, priceCheck: true } },
 };
 
 describe("market helpers", () => {
 	test("countries and providers by country", () => {
-		expect(marketCountries(PROVIDERS)).toEqual(["BA", "RS"]);
+		expect(marketCountries(PROVIDERS)).toEqual(["BA", "RS", "HR"]);
 		expect(countryProviders(PROVIDERS, "RS")).toEqual(["kp"]);
 		expect(marketCountries(FAKE)).toEqual(["BA", "RS", "HR"]);
 		expect(countryProviders(FAKE, "HR")).toEqual(["fakehr"]);
@@ -20,6 +20,15 @@ describe("market helpers", () => {
 	test("an unknown country or none gives BA", () => {
 		expect(marketSelection(FAKE, "HR")).toEqual(["fakehr"]);
 		for (const country of ["DE", null, undefined]) expect(marketSelection(FAKE, country)).toEqual(["olx", "svex"]);
+	});
+
+	test("a provider that needs the extension is a market only with it", () => {
+		expect(marketCountries(availableTable(PROVIDERS, false))).toEqual(["BA", "RS"]);
+		// HR then falls back like an unknown country.
+		expect(marketSelection(availableTable(PROVIDERS, false), "HR")).toEqual(["olx", "svex"]);
+		expect(marketSelection(availableTable(PROVIDERS, true), "HR")).toEqual(["njuskalo"]);
+		expect(parseSelection(availableTable(PROVIDERS, false), ["njuskalo", "kp"])).toEqual(["kp"]);
+		expect(availableTable(PROVIDERS, true)).toBe(PROVIDERS);
 	});
 
 	test("a saved choice keeps only known searchable ids", () => {

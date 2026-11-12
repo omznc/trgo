@@ -1,12 +1,11 @@
 import { createRequest } from "./http";
-import type { Listing, ListingDetail, Provider, ProviderId, ProviderOptions, SearchQuery, SearchResult } from "./types";
+import type { Listing, ListingDetail, Provider, ProviderOptions, SearchQuery, SearchResult } from "./types";
 
 const SITE = "https://www.njuskalo.hr";
 const STATE_MARKER = "window.__INITIAL_STATE__=";
 
-// shortcut: the registry has no "njuskalo" entry yet. Remove these casts when it has one.
-const PROVIDER = "njuskalo" as unknown as ProviderId;
-const EUR = "EUR" as unknown as Listing["currency"];
+const PROVIDER = "njuskalo";
+const EUR = "EUR";
 
 type NjuskaloAd = {
 	id: number;

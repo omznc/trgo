@@ -6,7 +6,7 @@
 // See docs/adding-a-provider.md.
 import type { Currency } from "./rates";
 
-export const PROVIDER_IDS = ["olx", "svex", "kp"] as const;
+export const PROVIDER_IDS = ["olx", "svex", "kp", "njuskalo"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
 // `detail` is true when getListing works. Without it the UI shows the card data and a link.
@@ -32,6 +32,8 @@ export type ProviderInfo = {
 	capabilities: Record<Capability, boolean>;
 	// The most listings that one price check loads from this provider. Missing means no limit.
 	priceSampleMax?: number;
+	// True when the provider works only with the trgo browser extension.
+	needsExtension?: boolean;
 };
 
 export const PROVIDERS = {
@@ -72,6 +74,21 @@ export const PROVIDERS = {
 		capabilities: { search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false },
 		// 5 pages of 30. Each page is one request through the home relay.
 		priceSampleMax: 150,
+	},
+	njuskalo: {
+		id: "njuskalo",
+		name: "Njuškalo",
+		siteName: "Njuškalo.hr",
+		site: "https://www.njuskalo.hr",
+		country: "HR",
+		currency: "EUR",
+		currencyLabel: "EUR",
+		searchLanguage: "hr",
+		searchLanguageName: "Croatian",
+		capabilities: { search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false },
+		// 6 pages of 25. Each page is one request from the browser of the user.
+		priceSampleMax: 150,
+		needsExtension: true,
 	},
 } as const satisfies Record<ProviderId, ProviderInfo>;
 

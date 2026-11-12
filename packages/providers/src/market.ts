@@ -11,6 +11,11 @@ export const MIXED_CURRENCY: Currency = "EUR";
 // The country that is used when the visitor country is unknown or has no provider.
 export const DEFAULT_COUNTRY = "BA";
 
+// The table without the providers that need the browser extension, unless it is there.
+// All market helpers take a table, so a filtered table keeps those providers out of every market.
+export const availableTable = <K extends string>(table: Table<K>, hasExtension: boolean): Table<K> =>
+	hasExtension ? table : (Object.fromEntries(Object.entries<ProviderRow>(table).filter(([, row]) => !row.needsExtension)) as Table<K>);
+
 const ids = <K extends string>(table: Table<K>) => Object.keys(table) as K[];
 const unique = <T>(values: T[]) => [...new Set(values)];
 
