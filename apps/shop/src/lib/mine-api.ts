@@ -47,6 +47,8 @@ function svexCall(s: SvexSession, id: string, op: MineOp, price: number): Promis
 export async function mineCall(item: MyListing, op: MineOp, price = 0): Promise<MineResult> {
 	const session = getSession(item.provider);
 	if (!session) throw new Error("Not logged in");
+	// The list is stale after a write, and a load in flight may not include it.
+	clearMineMemo();
 	try {
 		const out =
 			item.provider === "olx"
@@ -56,6 +58,8 @@ export async function mineCall(item: MyListing, op: MineOp, price = 0): Promise<
 	} catch (error) {
 		if (isAuthError(error)) expireSession(item.provider);
 		throw error;
+	} finally {
+		clearMineMemo();
 	}
 }
 
@@ -65,9 +69,32 @@ async function loadOne(provider: ProviderId): Promise<MineList> {
 	return provider === "olx" ? olxAccount.listMine(session as OlxSession) : svexAccount.listMine(session as SvexSession);
 }
 
+export const MEMO_MS = 30_000;
+
+// Reuses an in-flight or fresh result for one key. A failed load is not kept.
+export function createMemo<K, V>(load: (key: K) => Promise<V>, ttl = MEMO_MS, now: () => number = Date.now) {
+	const entries = new Map<K, { at: number; value: Promise<V> }>();
+	return {
+		get(key: K): Promise<V> {
+			const hit = entries.get(key);
+			if (hit && now() - hit.at < ttl) return hit.value;
+			const value = load(key);
+			const entry = { at: now(), value };
+			entries.set(key, entry);
+			value.catch(() => entries.get(key) === entry && entries.delete(key));
+			return value;
+		},
+		clear: () => entries.clear(),
+	};
+}
+
+// One approved edit checks the list in the card and again in the agent. The memo saves the second load.
+const mineMemo = createMemo(loadOne);
+export const clearMineMemo = () => mineMemo.clear();
+
 // A failed provider does not hide the list of the other one.
 export async function loadMine(providers: ProviderId[]): Promise<MineLoad> {
-	const results = await Promise.allSettled(providers.map(loadOne));
+	const results = await Promise.allSettled(providers.map(mineMemo.get));
 	const out: MineLoad = { items: [], errors: {}, truncated: [] };
 	results.forEach((r, i) => {
 		const provider = providers[i]!;

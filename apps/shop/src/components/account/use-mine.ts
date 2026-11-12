@@ -1,6 +1,6 @@
 import type { MineStatus, MyListing, ProviderId } from "@lagano/providers";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type MineLoad, type MineOp, type MineResult, loadMine, mineCall } from "@/lib/mine-api";
+import { type MineLoad, type MineOp, type MineResult, clearMineMemo, loadMine, mineCall } from "@/lib/mine-api";
 import { ta } from "@/lib/strings-account";
 
 export const keyOf = (i: Pick<MyListing, "provider" | "id">) => `${i.provider}:${i.id}`;
@@ -51,6 +51,7 @@ export function useMine(providers: ProviderId[]) {
 	const reload = useCallback(async () => {
 		setLoading(true);
 		setNotice(null);
+		clearMineMemo();
 		setData(await loadMine(wanted ? (wanted.split(",") as ProviderId[]) : []));
 		setLoading(false);
 	}, [wanted]);

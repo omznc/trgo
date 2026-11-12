@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { editMine } from "./agent";
+import { clearMineMemo } from "./mine-api";
 import { olxAccount } from "./publish";
 
 const store = new Map<string, string>();
@@ -11,6 +12,7 @@ const mine = (id: string, status = "active") => ({ provider: "olx", id, title: "
 let writes: string[];
 beforeEach(() => {
 	store.clear();
+	clearMineMemo();
 	writes = [];
 	g.localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v), removeItem: (k: string) => store.delete(k) };
 	g.window = { dispatchEvent: () => true };
