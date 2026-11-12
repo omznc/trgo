@@ -27,7 +27,7 @@ export type ListingArgs = {
 	olxAttributes?: Record<string, string | number | boolean>;
 };
 
-export type ProviderResult = { provider: ProviderId; ok: boolean; url?: string; error?: string; notes?: string[] };
+export type ProviderResult = { provider: ProviderId; ok: boolean; url?: string; error?: string; notes?: string[]; unknown?: boolean };
 export type PublishProgress = { done: false; progress: Partial<Record<ProviderId, string>>; results: ProviderResult[] };
 export type PublishOutput = { done: true; results: ProviderResult[] } | PublishProgress;
 

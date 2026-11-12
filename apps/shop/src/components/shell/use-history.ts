@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { LaganoMessage } from "@/lib/agent";
-import { clearHistory, getChat, persistChat, removeChat, restoreMessages, useChatHistory } from "@/lib/chat-history";
+import { clearHistory, getChat, persistChat, removeChat, respondedKey, restoreMessages, useChatHistory } from "@/lib/chat-history";
 import { releasePhotos, usedPhotoIds } from "@/lib/photos";
 import { strings } from "@/lib/strings";
+import { sell } from "@/lib/strings-sell";
 import { useSidePanel } from "./side-panel";
 
 type ChatLike = { messages: LaganoMessage[]; status: string; stop: () => void; setMessages: (m: LaganoMessage[]) => void };
@@ -20,6 +21,15 @@ export function useHistory(chat: ChatLike, setDocked: (v: boolean) => void, with
 
 	// A chat change or a clear frees the photos that the open chat does not show.
 	useEffect(() => releasePhotos(usedPhotoIds(live.current.messages)), [chatId]);
+
+	// An approved post can outlive the page. Save when the user answers, or a reload would show "cancelled".
+	const answered = useRef("");
+	useEffect(() => {
+		const key = respondedKey(chat.messages);
+		if (key === answered.current) return;
+		answered.current = key;
+		if (key) persistChat(live.current.chatId, chat.messages);
+	}, [chat.messages]);
 
 	// Save when a stream ends, not on each token.
 	useEffect(() => {
@@ -59,7 +69,7 @@ export function useHistory(chat: ChatLike, setDocked: (v: boolean) => void, with
 			const found = getChat(id);
 			if (!found || id === chatId) return panel.leaveHistory();
 			leave();
-			show(id, restoreMessages(found.messages, strings.historyInterrupted));
+			show(id, restoreMessages(found.messages, strings.historyInterrupted, sell.partial.unknown));
 			panel.leaveHistory();
 		},
 		remove: (id: string) => {

@@ -120,13 +120,45 @@ export function useChatHistory() {
 	return useSyncExternalStore(subscribe, () => chats, () => []);
 }
 
-type AnyPart = { type: string; state?: string; approval?: { id: string }; errorText?: string };
+type AnyPart = {
+	type: string;
+	state?: string;
+	approval?: { id: string; approved?: boolean };
+	errorText?: string;
+	input?: { providers?: string[] };
+	output?: { done?: boolean; results?: { provider: string }[] };
+};
+
+// The ids of the approvals that the user answered. A change means the chat needs a save.
+export const respondedKey = (messages: LaganoMessage[]) =>
+	messages
+		.flatMap((m) => m.parts as AnyPart[])
+		.filter((p) => p.state === "approval-responded")
+		.map((p) => p.approval?.id)
+		.join(",");
+
+const isRunning = (p: AnyPart) =>
+	(p.state === "approval-responded" && p.approval?.approved === true) || (p.state === "output-available" && p.output?.done === false);
+const isDenied = (p: AnyPart) => p.state === "approval-requested" || (p.state === "approval-responded" && p.approval?.approved === false);
+
+// The user approved a listing and the post may have run, but the result was never saved.
+// The post is not safe to repeat, so the card says the result is unknown.
+function unfinishedListing(p: AnyPart, unknown: string): AnyPart | null {
+	if (!isRunning(p)) return null;
+	const finished = p.output?.results ?? [];
+	const missing = (p.input?.providers ?? [])
+		.filter((provider) => !finished.some((r) => r.provider === provider))
+		.map((provider) => ({ provider, ok: false, unknown: true, error: unknown }));
+	return { ...p, state: "output-available", output: { done: true, results: [...finished, ...missing] } };
+}
 
 // An old approval must not be actionable. A tool that never finished shows as interrupted.
-export function restoreMessages(messages: LaganoMessage[], interrupted: string): LaganoMessage[] {
+export function restoreMessages(messages: LaganoMessage[], interrupted: string, unknown: string): LaganoMessage[] {
 	const fix = (p: AnyPart): AnyPart => {
 		if (!p.type.startsWith("tool-")) return p;
-		if (p.state === "approval-requested" && p.approval) return { ...p, state: "output-denied", approval: { ...p.approval, approved: false } as never };
+		if (isDenied(p) && p.approval) return { ...p, state: "output-denied", approval: { ...p.approval, approved: false } as never };
+		const listing = p.type === "tool-create_listing" ? unfinishedListing(p, unknown) : null;
+		if (listing) return listing;
 		if (p.state === "input-streaming" || p.state === "input-available" || p.state === "approval-responded") return { ...p, state: "output-error", errorText: interrupted };
 		return p;
 	};
