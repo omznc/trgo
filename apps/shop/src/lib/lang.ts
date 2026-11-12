@@ -33,6 +33,8 @@ function detectLang(): Lang {
 
 export const lang: Lang = detectLang();
 export const langTag = LANG_INFO[lang].tag;
+// Chrome has no number data for Bosnian and groups thousands with a comma. Croatian has the same format.
+export const numberTag = lang === "bs" ? "hr-HR" : langTag;
 
 const rules = new Intl.PluralRules(langTag);
 

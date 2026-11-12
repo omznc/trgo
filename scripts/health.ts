@@ -15,7 +15,7 @@ const withOrigin = ((input: RequestInfo | URL, init?: RequestInit) => {
 }) as typeof fetch;
 
 // An extension-only site blocks the proxy, so only a browser can check it.
-const ids = providersWith("search").filter((id) => !PROVIDERS[id].needsExtension);
+const ids = providersWith("search").filter((id) => !("needsExtension" in PROVIDERS[id] && PROVIDERS[id].needsExtension));
 
 async function check(id: (typeof ids)[number]): Promise<string | null> {
 	const provider = createProvider(id, { proxyUrl: PROXY_URL, fetch: withOrigin });

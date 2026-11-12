@@ -5,11 +5,11 @@ import type { PriceCheckOutput } from "@/lib/price-check";
 import type { PriceReport, PriceStats } from "@/lib/price-stats";
 import { useRef } from "react";
 import { CopyImageButton } from "@/components/shell/CopyImageButton";
-import { langTag } from "@/lib/lang";
+import { numberTag } from "@/lib/lang";
 import { strings } from "@/lib/strings";
 
 
-const km = (n: number) => Math.round(n).toLocaleString(langTag);
+const km = (n: number) => Math.round(n).toLocaleString(numberTag);
 
 function Histogram({ stats, unit }: { stats: PriceStats; unit: string }) {
 	const { buckets, peak } = stats;
