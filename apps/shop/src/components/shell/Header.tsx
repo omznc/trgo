@@ -131,7 +131,7 @@ export function Header({
 		connections[p] ? panel.open({ kind: "connect", provider: p }, { fresh: true }) : panel.requireConnection(p, strings.needConnect[p]);
 	const toggleMine = () => {
 		if (panel.view?.kind === "my-listings") return panel.close();
-		if (!connections.olx) return panel.requireConnection("olx", strings.needMine);
+		if (!connections.olx && !connections.svex) return panel.requireConnection("olx", strings.needMine);
 		panel.open({ kind: "my-listings" }, { fresh: true });
 	};
 	return (
