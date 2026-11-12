@@ -11,19 +11,16 @@ type Options = { proxyUrl: string; call: ExtensionCall; fallback?: typeof fetch 
 
 // Parts of an anonymous GET to a host that the extension can reach. Null for any other request.
 function extensionRoute(proxyUrl: string, input: RequestInfo | URL, init?: RequestInit) {
-	const request = input instanceof Request ? input : undefined;
-	const method = (init?.method ?? request?.method ?? "GET").toUpperCase();
-	const raw = request ? request.url : String(input);
+	// A Request merges the method, the headers and the signal the same way as fetch.
+	const request = new Request(input, init);
 	const base = proxyUrl.replace(/\/+$/, "");
-	if (method !== "GET" || !raw.startsWith(`${base}/`)) return null;
+	if (request.method !== "GET" || !request.url.startsWith(`${base}/`)) return null;
 	// Logged-in calls carry the user's token or cookie. They must go through the proxy.
-	const headers = new Headers(request?.headers);
-	new Headers(init?.headers).forEach((value, name) => headers.set(name, value));
-	if (headers.has("authorization") || headers.has("x-lagano-cookie")) return null;
-	const url = new URL(raw);
+	if (request.headers.has("authorization") || request.headers.has("x-lagano-cookie")) return null;
+	const url = new URL(request.url);
 	const { key, path } = splitKey(url.pathname.slice(new URL(base).pathname.replace(/\/+$/, "").length));
 	if (!Object.hasOwn(EXTENSION_HOSTS, key)) return null;
-	return { key, path, search: url.search, accept: headers.get("accept") ?? "", signal: init?.signal ?? request?.signal };
+	return { key, path, search: url.search, accept: request.headers.get("accept") ?? "", signal: request.signal };
 }
 
 // A fetch that sends anonymous reads to the browser extension. Everything else uses the fallback.
