@@ -111,9 +111,21 @@ describe("kp provider", () => {
 		await expect(provider.search({ q: "x" })).rejects.toThrow("kp-unavailable");
 	});
 
-	test("an HTTP error throws", async () => {
-		const provider = createKpProvider({ proxyUrl: "https://p.test", fetch: (async () => new Response("no", { status: 502 })) as unknown as typeof fetch });
-		await expect(provider.search({ q: "x" })).rejects.toThrow("HTTP 502");
+	test("a 5xx from the proxy throws kp-unavailable", async () => {
+		for (const status of [500, 502, 504]) {
+			const provider = createKpProvider({ proxyUrl: "https://p.test", fetch: (async () => new Response("no", { status })) as unknown as typeof fetch });
+			await expect(provider.search({ q: "x" })).rejects.toThrow("kp-unavailable");
+		}
+	});
+
+	test("a 429 from the proxy throws kp-rate-limited", async () => {
+		const provider = createKpProvider({ proxyUrl: "https://p.test", fetch: (async () => new Response("no", { status: 429 })) as unknown as typeof fetch });
+		await expect(provider.search({ q: "x" })).rejects.toThrow("kp-rate-limited");
+	});
+
+	test("another HTTP error throws", async () => {
+		const provider = createKpProvider({ proxyUrl: "https://p.test", fetch: (async () => new Response("no", { status: 404 })) as unknown as typeof fetch });
+		await expect(provider.search({ q: "x" })).rejects.toThrow("HTTP 404");
 	});
 
 	test("the detail is not supported yet", async () => {

@@ -8,7 +8,7 @@ import { Mascot } from "@/components/Mascot";
 import { CopyImageButton } from "@/components/shell/CopyImageButton";
 import { useChatActions } from "@/components/shell/chat-actions";
 import { ListingCard, SkeletonCard, type ViewMode } from "@/components/shell/ListingCard";
-import { isUnavailable, type SearchError, searchedOf, sortValue } from "@/lib/search-summary";
+import { isRateLimited, isUnavailable, type SearchError, searchedOf, sortValue } from "@/lib/search-summary";
 import { strings } from "@/lib/strings";
 import { cn } from "@/lib/utils";
 
@@ -93,7 +93,7 @@ function StatusLine({
 						counts.map(([p, n]) => {
 							const error = errors.find((e) => e.provider === p);
 							return error ? (
-								<span key={p} title={isUnavailable(error) ? strings.providerUnavailable(PROVIDERS[p].siteName) : undefined} className="chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-[3px]">
+								<span key={p} title={isUnavailable(error) ? strings.providerUnavailable(PROVIDERS[p].siteName) : isRateLimited(error) ? strings.providerRateLimited(PROVIDERS[p].siteName) : undefined} className="chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-[3px]">
 									<TriangleAlert className="size-3 text-danger" aria-hidden />
 									{PROVIDERS[p].name}
 								</span>
@@ -282,12 +282,15 @@ function Loaded({ output, input, mine, defaultOpen }: { output: SearchOutput; in
 
 function Notes({ error, failed }: { error?: string; failed: SearchError[] }) {
 	const down = failed.filter(isUnavailable);
-	const others = failed.filter((e) => !isUnavailable(e));
+	const limited = failed.filter(isRateLimited);
+	const others = failed.filter((e) => !isUnavailable(e) && !isRateLimited(e));
+	const names = (list: SearchError[]) => list.map((e) => PROVIDERS[e.provider as ProviderId].siteName).join(", ");
 	return (
 		<>
 			{error && <ErrorNote text={error} />}
 			{others.length > 0 && <PartialBanner text={strings.providerFailed(others.map((e) => e.provider.toUpperCase()).join(", "))} />}
-			{down.length > 0 && <PartialBanner text={strings.providerUnavailable(down.map((e) => PROVIDERS[e.provider as ProviderId].siteName).join(", "))} />}
+			{down.length > 0 && <PartialBanner text={strings.providerUnavailable(names(down))} />}
+			{limited.length > 0 && <PartialBanner text={strings.providerRateLimited(names(limited))} />}
 		</>
 	);
 }
