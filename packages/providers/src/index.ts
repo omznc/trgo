@@ -13,3 +13,4 @@ export { ActionReplyError } from "./rsc";
 export { getListing, listingIdFromUrl } from "./detail";
 export { fetchRecent, quantile, selectComparable, type Selection } from "./price-sample";
 export { searchAll } from "./search-all";
+export { createExtensionFetch, type ExtensionCall } from "./extension-fetch";
