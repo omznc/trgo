@@ -3,6 +3,14 @@ import type { ReactNode } from "react";
 // Small chat markdown: paragraphs, lists, bold, italic, code, links. No raw HTML.
 const INLINE = /\*\*(.+?)\*\*|\*(.+?)\*|`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
 
+function hostOf(href: string) {
+  try {
+    return new URL(href).hostname;
+  } catch {
+    return href;
+  }
+}
+
 function renderInline(text: string): ReactNode[] {
   const out: ReactNode[] = [];
   let last = 0;
@@ -14,9 +22,13 @@ function renderInline(text: string): ReactNode[] {
     else if (m[3] !== undefined) out.push(<code key={key}>{m[3]}</code>);
     else
       out.push(
-        <a key={key} href={m[5]} target="_blank" rel="noopener noreferrer" className="text-focus underline">
-          {m[4]}
-        </a>
+        <span key={key}>
+          <a href={m[5]} target="_blank" rel="noopener noreferrer" className="text-focus underline">
+            {m[4]}
+          </a>
+          {/* The model chose the label, so the real host is shown next to it. */}
+          <span className="ml-1 text-xs text-fg-3">({hostOf(m[5]!)})</span>
+        </span>
       );
     last = m.index + m[0].length;
   }
