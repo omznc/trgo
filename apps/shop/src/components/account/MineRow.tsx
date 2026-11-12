@@ -1,8 +1,9 @@
-import type { MineStatus, MyListing } from "@lagano/providers";
+import type { MyListing } from "@lagano/providers";
 import { Check, Eye, EyeOff, ExternalLink, ImageOff, MessageCircle, MoreHorizontal, Pencil, RefreshCw, Trash2, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PROVIDER_NAME, type MineOp } from "@/lib/mine-api";
+import { allowed } from "@/lib/mine-rules";
 import { ta } from "@/lib/strings-account";
 import { btn, FIELD } from "./ui";
 
@@ -43,16 +44,6 @@ function stateMeta(item: MyListing): string | undefined {
 
 const statusMeta = (item: MyListing) =>
 	[item.views === undefined ? undefined : ta.views(item.views), stateMeta(item)].filter(Boolean) as string[];
-
-const can = {
-	refresh: ["active", "expired"],
-	hide: ["active"],
-	unhide: ["hidden"],
-	finish: ["active", "hidden"],
-	price: ["active", "hidden"],
-} satisfies Record<string, MineStatus[]>;
-
-const allowed = (item: MyListing, op: keyof typeof can) => (can[op] as MineStatus[]).includes(item.status);
 
 function PriceEdit({ item, onSave, onCancel }: { item: MyListing; onSave: (price: number) => void; onCancel: () => void }) {
 	const [value, setValue] = useState(item.price ? String(item.price) : "");

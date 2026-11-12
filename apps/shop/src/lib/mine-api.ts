@@ -42,7 +42,7 @@ function svexCall(s: SvexSession, id: string, op: MineOp, price: number): Promis
 	}
 }
 
-// Runs one write call on the right provider. A 401 or 403 clears the session.
+// Runs one write call on the right provider. An auth error clears the session.
 export async function mineCall(item: MyListing, op: MineOp, price = 0): Promise<MineResult> {
 	const session = getSession(item.provider);
 	if (!session) throw new Error("Not logged in");
