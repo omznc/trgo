@@ -1,6 +1,6 @@
 # trgo-proxy
 
-A small Cloudflare Worker (`src/index.ts`, about 180 lines). The browser cannot call OLX.ba or SVEX.ba directly, because they send no CORS headers. This Worker forwards the calls and adds the CORS headers.
+A small Cloudflare Worker (`src/index.ts`). The browser cannot call OLX.ba or SVEX.ba directly, because they send no CORS headers. This Worker forwards the calls and adds the CORS headers.
 
 ## Access rules
 
@@ -58,7 +58,8 @@ The path has the form `/<upstream-key>/<path>`. The allowlist is the `UPSTREAMS`
 - In the response, the `model` field is `trgo-free` and the `provider` field is removed.
 - If a secret is missing, the route returns 503 `{"error":"free-unavailable"}`.
 - Limits per client (IPv4 address or IPv6 /64): 12 requests per 60 seconds (`RL_FREE`) and 150 requests per UTC day (`FREE_KV`).
-- Global limit: 60 requests per 60 seconds for the whole route (`RL_FREE_ALL`, one fixed key). It protects the owner's money when many addresses attack at once. A missing `RL_FREE`, `RL_FREE_ALL` or `FREE_KV` binding returns 500.
+- Shared limit: 60 requests per 60 seconds for the whole route (`RL_FREE_ALL`, one fixed key). A Cloudflare rate limit binding counts for each Cloudflare location, not worldwide. So this is a ceiling for each location, not a worldwide ceiling. The real cost cap is the credit limit on the OpenRouter key. A missing `RL_FREE`, `RL_FREE_ALL` or `FREE_KV` binding returns 500.
+- Order of checks: the limit for the client (`RL_FREE`), then the body check, then the shared limit (`RL_FREE_ALL`), then the daily quota. A request with an invalid body does not use the shared limit or the daily quota.
 - A request over a limit gets 429 `{"error":"free-limit","scope":"minute"|"day"}` and a `Retry-After` header.
 - Input checks run before the daily quota is spent:
   - The request needs a `content-length` header. Without it the request gets 413 `{"error":"body too large"}`.
@@ -71,6 +72,7 @@ The path has the form `/<upstream-key>/<path>`. The allowlist is the `UPSTREAMS`
 
 - It does not store or log the content of a request or a response.
 - The only stored data is the daily counter of the free route. The key is an HMAC-SHA-256 of the client key and the date. The HMAC key is the `OPENROUTER_KEY` secret, so nobody can reverse the stored key by hashing all IPv4 addresses. It expires after 2 days.
+- Because `OPENROUTER_KEY` is the HMAC key, a rotation of the key changes all counter keys. The daily counts then start again from zero.
 - There is no D1 and no cache.
 - It does not log bodies, headers or URLs. Observability is off.
 - It does not keep a session. The browser keeps the cookies.

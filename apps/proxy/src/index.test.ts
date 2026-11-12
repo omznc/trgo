@@ -339,6 +339,23 @@ describe("free route", () => {
 		expect(fetched).toEqual([]);
 	});
 
+	test("an invalid body does not use the global limit", async () => {
+		let used = 0;
+		const all = { limit: async () => (used++, { success: true }) };
+		const res = await chat({ ...good, tools: Array.from({ length: 9 }, () => ({})) }, { ...env, RL_FREE_ALL: all } as typeof env);
+		expect(res.status).toBe(400);
+		expect(used).toBe(0);
+	});
+
+	test("the client limit runs before the global limit", async () => {
+		let used = 0;
+		const all = { limit: async () => (used++, { success: true }) };
+		const own = { limit: async () => ({ success: false }) };
+		const res = await chat(good, { ...env, RL_FREE: own, RL_FREE_ALL: all } as typeof env);
+		expect(res.status).toBe(429);
+		expect(used).toBe(0);
+	});
+
 	test("the global limit uses one fixed key", async () => {
 		const keys: string[] = [];
 		const all = { limit: async ({ key }: { key: string }) => (keys.push(key), { success: true }) };

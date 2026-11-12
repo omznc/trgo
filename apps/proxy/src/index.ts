@@ -202,12 +202,19 @@ const freeLimited = (scope: "minute" | "day", retryAfter: number, cors: Headers)
 	return Response.json({ error: "free-limit", scope }, { status: 429, headers });
 };
 
-// Per IP: 12 per minute (binding). The whole route has a global ceiling too (RL_FREE_ALL, one key).
-async function freeMinuteLimit(request: Request, env: Env, cors: Headers): Promise<Response | null> {
+// Per client: 12 per minute (binding). This runs first, so one client cannot spend the shared limit.
+async function freeClientLimit(request: Request, env: Env, cors: Headers): Promise<Response | null> {
 	if (env.DEV_NO_RATE_LIMIT === "1") return null;
 	if (!env.RL_FREE || !env.RL_FREE_ALL || !env.FREE_KV) return jsonError(500, "rate limit bindings are missing", cors);
 	if (!(await env.RL_FREE.limit({ key: clientKey(request) })).success) return freeLimited("minute", 60, cors);
-	// A global counter in KV is not safe (write limits, eventual consistency), so use a binding.
+	return null;
+}
+
+// A ceiling for the whole route (RL_FREE_ALL, one key). A binding counts for each Cloudflare location,
+// not worldwide, so this is a ceiling for each location. The real cost cap is the credit limit on the OpenRouter key.
+// A global counter in KV is not safe (write limits, eventual consistency), so use a binding.
+async function freeGlobalLimit(env: Env, cors: Headers): Promise<Response | null> {
+	if (env.DEV_NO_RATE_LIMIT === "1" || !env.RL_FREE_ALL) return null;
 	if (!(await env.RL_FREE_ALL.limit({ key: "all" })).success) return freeLimited("minute", 60, cors);
 	return null;
 }
@@ -232,10 +239,13 @@ const freeUnavailable = (cors: Headers) => jsonError(503, "free-unavailable", co
 async function freeChat(request: Request, env: Env, cors: Headers): Promise<Response> {
 	if (request.method !== "POST") return jsonError(405, "use POST", cors);
 	if (!env.FREE_MODEL || !env.OPENROUTER_KEY) return freeUnavailable(cors);
-	const limited = await freeMinuteLimit(request, env, cors);
+	// Order: client limit, body check, global limit, daily quota. A bad body spends no shared limit.
+	const limited = await freeClientLimit(request, env, cors);
 	if (limited) return limited;
 	const body = await readFreeBody(request, env.FREE_MODEL, cors);
 	if (body instanceof Response) return body;
+	const globalLimited = await freeGlobalLimit(env, cors);
+	if (globalLimited) return globalLimited;
 	const dayLimited = await freeDayLimit(request, env, cors);
 	if (dayLimited) return dayLimited;
 	let upstream: Response;
