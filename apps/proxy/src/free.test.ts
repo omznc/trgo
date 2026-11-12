@@ -62,6 +62,13 @@ describe("sanitizeBody limits", () => {
 		expect(sanitizeBody({ messages: [call] }, "m")).toBeNull();
 	});
 
+	test("counts tools and response_format toward the text cap", () => {
+		const big = { type: "function", function: { description: "x".repeat(MAX_CHARS) } };
+		expect(run({ tools: [big] })).toBeNull();
+		expect(run({ response_format: { schema: "x".repeat(MAX_CHARS) } })).toBeNull();
+		expect(run({ tools: [{ type: "function", function: { description: "x" } }] })).not.toBeNull();
+	});
+
 	test("caps the number of tools", () => {
 		expect(run({ tools: Array(MAX_TOOLS).fill({}) })).not.toBeNull();
 		expect(run({ tools: Array(MAX_TOOLS + 1).fill({}) })).toBeNull();

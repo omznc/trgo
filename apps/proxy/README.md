@@ -63,7 +63,7 @@ The path has the form `/<upstream-key>/<path>`. The allowlist is the `UPSTREAMS`
 - A request over a limit gets 429 `{"error":"free-limit","scope":"minute"|"day"}` and a `Retry-After` header.
 - Input checks run before the daily quota is spent:
   - The request needs a `content-length` header. Without it the request gets 413 `{"error":"body too large"}`.
-  - A body over 512 KB, more than 120 messages, or more than 120000 text characters (message text and tool call arguments) gets 413 `{"error":"free-too-long"}`. The shop shows "chat too long".
+  - A body over 512 KB, more than 120 messages, or more than 120000 characters (message text, tool call arguments, and the JSON of `tools` and `response_format`) gets 413 `{"error":"free-too-long"}`. The shop shows "chat too long".
   - More than 8 tools gets 400.
   - Only text content is allowed. A part of type `image_url`, `file` or `input_audio` gets 400.
 - The daily counter fails open. If `FREE_KV` throws (for example a write limit), the request continues and the per-minute limits still apply.

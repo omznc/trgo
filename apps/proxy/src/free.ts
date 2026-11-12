@@ -58,7 +58,10 @@ export function isChatTooLong(input: unknown): boolean {
 	const messages = (input as { messages?: unknown } | null)?.messages;
 	if (!Array.isArray(messages)) return false;
 	if (messages.length > MAX_MESSAGES) return true;
-	return messages.reduce((sum: number, m) => sum + (messageChars(m) ?? 0), 0) > MAX_CHARS;
+	const { tools, response_format: format } = input as { tools?: unknown; response_format?: unknown };
+	// The tool definitions and the response format count toward the same cap.
+	const extra = [tools, format].reduce((sum: number, v) => sum + (v === undefined ? 0 : (JSON.stringify(v) ?? "").length), 0);
+	return messages.reduce((sum: number, m) => sum + (messageChars(m) ?? 0), extra) > MAX_CHARS;
 }
 
 // Runs before any quota is spent.
