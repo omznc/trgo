@@ -75,11 +75,14 @@ export function useHistory(chat: ChatLike, setDocked: (v: boolean) => void, with
 		}
 	};
 	const show = (id: string, messages: LaganoMessage[]) => {
-		withTransition(() => {
+		const update = () => {
 			setChatId(id);
 			chat.setMessages(messages);
 			setDocked(messages.length > 0);
-		});
+		};
+		// A View Transition blocks clicks until it ends. Use it only when the composer moves.
+		if ((live.current.messages.length > 0) === (messages.length > 0)) update();
+		else withTransition(update);
 	};
 	return {
 		chats,

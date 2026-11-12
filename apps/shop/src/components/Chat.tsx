@@ -115,20 +115,23 @@ function MessageList({
 }) {
 	const last = messages.at(-1);
 	const canAct = (m: LaganoMessage) => m === last && m.role === "assistant" && status === "ready" && !!textOf(m);
+	// The list remounts for each chat. Messages that it opens with skip the entrance animation.
+	const [restored] = useState(() => new Set(messages.map((m) => m.id)));
 	return (
 		<Conversation className="min-h-0 flex-1" aria-label={strings.conversation}>
 			<ConversationContent scrollClassName="scroll chat-fade min-h-0 flex-1" className="mx-auto w-full max-w-[1040px] gap-7 px-6 pt-8 pb-[calc(var(--composer-h,140px)+24px)] max-sm:gap-3.5 max-sm:px-3.5 max-sm:pt-4">
 				{messages.map((m) => (
-					<Message
-						key={m.id}
-						message={m}
-						streaming={status === "streaming" && m === last}
-						onRespond={onRespond}
-						expired={m !== last}
-						canAct={canAct(m)}
-						onCopy={onCopy}
-						onRetry={onRetry}
-					/>
+					<div key={m.id} className={cn("contents", restored.has(m.id) && "still")}>
+						<Message
+							message={m}
+							streaming={status === "streaming" && m === last}
+							onRespond={onRespond}
+							expired={m !== last}
+							canAct={canAct(m)}
+							onCopy={onCopy}
+							onRetry={onRetry}
+						/>
+					</div>
 				))}
 				{status === "submitted" && <Thinking />}
 				{footer}
