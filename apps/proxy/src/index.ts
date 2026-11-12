@@ -301,6 +301,10 @@ async function relayFree(upstream: Response, cors: Headers): Promise<Response> {
 
 const versionResponse = (env: Env, headers: Headers) => Response.json({ commit: env.GIT_COMMIT ?? "dev" }, { headers });
 
+// The country that Cloudflare detects for the request. Nothing is stored or logged.
+const geoResponse = (request: Request, cors: Headers) =>
+	Response.json({ country: (request as Request & { cf?: { country?: string } }).cf?.country ?? null }, { headers: cors });
+
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
 		const url = new URL(request.url);
@@ -326,6 +330,7 @@ export default {
 			return new Response(null, { status: 204, headers: cors });
 		}
 		if (url.pathname === "/version") return versionResponse(env, cors);
+		if (url.pathname === "/geo") return request.method === "GET" ? geoResponse(request, cors) : jsonError(405, "use GET", cors);
 		if (url.pathname === "/upload") return upload(request, url, cors);
 		const route = resolveTarget(url);
 		if (!route) return text(400, "bad route", cors);

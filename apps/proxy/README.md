@@ -31,6 +31,10 @@ The path has the form `/<upstream-key>/<path>`. The allowlist is the `UPSTREAMS`
 - The Worker also returns 400 when the final target origin differs from the upstream origin.
 - `GET /version` returns `{ "commit": "<GIT_COMMIT>" }`. Compare this value with the source.
 
+## Geo
+
+`GET /geo` returns `{ "country": "<code>" }`, or `{ "country": null }` when Cloudflare gives no country. It needs an allowed `Origin` and uses the `RL_API` limit. The Worker reads the country that Cloudflare detects (`request.cf.country`) and returns it. It keeps nothing and logs nothing.
+
 ## Upload
 
 `PUT /upload?url=<encoded presigned URL>` sends the request body to a presigned upload URL.

@@ -38,6 +38,29 @@ afterEach(() => {
 	globalThis.fetch = realFetch;
 });
 
+describe("geo", () => {
+	const withCountry = (country?: string) => {
+		const req = new Request("https://proxy.test/geo", { headers: { origin: ORIGIN } });
+		Object.defineProperty(req, "cf", { value: country ? { country } : undefined });
+		return worker.fetch(req, env);
+	};
+
+	test("returns the Cloudflare country", async () => {
+		expect(await (await withCountry("HR")).json()).toEqual({ country: "HR" });
+	});
+
+	test("returns null without a country", async () => {
+		expect(await (await withCountry()).json()).toEqual({ country: null });
+	});
+
+	test("needs an allowed origin and the API limit", async () => {
+		expect((await call("/geo", {}, env, null)).status).toBe(403);
+		const limited = { ...env, RL_API: { limit: async () => ({ success: false }) } } as typeof env;
+		expect((await call("/geo", {}, limited)).status).toBe(429);
+		expect(fetched).toEqual([]);
+	});
+});
+
 describe("route allowlist", () => {
 	test("rejects an unknown upstream key", async () => {
 		expect((await call("/nope/x")).status).toBe(400);
