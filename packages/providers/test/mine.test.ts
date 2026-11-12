@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { mapSvexMine, parseSvexMine } from "../src/mine";
+import { mapSvexMine, parseSvexMine, parseSvexMinePage } from "../src/mine";
 import { createOlxProvider } from "../src/olx";
 import { createSvexProvider } from "../src/svex";
 import { discoverActions, KNOWN_ACTIONS, MINE_NAMES } from "../src/svex-actions";
@@ -42,6 +42,14 @@ describe("olx my listings", () => {
 		const urls = calls.map((c) => c.url);
 		expect(urls.some((u) => u.includes("/users/7/listings/inactive"))).toBe(true);
 		expect(urls.some((u) => u.includes("/users/7/listings/expired"))).toBe(true);
+	});
+
+	test("encodes the username in the path", async () => {
+		const { f, calls } = mockFetch(({ url }) =>
+			Response.json(url.includes("/olx/me") ? { data: { id: 7, username: "a b/c?" } } : empty),
+		);
+		await createOlxProvider({ proxyUrl: "https://p.test", fetch: f }).listMine(session);
+		expect(calls.some((c) => c.url.startsWith("https://p.test/olx/users/a%20b%2Fc%3F/listings?"))).toBe(true);
 	});
 
 	test("hide, unhide and finish use POST", async () => {
@@ -118,6 +126,13 @@ describe("svex my listings", () => {
 	test("reads an empty list and fails on a page without data", () => {
 		expect(parseSvexMine(page([]))).toEqual([]);
 		expect(() => parseSvexMine("<html></html>")).toThrow("no listing data");
+	});
+
+	test("flags a page that holds fewer items than totalListings", () => {
+		const cut = page([item({})]).replace('\\"totalListings\\":1', '\\"totalListings\\":3');
+		expect(parseSvexMinePage(cut)).toMatchObject({ truncated: true });
+		expect(parseSvexMinePage(cut).listings).toHaveLength(1);
+		expect(parseSvexMinePage(page([item({})])).truncated).toBe(false);
 	});
 
 	test("maps a missing price", () => {

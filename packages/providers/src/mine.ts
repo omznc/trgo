@@ -106,6 +106,11 @@ export function rscText(html: string) {
 
 // Reads the listing array from the /moji-oglasi page. It sits before "totalListings".
 export function parseSvexMine(html: string): MyListing[] {
+	return parseSvexMinePage(html).listings;
+}
+
+// `truncated` is true when the page holds fewer items than "totalListings". We know no paging URL.
+export function parseSvexMinePage(html: string): { listings: MyListing[]; truncated: boolean } {
 	const text = rscText(html);
 	const end = text.indexOf('"totalListings"');
 	const start = end < 0 ? -1 : text.lastIndexOf('"items":[', end);
@@ -114,5 +119,9 @@ export function parseSvexMine(html: string): MyListing[] {
 	const close = arrayEnd(text, open);
 	if (close < 0) throw new Error("SVEX my listings data is cut off.");
 	const items = JSON.parse(text.slice(open, close + 1)) as SvexMineItem[];
-	return items.map(mapSvexMine).filter((x): x is MyListing => x !== null);
+	const total = Number(/^"totalListings":(\d+)/.exec(text.slice(end))?.[1]);
+	return {
+		listings: items.map(mapSvexMine).filter((x): x is MyListing => x !== null),
+		truncated: Number.isFinite(total) && items.length < total,
+	};
 }
