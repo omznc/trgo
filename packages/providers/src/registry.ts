@@ -9,7 +9,8 @@ import type { Currency } from "./rates";
 export const PROVIDER_IDS = ["olx", "svex", "kp"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
-export type Capability = "search" | "priceCheck" | "mine" | "publish" | "edit";
+// `detail` is true when getListing works. Without it the UI shows the card data and a link.
+export type Capability = "search" | "detail" | "priceCheck" | "mine" | "publish" | "edit";
 
 export type ProviderInfo = {
 	id: ProviderId;
@@ -29,6 +30,8 @@ export type ProviderInfo = {
 	searchLanguage: string;
 	searchLanguageName: string;
 	capabilities: Record<Capability, boolean>;
+	// The most listings that one price check loads from this provider. Missing means no limit.
+	priceSampleMax?: number;
 };
 
 export const PROVIDERS = {
@@ -42,7 +45,7 @@ export const PROVIDERS = {
 		currencyLabel: "KM",
 		searchLanguage: "bs",
 		searchLanguageName: "Bosnian",
-		capabilities: { search: true, priceCheck: true, mine: true, publish: true, edit: true },
+		capabilities: { search: true, detail: true, priceCheck: true, mine: true, publish: true, edit: true },
 	},
 	svex: {
 		id: "svex",
@@ -54,7 +57,7 @@ export const PROVIDERS = {
 		currencyLabel: "KM",
 		searchLanguage: "bs",
 		searchLanguageName: "Bosnian",
-		capabilities: { search: true, priceCheck: true, mine: true, publish: true, edit: true },
+		capabilities: { search: true, detail: true, priceCheck: true, mine: true, publish: true, edit: true },
 	},
 	kp: {
 		id: "kp",
@@ -66,7 +69,9 @@ export const PROVIDERS = {
 		currencyLabel: "din",
 		searchLanguage: "sr",
 		searchLanguageName: "Serbian",
-		capabilities: { search: true, priceCheck: true, mine: false, publish: false, edit: false },
+		capabilities: { search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false },
+		// 5 pages of 30. Each page is one request through the home relay.
+		priceSampleMax: 150,
 	},
 } as const satisfies Record<ProviderId, ProviderInfo>;
 

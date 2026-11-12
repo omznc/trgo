@@ -27,7 +27,7 @@ test("the tool description parts come from the registry", () => {
 	expect(facts.priceUnit).toBe("KM");
 });
 
-const none = { search: false, priceCheck: false, mine: false, publish: false, edit: false };
+const none = { search: false, detail: false, priceCheck: false, mine: false, publish: false, edit: false };
 const hr = { country: "HR", currency: "EUR", currencyLabel: "EUR", searchLanguage: "hr", searchLanguageName: "Croatian", capabilities: { ...none, search: true, priceCheck: true } } as const;
 const FAKE: Table = { ...PROVIDERS, fakehr: { ...hr, id: "fakehr", name: "Fake", siteName: "fake.hr", site: "https://fake.hr" } };
 

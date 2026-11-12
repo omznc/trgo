@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { accountIds, convert, countryProviders, displayCurrency, displayLabel, idsWith, inCurrency, marketCountries, marketSelection, parseSelection, PROVIDERS, queryFor, searchAll, selectionCountry, type SearchQuery, type Table } from "../src";
 
-const none = { search: false, priceCheck: false, mine: false, publish: false, edit: false };
+const none = { search: false, detail: false, priceCheck: false, mine: false, publish: false, edit: false };
 // A fake search-only provider in Croatia.
 const FAKE: Table = {
 	...PROVIDERS,

@@ -4,7 +4,7 @@ import { buildTools } from "./agent";
 import { runPriceCheck } from "./price-check";
 import { toolProviders } from "./tool-gate";
 
-const none = { search: false, priceCheck: false, mine: false, publish: false, edit: false };
+const none = { search: false, detail: false, priceCheck: false, mine: false, publish: false, edit: false };
 // A fake search-only provider in Croatia.
 const fakehr = { id: "fakehr", name: "Fake", siteName: "fake.hr", site: "https://fake.hr", country: "HR", currency: "EUR", currencyLabel: "EUR", searchLanguage: "hr", searchLanguageName: "Croatian", capabilities: { ...none, search: true, priceCheck: true } } as const;
 const WITH_BA: Table = { ...PROVIDERS, fakehr };

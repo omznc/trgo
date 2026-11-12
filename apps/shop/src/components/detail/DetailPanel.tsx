@@ -47,7 +47,8 @@ function deliveryFacts(d: ListingDetail["delivery"], unit: string) {
 }
 
 function Facts({ listing, detail, loading }: { listing: DetailListing; detail?: ListingDetail; loading: boolean }) {
-	const ago = timeAgo(detail?.postedAt);
+	// A provider without detail has only the card date.
+	const ago = timeAgo(detail?.postedAt ?? (PROVIDERS[listing.provider].capabilities.detail ? undefined : listing.postedAt));
 	return (
 		<div className="flex flex-wrap gap-2">
 			{listing.city && <Fact icon={MapPin} text={listing.city} />}
@@ -197,7 +198,7 @@ export function DetailPanel({ listing, onAsk }: { listing: DetailListing; onAsk?
 					className="btn inline-flex h-12 min-h-12 min-w-[150px] flex-1 items-center justify-center gap-[7px] rounded-full bg-fg text-sm font-semibold tracking-[-0.01em] whitespace-nowrap text-bg no-underline shadow-[0_8px_24px_rgba(0,0,0,.25)] hover:text-bg"
 				>
 					<ExternalLink className="size-[15px]" strokeWidth={2.2} aria-hidden />
-					{strings.openOn(name)}
+					{strings.openOn(PROVIDERS[listing.provider].capabilities.detail ? name : PROVIDERS[listing.provider].siteName)}
 				</a>
 				<button
 					type="button"

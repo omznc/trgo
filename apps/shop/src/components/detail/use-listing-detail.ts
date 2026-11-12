@@ -1,4 +1,4 @@
-import { getListing, type ListingDetail, type ProviderId } from "@lagano/providers";
+import { getListing, type ListingDetail, PROVIDERS, type ProviderId } from "@lagano/providers";
 import { useCallback, useEffect, useState } from "react";
 import { proxyUrl } from "@/lib/publish";
 
@@ -21,7 +21,9 @@ export type DetailState = { detail?: ListingDetail; loading: boolean; error: boo
 export function useListingDetail(provider: ProviderId, url: string): DetailState {
 	const [state, setState] = useState<{ detail?: ListingDetail; error: boolean }>({ error: false });
 	const [attempt, setAttempt] = useState(0);
+	const supported = PROVIDERS[provider].capabilities.detail;
 	useEffect(() => {
+		if (!supported) return;
 		let live = true;
 		setState({ error: false });
 		load(provider, url).then(
@@ -31,7 +33,7 @@ export function useListingDetail(provider: ProviderId, url: string): DetailState
 		return () => {
 			live = false;
 		};
-	}, [provider, url, attempt]);
+	}, [provider, url, attempt, supported]);
 	const retry = useCallback(() => setAttempt((n) => n + 1), []);
-	return { ...state, loading: !state.detail && !state.error, retry };
+	return { ...state, loading: supported && !state.detail && !state.error, retry };
 }
