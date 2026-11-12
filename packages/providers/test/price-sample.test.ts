@@ -153,6 +153,26 @@ describe("fetchRecent", () => {
 		await fetchRecent([unknown.p], "ps5", { now: NOW });
 		expect(unknown.calls).toEqual([1, 2, 3]);
 	});
+	test("keeps earlier pages when a later page fails, and stops paging", async () => {
+		const calls: number[] = [];
+		const flaky: Provider = {
+			...fake("olx", 200, []),
+			async search(q) {
+				calls.push(q.page ?? 1);
+				if (q.page === 2) throw new Error("boom");
+				return { total: 999, listings: Array.from({ length: 200 }, () => make("PS5", 700)) };
+			},
+		};
+		const { listings, errors, partial } = await fetchRecent([flaky], "ps5", { now: NOW, concurrency: 1, perProvider: 1000 });
+		expect(listings).toHaveLength(200);
+		expect(calls).toEqual([1, 2]);
+		expect(errors).toEqual([]);
+		expect(partial).toEqual(["olx"]);
+		// In one parallel batch, the page that worked stays.
+		const same = await fetchRecent([flaky], "ps5", { now: NOW, concurrency: 2, perProvider: 1000 });
+		expect(same.listings).toHaveLength(200);
+		expect(same.partial).toEqual(["olx"]);
+	});
 	test("a failing provider does not stop the other", async () => {
 		const bad: Provider = { ...fake("svex", 100, []), search: () => Promise.reject(new Error("down")) };
 		const { listings, errors } = await fetchRecent([bad, fake("olx", 200, [10])], "ps5", { now: NOW });

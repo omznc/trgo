@@ -31,14 +31,21 @@ async function fetchProvider(provider: Provider, q: string, options: FetchOption
 	const out: Listing[] = [];
 	for (let first = 1; first <= pages; first += concurrency) {
 		const numbers = Array.from({ length: Math.min(concurrency, pages - first + 1) }, (_, i) => first + i);
-		const results = await Promise.all(numbers.map((page) => provider.search({ q, sort: "newest", limit, page, minPrice: options.minPrice, maxPrice: options.maxPrice })));
+		const settled = await Promise.allSettled(numbers.map((page) => provider.search({ q, sort: "newest", limit, page, minPrice: options.minPrice, maxPrice: options.maxPrice })));
+		const results = settled.flatMap((s) => (s.status === "fulfilled" ? [s.value] : []));
 		const batch = results.flatMap((r) => r.listings);
 		out.push(...batch);
 		onBatch(batch.length);
+		// Keep the pages that worked, and stop at the first failure.
+		const failed = settled.find((s) => s.status === "rejected");
+		if (failed) {
+			if (!out.length) throw failed.reason;
+			return { listings: out, partial: true };
+		}
 		// Stop at the end of the results, or when a whole batch is older than the widest window.
 		if (results.some((r) => isLastPage(r, limit)) || batch.every((l) => ageDays(l, now) > WINDOWS.at(-1)!)) break;
 	}
-	return out;
+	return { listings: out, partial: false };
 }
 
 export async function fetchRecent(providers: Provider[], q: string, options: FetchOptions = {}) {
@@ -51,9 +58,11 @@ export async function fetchRecent(providers: Provider[], q: string, options: Fet
 			}),
 		),
 	);
-	const listings = settled.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
+	const listings = settled.flatMap((r) => (r.status === "fulfilled" ? r.value.listings : []));
+	// `errors` lists providers with no result. `partial` lists providers that lost some pages.
 	const errors = settled.flatMap((r, i) => (r.status === "rejected" ? [providers[i]!.id] : []));
-	return { listings, errors };
+	const partial = settled.flatMap((r, i) => (r.status === "fulfilled" && r.value.partial ? [providers[i]!.id] : []));
+	return { listings, errors, partial };
 }
 
 // Linear interpolation between the closest ranks. The input is sorted.
