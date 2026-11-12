@@ -5,7 +5,7 @@ type Origins = { origins: string[] };
 type Api = {
 	runtime: {
 		id: string;
-		getManifest(): { version: string; host_permissions?: string[]; content_scripts?: { matches?: string[] }[] };
+		getManifest(): { version: string; host_permissions?: string[] };
 		getURL(path: string): string;
 		sendMessage(message: unknown): Promise<unknown>;
 		onMessage: {

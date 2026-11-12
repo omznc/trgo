@@ -49,8 +49,11 @@ trgo page. The extension does nothing else with them.
   allows only paths under `/search/`. This is the one site that gets the
   cookies of the user, because the site needs them.
 
-The content script runs only on the trgo pages. It has no other
-permission.
+- `https://trgo.omarzunic.com/*` and `https://trgo.omznc.workers.dev/*`:
+  the trgo pages. The content script runs only there. Firefox runs a
+  content script only on hosts that the user allowed.
+
+The extension has no other permission.
 
 ## Data use answers
 
@@ -62,8 +65,12 @@ permission.
 - Location: not collected.
 - Web history: not collected.
 - User activity: not collected.
-- Website content: not collected. The extension passes a page to the trgo
-  page in the same browser. It does not keep it or send it elsewhere.
+- Website content: the extension does not keep it or send it to the
+  developer. It passes each page to the trgo page in the same browser.
+  The trgo page sends the listing text to the AI model (OpenRouter) to
+  answer the user, as the privacy policy says. If the store form asks
+  about the web page too, answer "website content: used for the core
+  function, sent to the AI provider, not sold".
 - Firefox `data_collection_permissions`: `none`.
 
 Certifications: the data is not sold, not used for other purposes and

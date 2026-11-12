@@ -8,6 +8,7 @@ const root = new URL("..", import.meta.url).pathname;
 const dev = process.argv.includes("--dev");
 const { version } = await Bun.file(`${root}package.json`).json();
 const origins = [...ALLOWED_ORIGINS, ...(dev ? DEV_ORIGINS : [])];
+const pages = origins.map((origin) => `${origin}/*`);
 
 const manifest = {
 	manifest_version: 3,
@@ -15,10 +16,11 @@ const manifest = {
 	version,
 	description: "Optional helper for trgo. It reads marketplace pages in your own browser, not through the trgo proxy.",
 	icons: Object.fromEntries([16, 32, 48, 128].map((size) => [size, `icons/icon-${size}.png`])),
-	host_permissions: Object.values(EXTENSION_HOSTS).map((host) => `${host.origin}/*`),
+	// The trgo pages are here too: Firefox runs the content script only on hosts that the user allowed.
+	host_permissions: [...Object.values(EXTENSION_HOSTS).map((host) => `${host.origin}/*`), ...pages],
 	// The user can open the welcome page again here.
 	options_ui: { page: "welcome.html", open_in_tab: true },
-	content_scripts: [{ matches: origins.map((origin) => `${origin}/*`), js: ["content.js"], run_at: "document_start" }],
+	content_scripts: [{ matches: pages, js: ["content.js"], run_at: "document_start" }],
 };
 
 const targets = {
