@@ -33,6 +33,9 @@ function deliveryLabel(input: ListingArgs, provider: ProviderId) {
 
 function rowsFor(input: ListingArgs, provider: ProviderId): [string, string][] {
 	const r = sell.approve.row;
+	const bool = (v: string | number | boolean) => (typeof v === "boolean" ? (v ? sell.approve.yes : sell.approve.no) : String(v));
+	// Only OLX posts the attributes. The model wrote them, so the user must see them.
+	const attributes = provider === "olx" ? Object.entries(input.olxAttributes ?? {}).map(([k, v]): [string, string] => [k, bool(v)]) : [];
 	return [
 		[r.title, input.title],
 		[r.price, `${input.price} KM`],
@@ -41,6 +44,7 @@ function rowsFor(input: ListingArgs, provider: ProviderId): [string, string][] {
 		[r.photos, sell.approve.photosValue(input.photoIds.length)],
 		[r.category, input.categoryHint],
 		[r.delivery, deliveryLabel(input, provider)],
+		...attributes,
 	];
 }
 
@@ -52,12 +56,23 @@ function PlatformCard({ input, provider }: { input: ListingArgs; provider: Provi
 				<span className="text-[13px] text-[rgba(14,16,32,.6)]">{sell.approve.cardHead}</span>
 			</div>
 			<dl className="m-0">
-				{rowsFor(input, provider).map(([label, value]) => (
-					<div key={label} className="flex justify-between gap-3 border-b border-[rgba(14,16,32,.08)] py-2 text-sm">
+				{rowsFor(input, provider).map(([label, value], i) => (
+					<div key={i} className="flex justify-between gap-3 border-b border-[rgba(14,16,32,.08)] py-2 text-sm">
 						<dt className="text-[rgba(14,16,32,.6)]">{label}</dt>
 						<dd className="m-0 min-w-0 break-words text-right font-semibold">{value}</dd>
 					</div>
 				))}
+				<div className="border-b border-[rgba(14,16,32,.08)] py-2 text-sm">
+					<dt className="text-[rgba(14,16,32,.6)]">{sell.approve.row.description}</dt>
+					{/* The post is word for word this text, so it scrolls and is not cut. */}
+					<dd
+						// biome-ignore lint/a11y/noNoninteractiveTabindex: a scroll area needs the keyboard
+						tabIndex={0}
+						className="m-0 mt-1 max-h-40 overflow-y-auto whitespace-pre-wrap break-words font-medium"
+					>
+						{input.description}
+					</dd>
+				</div>
 			</dl>
 			{provider === "olx" && (
 				<p className="m-0 mt-2.5 flex items-start gap-2 rounded-xl bg-[#FFF1DC] px-3 py-2.5 text-[13px] text-[#8A4B00]">
