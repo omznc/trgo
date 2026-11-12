@@ -241,7 +241,7 @@ export function Composer({
 				placeholder={tagged.length ? (tagged.some((l) => l.own) ? ta.tagPlaceholderOwn : tagged.length > 1 ? ta.tagPlaceholderMany : ta.tagPlaceholder) : started ? strings.placeholderFollowUp : placeholder}
 				className={cn(
 					"resize-none border-0 bg-transparent text-base leading-normal tracking-[-0.01em] text-fg shadow-none outline-none focus-visible:ring-0 focus-visible:outline-none md:text-base",
-					started ? "max-h-[200px] min-h-0 px-3.5 pt-2.5 pb-1" : "max-h-60 min-h-24 px-[18px] pt-4 pb-1.5 md:text-[17px]",
+					started ? "max-h-[200px] min-h-0 px-3.5 pt-2.5 pb-1" : "max-h-60 min-h-16 sm:min-h-24 px-[18px] pt-4 pb-1.5 md:text-[17px]",
 				)}
 			/>
 			<div className="flex items-center justify-between gap-3 py-1.5 pr-1.5 pl-2.5">

@@ -274,7 +274,7 @@ onRetry={chat.error ? () => chat.regenerate() : undefined} />
 						<HistoryPanel chats={history.chats} currentId={history.chatId} onPick={history.open} onDelete={history.remove} onNew={newChat} onClear={history.clear} />
 					</HistoryRegion>
 					<div className="flex min-w-0 flex-1 flex-col">
-						<main className={cn("relative flex min-h-0 flex-1 flex-col", !started && "items-center justify-center gap-[22px] px-3.5 pb-6 sm:px-6 sm:pb-12")}>
+						<main className={cn("relative flex min-h-0 flex-1 flex-col", !started && "items-center justify-center gap-4 px-3.5 sm:gap-[22px] pb-6 sm:px-6 sm:pb-12")}>
 							{started ? (
 								<MessageList
 									key={history.chatId}

@@ -4,6 +4,7 @@ import { Mascot } from "@/components/Mascot";
 import { startLogin } from "@/lib/openrouter-auth";
 import { strings } from "@/lib/strings";
 import { useSuggestions } from "@/lib/suggestions";
+import { cn } from "@/lib/utils";
 
 const ICONS = [Search, Tag, Plus];
 
@@ -34,13 +35,15 @@ export function ConnectBanner({ onPasteKey, cue, free }: { onPasteKey: () => voi
 		el.classList.add("cue-shake");
 	}, [cue.n, cue.reason]);
 	return (
-		<div ref={ref} style={delay(480)} className="ld glass in flex w-full max-w-[720px] flex-wrap items-center gap-3.5 rounded-[22px] py-3.5 pr-3.5 pl-[18px] shadow-none">
-			<div className="flex min-w-48 flex-1 flex-col gap-0.5">
-				<strong className="text-[15px] font-semibold">{free ? strings.freeBannerTitle : strings.connectTitle}</strong>
-				<span className="text-[13px] text-fg-3">{free ? strings.freeBannerBody : strings.connectSubtitle}</span>
+		<div ref={ref} style={delay(480)} className="ld glass in flex w-full max-w-[720px] flex-wrap items-center gap-x-3.5 gap-y-2.5 rounded-[22px] py-2.5 pr-2.5 pl-4 shadow-none sm:py-3.5 sm:pr-3.5 sm:pl-[18px]">
+			<div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:min-w-48">
+				<strong className="text-sm font-semibold sm:text-[15px]">{free ? strings.freeBannerTitle : strings.connectTitle}</strong>
+				{/* The free hint is optional, so phones skip the body text. */}
+				<span className={cn("text-[13px] text-fg-3", free && "max-sm:hidden")}>{free ? strings.freeBannerBody : strings.connectSubtitle}</span>
 			</div>
 			<div className="flex items-center gap-1.5">
-				<button type="button" onClick={onPasteKey} className={`${pill} pr-4 pl-[13px] text-fg-3`}>
+				{/* The account panel also has the key field, so phones in free mode skip this button. */}
+				<button type="button" onClick={onPasteKey} className={cn(pill, "pr-4 pl-[13px] text-fg-3", free && "max-sm:hidden")}>
 					<KeyRound className="size-[15px]" strokeWidth={2.2} aria-hidden />
 					{strings.pasteKey}
 				</button>
@@ -64,7 +67,8 @@ export function Suggestions({ onPick }: { onPick: (text: string) => void }) {
 						type="button"
 						onClick={() => onPick(s)}
 						style={delay(620 + i * 60)}
-						className="ld glass inline-flex h-11 items-center gap-[7px] rounded-full pr-4 pl-[13px] text-sm font-medium tracking-[-0.01em] shadow-none sm:h-10"
+						// The third chip makes a tall stack on a phone.
+						className={cn("ld glass inline-flex h-10 items-center gap-[7px] rounded-full pr-4 pl-[13px] text-sm font-medium tracking-[-0.01em] shadow-none", i > 1 && "max-sm:hidden")}
 					>
 						<Icon className="size-[15px]" strokeWidth={2.2} aria-hidden />
 						{s}
@@ -78,7 +82,7 @@ export function Suggestions({ onPick }: { onPick: (text: string) => void }) {
 
 export function Footer() {
 	return (
-		<footer style={delay(780)} className="ld relative flex shrink-0 justify-center px-6 pb-[max(18px,env(safe-area-inset-bottom))]">
+		<footer style={delay(780)} className="ld relative flex max-sm:hidden shrink-0 justify-center px-6 pb-[max(18px,env(safe-area-inset-bottom))]">
 			<a
 				href={strings.sourceUrl}
 				target="_blank"
