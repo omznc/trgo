@@ -1,6 +1,7 @@
 import { Trash2 } from "lucide-react";
 import { useRef, useState, type KeyboardEvent } from "react";
 import { clearHistory } from "@/lib/chat-history";
+import { clearBlocked } from "@/lib/clear-guard";
 import { ta } from "@/lib/strings-account";
 import { cn } from "@/lib/utils";
 import { btn } from "./ui";
@@ -9,6 +10,7 @@ const HOLD_MS = 1200;
 
 // Removes every key of this app and the chat history. Reload makes the chat state match.
 async function clearAll() {
+	if (clearBlocked()) return;
 	for (const store of [localStorage, sessionStorage]) {
 		for (const key of Object.keys(store)) if (key.startsWith("lagano.")) store.removeItem(key);
 	}

@@ -22,6 +22,7 @@ import { CHAT_ERRORS, errorKind } from "@/lib/chat-errors";
 import { onSaveFailure } from "@/lib/chat-history";
 import { applyPageLang } from "@/lib/page-lang";
 import { addPhoto, photoNote } from "@/lib/photos";
+import { setClearGuard } from "@/lib/clear-guard";
 import { isPublishing } from "@/lib/publish-resume";
 import { useSessionExpired, useSessions } from "@/lib/sessions";
 import { strings } from "@/lib/strings";
@@ -162,6 +163,16 @@ export function Chat() {
 	const history = useHistory(chat, setDocked, withTransition, () => setToast({ text: strings.publishWait, warn: true }));
 	// A stop in the middle of a post would leave a draft, so the stop button waits.
 	const publishing = busy && isPublishing(messages);
+	// "Delete all data" in the settings panel waits for the post too.
+	const publishingNow = useRef(publishing);
+	publishingNow.current = publishing;
+	useEffect(() => {
+		setClearGuard(() => {
+			if (publishingNow.current) setToast({ text: strings.publishWait, warn: true });
+			return publishingNow.current;
+		});
+		return () => setClearGuard(null);
+	}, []);
 	// The first-load reveal (.boot) ends for good once the chat starts.
 	const [boot, setBoot] = useState(true);
 	useEffect(() => {
