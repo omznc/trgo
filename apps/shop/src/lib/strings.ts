@@ -198,7 +198,8 @@ const bs = {
 	markets: "Tržišta",
 	message: "Poruka",
 	marketsAria: "Izbor tržišta za pretragu",
-	needsExtension: "Treba trgo ekstenziju za preglednik",
+	extensionSoon: "Uskoro",
+	extensionSoonHint: "Treba trgo ekstenzija za preglednik. Uskoro stiže za Chrome i Firefox.",
 };
 
 const en: typeof bs = {
@@ -397,7 +398,8 @@ const en: typeof bs = {
 	markets: "Markets",
 	message: "Message",
 	marketsAria: "Choose the markets to search",
-	needsExtension: "Needs the trgo browser extension",
+	extensionSoon: "Soon",
+	extensionSoonHint: "Needs the trgo browser extension. It is coming soon to Chrome and Firefox.",
 };
 
 export const strings = lang === "en" ? en : bs;

@@ -1,6 +1,7 @@
 import { countryProviders, marketCountries, PROVIDERS, type ProviderId } from "@lagano/providers";
 import { ArrowUp, ChevronDown, ImagePlus } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useExtensionVersion } from "@/lib/extension";
 import { countryName } from "@/lib/market";
 import { type MutableRefObject, type Ref, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -172,22 +173,37 @@ function MarketsMenu({ selected, onToggle }: { selected: ProviderId[]; onToggle:
 				{MARKETS.map((g) => (
 					<DropdownMenuGroup key={g.country}>
 						<DropdownMenuLabel className="px-2 pt-1.5 pb-0.5 text-xs text-fg-4">{countryName(g.country)}</DropdownMenuLabel>
-						{g.providers.map((m) => (
-							<DropdownMenuCheckboxItem
-								key={m.key}
-								checked={selected.includes(m.key)}
-								disabled={m.needsExtension && !hasExtension}
-								onCheckedChange={() => onToggle(m.key)}
-								onSelect={(event) => event.preventDefault()}
-								className="min-h-10 gap-2 rounded-xl text-sm"
-							>
-								<Logo src={m.logo} />
-								<span className="flex flex-col">
+						{g.providers.map((m) => {
+							const locked = m.needsExtension && !hasExtension;
+							const item = (
+								<DropdownMenuCheckboxItem
+									key={m.key}
+									checked={selected.includes(m.key)}
+									disabled={locked}
+									onCheckedChange={() => onToggle(m.key)}
+									onSelect={(event) => event.preventDefault()}
+									className="min-h-10 gap-2 rounded-xl text-sm"
+								>
+									<Logo src={m.logo} />
 									{m.name}
-									{m.needsExtension && !hasExtension && <span className="text-xs text-fg-4">{strings.needsExtension}</span>}
-								</span>
-							</DropdownMenuCheckboxItem>
-						))}
+									{locked && <span className="ml-auto rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-fg-3">{strings.extensionSoon}</span>}
+								</DropdownMenuCheckboxItem>
+							);
+							if (!locked) return item;
+							// A disabled item gets no pointer events, so the wrapper holds the hover.
+							return (
+								<TooltipProvider key={m.key} delayDuration={150}>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<div>{item}</div>
+										</TooltipTrigger>
+										<TooltipContent side="right" className="max-w-56">
+											{strings.extensionSoonHint}
+										</TooltipContent>
+									</Tooltip>
+								</TooltipProvider>
+							);
+						})}
 					</DropdownMenuGroup>
 				))}
 			</DropdownMenuContent>
