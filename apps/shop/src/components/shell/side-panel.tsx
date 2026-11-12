@@ -133,7 +133,7 @@ export function useSidePanel() {
 	return ctx;
 }
 
-// A listing from a search belongs to a stranger, so the model note says own=no.
+// A listing from a search belongs to a stranger, so the model note says own: false.
 function tagSearchListing(l: DetailListing, close: () => void) {
 	tagAndFocus({ provider: l.provider, id: listingIdFromUrl(l.provider, l.url), title: l.title, priceText: l.price, url: l.url, imageUrl: l.imageUrl, own: false }, close);
 }

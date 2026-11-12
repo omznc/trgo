@@ -125,12 +125,13 @@ async function listMine(): Promise<SearchToolOutput & { error?: string }> {
 }
 
 // The id and the action must match the user's real listing, whatever the model wrote.
-async function editMine({ provider, id, action, price }: z.infer<typeof editSchema>) {
+export async function editMine({ provider, id, action, price }: z.infer<typeof editSchema>) {
 	if (action === "set_price" && !price) throw new Error("set_price needs a price. Ask the user for the price.");
-	const { items, errors } = await loadMine([provider]);
+	const connected = !!getSession(provider);
+	const { items, errors, truncated } = await loadMine([provider]);
 	if (errors[provider]) throw new Error(`Could not load the ${PROVIDER_NAME[provider]} listings. Nothing was changed.`);
 	const item = items.find((l) => l.provider === provider && l.id === id);
-	const problem = editProblem(item, action);
+	const problem = editProblem(item, action, { connected, cut: truncated.includes(provider) });
 	if (problem || !item) throw new Error(`Refused (${problem}): ${PROVIDER_NAME[provider]} ${id} cannot take ${action}. Nothing was changed.`);
 	await mineCall(item, EDIT_OPS[action], price);
 	return { ok: true as const };

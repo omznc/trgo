@@ -5,6 +5,8 @@ import type { editSchema, LaganoMessage } from "@/lib/agent";
 import { PROVIDER_NAME } from "@/lib/mine-api";
 import { type EditProblem, editProblem } from "@/lib/mine-rules";
 import type { MineStatus } from "@lagano/providers";
+import { useSessions } from "@/lib/sessions";
+import { strings } from "@/lib/strings";
 import { ta } from "@/lib/strings-account";
 import { btn } from "./account/ui";
 
@@ -16,6 +18,8 @@ function describe(input: Complete) {
 }
 
 function warningFor(problem: EditProblem | null, status?: MineStatus) {
+	if (problem === "not_connected") return strings.notConnected;
+	if (problem === "list_cut") return ta.editListCut;
 	if (problem === "not_found") return ta.editNotFound;
 	if (problem === "status" && status) return ta.editStatusBlocked(ta.status[status]);
 	if (problem === "too_early") return ta.editTooEarly;
@@ -27,7 +31,9 @@ function useCheckedListing(input: Complete) {
 	const { data, loading } = useMine([input.provider]);
 	const item = data.items.find((l) => l.provider === input.provider && l.id === input.id);
 	const loadFailed = !!data.errors[input.provider];
-	const problem = loading || loadFailed ? null : editProblem(item, input.action);
+	const connected = useSessions()[input.provider];
+	const cut = data.truncated.includes(input.provider);
+	const problem = loadFailed || (loading && connected) ? null : editProblem(item, input.action, { connected, cut });
 	const warning = loadFailed ? ta.editLoadFailed : warningFor(problem, item?.status);
 	return { item, loading, warning, canApprove: !loading && !warning && !!item };
 }

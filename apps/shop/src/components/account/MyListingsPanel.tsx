@@ -201,6 +201,11 @@ export default function MyListingsPanel() {
 				{shown.map((p) => (
 					<LoadError key={p} provider={p} kind={data.errors[p]} onRetry={reload} onConnect={() => requireConnection(p, strings.needMine)} />
 				))}
+				{shown
+					.filter((p) => data.truncated.includes(p))
+					.map((p) => (
+						<Notice key={p} body={ta.listCut(PROVIDER_NAME[p])} />
+					))}
 				{body}
 			</PanelBody>
 			{deleting && (

@@ -17,11 +17,15 @@ export const allowed = (item: MyListing, op: keyof typeof can) => (can[op] as Mi
 export const EDIT_OPS = { set_price: "price", hide: "hide", unhide: "unhide", mark_sold: "finish", refresh: "refresh" } as const satisfies Record<string, MineOp>;
 export type EditAction = keyof typeof EDIT_OPS;
 
-export type EditProblem = "not_found" | "status" | "too_early";
+export type EditProblem = "not_connected" | "list_cut" | "not_found" | "status" | "too_early";
+
+// What the check knows about the provider list. A cut list may hide the listing.
+export type EditScope = { connected: boolean; cut: boolean };
 
 // Why an edit must not run. null means it may run. The item is the real own listing, or undefined.
-export function editProblem(item: MyListing | undefined, action: EditAction): EditProblem | null {
-	if (!item) return "not_found";
+export function editProblem(item: MyListing | undefined, action: EditAction, scope: EditScope = { connected: true, cut: false }): EditProblem | null {
+	if (!scope.connected) return "not_connected";
+	if (!item) return scope.cut ? "list_cut" : "not_found";
 	const op = EDIT_OPS[action];
 	if (!allowed(item, op)) return "status";
 	// OLX refuses a refresh of a new listing.

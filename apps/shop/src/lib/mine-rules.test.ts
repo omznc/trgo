@@ -18,6 +18,15 @@ test("an id that is not in the own listings is refused", () => {
 	expect(editProblem(undefined, "hide")).toBe("not_found");
 });
 
+test("a missing id in a cut list cannot be checked", () => {
+	expect(editProblem(undefined, "hide", { connected: true, cut: true })).toBe("list_cut");
+	expect(editProblem(item("active"), "hide", { connected: true, cut: true })).toBeNull();
+});
+
+test("a provider that is not connected is reported first", () => {
+	expect(editProblem(undefined, "hide", { connected: false, cut: false })).toBe("not_connected");
+});
+
 test("set_price on a draft is refused", () => {
 	expect(editProblem(item("draft"), "set_price")).toBe("status");
 	expect(editProblem(item("active"), "set_price")).toBeNull();
