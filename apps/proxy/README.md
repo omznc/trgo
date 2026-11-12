@@ -27,7 +27,7 @@ The path has the form `/<upstream-key>/<path>`. The allowlist is the `UPSTREAMS`
 
 - Any other key returns 400.
 - The URL parser resolves a raw `..`, `.` and backslash (`\`) before the Worker sees the path. For example `/olx/a/../b` becomes `/olx/b`. These cannot change the upstream host, because the host comes from the `UPSTREAMS` key.
-- The Worker returns 400 for a path with `//`, or with an encoded `..`, `.`, `/` or backslash that stays after parsing (for example `%2e%2e`, `%5C`, `%2f%2f`). It checks the path before and after percent-decoding.
+- The Worker returns 400 for a path with `//`, or with a `..` or `.` segment, or with a backslash, that stays after parsing (for example `%2e%2e`, `%5C`, `%2f%2f`, `a%2f..%2fb`). It checks the path before and after percent-decoding. A single encoded `/` that does not form `..` or `//` passes (for example `/olx/a%2fb`).
 - The Worker also returns 400 when the final target origin differs from the upstream origin.
 - `GET /version` returns `{ "commit": "<GIT_COMMIT>" }`. Compare this value with the source.
 
