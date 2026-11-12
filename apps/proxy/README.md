@@ -64,7 +64,7 @@ KupujemProdajem blocks all Cloudflare Worker traffic with a 403. The Worker cann
 - `GET /kp/<path>` becomes `GET http://kp-relay:8788/<path>` through the `KP_RELAY` binding. Other methods get 405.
 - `KP_RELAY` is a Workers VPC service binding (`trgo-kp-relay`). The service sends each request through the tunnel to the relay container. The relay has no public hostname. Before, a public hostname let the zone's Bot Fight Mode challenge the Worker in some locations.
 - `KP_RELAY_SECRET` is a Worker secret. The Worker sends it in the header `x-relay-secret`. Set it with `cf workers secrets update`.
-- If one of them is missing, the route returns 503 `{"error":"kp-unavailable"}`. Local dev has no binding, so `/kp` returns 503 there.
+- If one of them is missing, the route returns 503 `{"error":"kp-unavailable"}`. In local dev the binding cannot reach the tunnel: `/kp` returns 503 without `KP_RELAY_SECRET` in `.dev.vars`, and 502 with it.
 - The path rules are the same as for the other routes (400 for `//`, `..` and a backslash).
 - The Worker forwards only the `accept` header. It does not forward cookies, `authorization` or `x-lagano-cookie`.
 - The response has only the status, the `content-type` and the body.

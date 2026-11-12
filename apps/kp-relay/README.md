@@ -36,7 +36,9 @@ bun test
 
 ```sh
 docker build -t kp-relay apps/kp-relay
-docker run -d --name kp-relay --restart unless-stopped -p 127.0.0.1:8788:8788 -e RELAY_SECRET kp-relay
+docker network create trgo-kp
+docker run -d --name kp-relay --network trgo-kp --network-alias kp-relay --restart unless-stopped -e RELAY_SECRET kp-relay
+docker run -d --name kp-tunnel --network trgo-kp --restart unless-stopped -e TUNNEL_TOKEN cloudflare/cloudflared:2025.10.0 tunnel run
 ```
 
-Run `cloudflared` with the tunnel token on the same host. Give the tunnel no public hostname. A Workers VPC service (`trgo-kp-relay`, type `http`, port 8788, host `kp-relay`) points at the relay through the tunnel, and the proxy binds it as `KP_RELAY`. The host name must resolve from the `cloudflared` container. Set the same secret on the proxy Worker as `KP_RELAY_SECRET`.
+The relay publishes no port. The `cloudflared` container finds it by the network alias `kp-relay`. Give the tunnel no public hostname. A Workers VPC service (`trgo-kp-relay`, type `http`, port 8788, host `kp-relay`) points at the relay through the tunnel, and the proxy binds it as `KP_RELAY`. The host name must resolve from the `cloudflared` container. Set the same secret on the proxy Worker as `KP_RELAY_SECRET`.

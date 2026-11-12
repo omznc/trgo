@@ -179,7 +179,7 @@ async function proxy(request: Request, key: string, target: URL, cors: Headers):
 }
 
 // KupujemProdajem blocks Cloudflare Workers. A relay on the owner's server makes the request instead.
-// Its URL comes from the build, so it is not in UPSTREAMS. It must use https. Only GET passes.
+// It is not in UPSTREAMS. Only GET passes.
 // The relay gets the shared secret and the path. It gets no cookie and no authorization header.
 // The VPC service sends each request to the relay container, whatever host the URL has.
 // The relay has no public hostname, so the zone's bot check cannot challenge the proxy on the way.
@@ -193,7 +193,7 @@ async function kpRoute(request: Request, env: Env, url: URL, cors: Headers): Pro
 	const target = new URL(KP_RELAY_ORIGIN + path);
 	if (target.origin !== KP_RELAY_ORIGIN) return text(400, "bad route", cors);
 	target.search = url.search;
-	const headers = new Headers({ "x-relay-secret": env.KP_RELAY_SECRET! });
+	const headers = new Headers({ "x-relay-secret": env.KP_RELAY_SECRET });
 	const accept = request.headers.get("accept");
 	if (accept) headers.set("accept", accept);
 	let upstream: Response;
