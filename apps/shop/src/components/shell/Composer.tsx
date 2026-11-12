@@ -4,7 +4,7 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useExtensionVersion } from "@/lib/extension";
 import { countryName } from "@/lib/market";
-import { type MutableRefObject, type Ref, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type KeyboardEvent, type MutableRefObject, type Ref, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FileUIPart } from "ai";
 import {
 	PromptInput,
@@ -137,13 +137,78 @@ const Logo = ({ src, className = "" }: { src: string; className?: string }) => (
 	<img src={src} alt="" width={16} height={16} className={`size-4 shrink-0 rounded-[5px] outline outline-1 -outline-offset-1 outline-white/20 ${className}`} />
 );
 
+type Market = (typeof MARKETS)[number]["providers"][number];
+
+// "Njuškalo" matches "njusk": no case, no accents.
+const fold = (text: string) => text.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+// The English name also matches, so "austria" finds "Austrija".
+const englishCountry = new Intl.DisplayNames(["en"], { type: "region" });
+
+// A country that matches keeps all its sites. Otherwise only the sites that match stay.
+function filterMarkets(filter: string) {
+	const needle = fold(filter.trim());
+	if (!needle) return MARKETS;
+	return MARKETS.map((g) => {
+		const countryHit = [g.country, countryName(g.country), englishCountry.of(g.country) ?? ""].some((t) => fold(t).includes(needle));
+		return countryHit ? g : { ...g, providers: g.providers.filter((m) => fold(`${m.name} ${m.shortName}`).includes(needle)) };
+	}).filter((g) => g.providers.length);
+}
+
+function MarketItem({ market, checked, locked, onToggle }: { market: Market; checked: boolean; locked: boolean; onToggle: (key: ProviderId) => void }) {
+	const item = (
+		<DropdownMenuCheckboxItem
+			checked={checked}
+			disabled={locked}
+			onCheckedChange={() => onToggle(market.key)}
+			onSelect={(event) => event.preventDefault()}
+			className="min-h-10 gap-2 rounded-xl text-sm"
+		>
+			<Logo src={market.logo} />
+			{market.name}
+			{locked && <span className="ml-auto rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-fg-3">{strings.extensionSoon}</span>}
+		</DropdownMenuCheckboxItem>
+	);
+	if (!locked) return item;
+	// A disabled item gets no pointer events, so the wrapper holds the hover.
+	return (
+		<TooltipProvider delayDuration={150}>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<div>{item}</div>
+				</TooltipTrigger>
+				<TooltipContent side="right" className="max-w-56">
+					{strings.extensionSoonHint}
+				</TooltipContent>
+			</Tooltip>
+		</TooltipProvider>
+	);
+}
+
 function MarketsMenu({ selected, onToggle }: { selected: ProviderId[]; onToggle: (key: ProviderId) => void }) {
 	const on = MARKETS.flatMap((g) => g.providers).filter((m) => selected.includes(m.key));
 	const [only] = on;
 	const extra = on.length - MAX_LOGOS;
 	const hasExtension = useExtensionVersion() !== null;
+	const [filter, setFilter] = useState("");
+	const filterRef = useRef<HTMLInputElement>(null);
+	const groups = filterMarkets(filter);
+	// The menu reads typed letters as a jump to an item, so the keys stay in the field.
+	// Arrow down moves into the list.
+	const onFilterKey = (event: KeyboardEvent<HTMLInputElement>) => {
+		if (event.key === "Escape") return;
+		event.stopPropagation();
+		if (event.key !== "ArrowDown") return;
+		event.preventDefault();
+		event.currentTarget.closest('[role="menu"]')?.querySelector<HTMLElement>('[role="menuitemcheckbox"]:not([data-disabled])')?.focus();
+	};
+	// The menu focuses itself when it opens, so the field takes the focus one frame later.
+	// Only with a mouse: on a phone the keyboard would cover the list.
+	const onOpenChange = (open: boolean) => {
+		if (!open) return setFilter("");
+		if (matchMedia("(pointer: fine)").matches) requestAnimationFrame(() => filterRef.current?.focus());
+	};
 	return (
-		<DropdownMenu>
+		<DropdownMenu onOpenChange={onOpenChange}>
 			<DropdownMenuTrigger asChild>
 				<button
 					type="button"
@@ -170,42 +235,25 @@ function MarketsMenu({ selected, onToggle }: { selected: ProviderId[]; onToggle:
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="solid min-w-44 rounded-2xl p-1.5">
-				{MARKETS.map((g) => (
+				<input
+					ref={filterRef}
+					type="search"
+					value={filter}
+					onChange={(event) => setFilter(event.target.value)}
+					onKeyDown={onFilterKey}
+					placeholder={strings.marketsFilter}
+					aria-label={strings.marketsFilter}
+					className="mb-1 h-9 w-full rounded-xl bg-white/5 px-3 text-sm text-fg outline-none placeholder:text-fg-4 focus-visible:outline-2 focus-visible:outline-focus"
+				/>
+				{groups.map((g) => (
 					<DropdownMenuGroup key={g.country}>
 						<DropdownMenuLabel className="px-2 pt-1.5 pb-0.5 text-xs text-fg-4">{countryName(g.country)}</DropdownMenuLabel>
-						{g.providers.map((m) => {
-							const locked = m.needsExtension && !hasExtension;
-							const item = (
-								<DropdownMenuCheckboxItem
-									key={m.key}
-									checked={selected.includes(m.key)}
-									disabled={locked}
-									onCheckedChange={() => onToggle(m.key)}
-									onSelect={(event) => event.preventDefault()}
-									className="min-h-10 gap-2 rounded-xl text-sm"
-								>
-									<Logo src={m.logo} />
-									{m.name}
-									{locked && <span className="ml-auto rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-fg-3">{strings.extensionSoon}</span>}
-								</DropdownMenuCheckboxItem>
-							);
-							if (!locked) return item;
-							// A disabled item gets no pointer events, so the wrapper holds the hover.
-							return (
-								<TooltipProvider key={m.key} delayDuration={150}>
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<div>{item}</div>
-										</TooltipTrigger>
-										<TooltipContent side="right" className="max-w-56">
-											{strings.extensionSoonHint}
-										</TooltipContent>
-									</Tooltip>
-								</TooltipProvider>
-							);
-						})}
+						{g.providers.map((m) => (
+							<MarketItem key={m.key} market={m} checked={selected.includes(m.key)} locked={m.needsExtension && !hasExtension} onToggle={onToggle} />
+						))}
 					</DropdownMenuGroup>
 				))}
+				{groups.length === 0 && <p className="px-2 py-2 text-sm text-fg-4">{strings.marketsNone}</p>}
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

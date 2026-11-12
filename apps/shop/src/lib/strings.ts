@@ -201,6 +201,8 @@ const bs = {
 	markets: "Tržišta",
 	message: "Poruka",
 	marketsAria: "Izbor tržišta za pretragu",
+	marketsFilter: "Traži državu ili sajt",
+	marketsNone: "Ništa ne odgovara.",
 	extensionSoon: "Uskoro",
 	extensionSoonHint: "Treba trgo ekstenzija za preglednik. Uskoro stiže za Chrome i Firefox.",
 };
@@ -404,6 +406,8 @@ const en: typeof bs = {
 	markets: "Markets",
 	message: "Message",
 	marketsAria: "Choose the markets to search",
+	marketsFilter: "Find a country or site",
+	marketsNone: "Nothing matches.",
 	extensionSoon: "Soon",
 	extensionSoonHint: "Needs the trgo browser extension. It is coming soon to Chrome and Firefox.",
 };
