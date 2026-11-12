@@ -151,16 +151,27 @@ export function Chat() {
 	const openConnect = useCallback((provider?: "olx" | "svex" | "openrouter") => panel.open({ kind: "connect", provider }, { fresh: true }), [panel.open]);
 	useSessionExpired(openConnect);
 
+	// Photos shrink before the send. A second Enter in that time would send the same files again.
+	const sendingRef = useRef(false);
+	const [sending, setSending] = useState(false);
 	const send = async (text: string, files: FileUIPart[] = []) => {
 		if (!text.trim() && files.length === 0) return;
-		if (!started) withTransition(() => setDocked(true));
-		// A photo that cannot be decoded is skipped.
-		const added = await Promise.allSettled(files.map(async (f) => addPhoto(await (await fetch(f.url)).blob())));
-		const ids = added.flatMap((r) => (r.status === "fulfilled" ? [r.value.id] : []));
-		const tagged = getTaggedListings();
-		const note = tagged.map(taggedNote).join("");
-		chat.sendMessage({ text: text.trim() + photoNote(ids) + note + sourceNote(sources), metadata: { photoIds: ids, tagged: tagged.length ? tagged : undefined } });
-		clearTaggedListing();
+		if (sendingRef.current) return;
+		sendingRef.current = true;
+		setSending(true);
+		try {
+			if (!started) withTransition(() => setDocked(true));
+			// A photo that cannot be decoded is skipped.
+			const added = await Promise.allSettled(files.map(async (f) => addPhoto(await (await fetch(f.url)).blob())));
+			const ids = added.flatMap((r) => (r.status === "fulfilled" ? [r.value.id] : []));
+			const tagged = getTaggedListings();
+			const note = tagged.map(taggedNote).join("");
+			chat.sendMessage({ text: text.trim() + photoNote(ids) + note + sourceNote(sources), metadata: { photoIds: ids, tagged: tagged.length ? tagged : undefined } });
+			clearTaggedListing();
+		} finally {
+			sendingRef.current = false;
+			setSending(false);
+		}
 	};
 	const hold = usePendingSend({ apiKey, send, textarea, box, clearAttachments });
 	// A throw keeps the attached photos in the composer.
@@ -169,6 +180,8 @@ export function Chat() {
 			hold(text, files);
 			throw new Error("no-key");
 		}
+		// A throw keeps the text and the files of the second try in the composer.
+		if (sendingRef.current) throw new Error("sending");
 		await send(text, files);
 	};
 	const pick = (text: string) => (chat.ready ? void send(text) : hold(text, []));
@@ -259,8 +272,8 @@ onRetry={chat.error ? () => chat.regenerate() : undefined} />
 							<div ref={box} style={delay(550)} className={cn("ld w-full", started && "absolute inset-x-0 bottom-0 z-10 px-3.5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-6 sm:pb-[22px]")}>
 								<Composer
 									started={started}
-									busy={busy}
-									canStop={!publishing}
+									busy={busy || sending}
+									canStop={!publishing && !sending}
 									model={chat.model}
 									connected={!!apiKey}
 									onModel={chat.setModel}
