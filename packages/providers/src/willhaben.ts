@@ -56,8 +56,6 @@ export function mapWillhabenAdvert(advert: WillhabenAdvert): Listing {
 		price,
 		priceText: attr("PRICE_FOR_DISPLAY") || "Preis auf Anfrage",
 		currency: PROVIDERS.willhaben.currency,
-		// The summary has no condition.
-		condition: undefined,
 		city: attr("LOCATION"),
 		imageUrl: advert.advertImageList?.advertImage?.[0]?.mainImageUrl ?? (mmo ? `https://cache.willhaben.at/mmo/${mmo}` : undefined),
 		url: seoUrl ? `${SITE}/iad/${seoUrl}` : `${SITE}/iad/object?adId=${advert.id}`,
