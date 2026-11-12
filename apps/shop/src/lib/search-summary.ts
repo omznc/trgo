@@ -1,5 +1,7 @@
+import { PROVIDER_IDS, PROVIDERS, type ProviderId } from "@lagano/providers";
+
 export type SearchCard = {
-	provider: "olx" | "svex";
+	provider: ProviderId;
 	id: string;
 	title: string;
 	price: string;
@@ -41,10 +43,10 @@ export function summarizeSearch(output: SearchToolOutput, now = Date.now()): str
 	}
 	const by = (p: string) => listings.filter((l) => l.provider === p).length;
 	const prices = listings.flatMap((l) => (l.value ? [l.value] : [])).sort((a, b) => a - b);
-	const range = prices.length ? ` Price KM: min ${prices[0]}, median ${Math.round(median(prices))}, max ${prices.at(-1)}.` : "";
+	const range = prices.length ? ` Price ${PROVIDERS[listings[0]!.provider].currencyLabel}: min ${prices[0]}, median ${Math.round(median(prices))}, max ${prices.at(-1)}.` : "";
 	const failed = errors.length ? ` Failed providers: ${errors.map((e) => e.provider).join(", ")}.` : "";
 	return [
-		`The user sees all ${listings.length} listings as cards (OLX ${by("olx")}, SVEX ${by("svex")}; ${total} found on the sites${days ? `; only the last ${days} days` : ""}).${range}${failed}`,
+		`The user sees all ${listings.length} listings as cards (${PROVIDER_IDS.map((id) => `${PROVIDERS[id].name} ${by(id)}`).join(", ")}; ${total} found on the sites${days ? `; only the last ${days} days` : ""}).${range}${failed}`,
 		`First ${Math.min(TOP, listings.length)}, format provider:id | title | price | city | condition | age:`,
 		...listings.slice(0, TOP).map((l) => line(l, now)),
 		"Do not repeat the list. Refer to the cards.",

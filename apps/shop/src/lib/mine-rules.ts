@@ -17,6 +17,9 @@ export const allowed = (item: MyListing, op: keyof typeof can) => (can[op] as Mi
 export const EDIT_OPS = { set_price: "price", hide: "hide", unhide: "unhide", mark_sold: "finish", refresh: "refresh" } as const satisfies Record<string, MineOp>;
 export type EditAction = keyof typeof EDIT_OPS;
 
+// OLX refuses a refresh of a new listing.
+export const refreshTooEarly = (item: MyListing) => item.provider === "olx" && item.status === "active" && item.canRefresh === false;
+
 export type EditProblem = "not_connected" | "list_cut" | "not_found" | "status" | "too_early";
 
 // What the check knows about the provider list. A cut list may hide the listing.
@@ -28,7 +31,6 @@ export function editProblem(item: MyListing | undefined, action: EditAction, sco
 	if (!item) return scope.cut ? "list_cut" : "not_found";
 	const op = EDIT_OPS[action];
 	if (!allowed(item, op)) return "status";
-	// OLX refuses a refresh of a new listing.
-	if (op === "refresh" && item.provider === "olx" && item.status === "active" && item.canRefresh === false) return "too_early";
+	if (op === "refresh" && refreshTooEarly(item)) return "too_early";
 	return null;
 }

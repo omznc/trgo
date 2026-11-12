@@ -3,10 +3,13 @@ import {
 	createSvexProvider,
 	OLX_SHIPPING_NOTE,
 	olxListingUrl,
+	providersWith,
 	svexListingUrl,
+	type Capability,
 	type NamedId,
 	type OlxListingInput,
 	type OlxSession,
+	type Provider,
 	type ProviderId,
 	type SvexSession,
 	type SvexCondition,
@@ -63,6 +66,10 @@ export const olxAccount = createOlxProvider({ proxyUrl });
 export const svexAccount = createSvexProvider({ proxyUrl });
 const olx = olxAccount;
 const svex = svexAccount;
+
+// A new provider fails the typecheck here until its client exists.
+const ACCOUNTS: Record<ProviderId, Provider> = { olx: olxAccount, svex: svexAccount };
+export const accountsWith = (capability: Capability): Provider[] => providersWith(capability).map((id) => ACCOUNTS[id]);
 
 class AskUser extends Error {}
 
@@ -225,7 +232,7 @@ function failure(provider: ProviderId, error: unknown, track: Track): ProviderRe
 	return { ...base, error: error instanceof Error ? error.message.slice(0, 300) : "Unknown error." };
 }
 
-const STEPS = { olx: publishOlx, svex: publishSvex } as const;
+const STEPS: Record<ProviderId, (args: ListingArgs, track: Track) => Step> = { olx: publishOlx, svex: publishSvex };
 
 // Runs after the user approved. Providers run one after the other, so progress is easy to show.
 // `previous` holds failed results of an earlier run. A provider with a saved id goes on from it and never makes a second listing.

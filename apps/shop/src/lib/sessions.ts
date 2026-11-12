@@ -1,7 +1,9 @@
-import type { OlxSession, ProviderId, SvexSession } from "@lagano/providers";
+import { type OlxSession, PROVIDER_IDS, type ProviderId, type SvexSession } from "@lagano/providers";
 import { useEffect, useState } from "react";
 
-type Sessions = { olx: OlxSession; svex: SvexSession };
+// A new provider fails the typecheck here until its session type exists.
+type SessionOf = { olx: OlxSession; svex: SvexSession };
+type Sessions = { [P in ProviderId]: SessionOf[P] };
 
 const keyOf = (p: ProviderId) => `lagano.session.${p}`;
 const CHANGED = "lagano:sessions";
@@ -36,11 +38,13 @@ export function expireSession(p: ProviderId) {
 const AUTH_ERROR = /HTTP 401\b|not logged in|not authenticated|unauthori[sz]ed|unauthenticated/i;
 export const isAuthError = (error: unknown) => AUTH_ERROR.test(error instanceof Error ? error.message : String(error));
 
+const flags = (value: (id: ProviderId) => boolean) => Object.fromEntries(PROVIDER_IDS.map((id) => [id, value(id)])) as Record<ProviderId, boolean>;
+
 // Browser storage is read after mount, so the server and client render the same.
 export function useSessions() {
-	const [state, setState] = useState<Record<ProviderId, boolean>>({ olx: false, svex: false });
+	const [state, setState] = useState(() => flags(() => false));
 	useEffect(() => {
-		const read = () => setState({ olx: !!getSession("olx"), svex: !!getSession("svex") });
+		const read = () => setState(flags((id) => !!getSession(id)));
 		read();
 		window.addEventListener(CHANGED, read);
 		window.addEventListener("storage", read);

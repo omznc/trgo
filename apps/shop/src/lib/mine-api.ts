@@ -1,4 +1,4 @@
-import type { MineList, MyListing, OlxSession, ProviderId, SvexSession } from "@lagano/providers";
+import { type MineList, type MyListing, type OlxSession, type ProviderId, type SvexSession } from "@lagano/providers";
 import { olxAccount, svexAccount } from "./publish";
 import { expireSession, getSession, isAuthError } from "./sessions";
 
@@ -6,8 +6,6 @@ export type MineOp = "hide" | "unhide" | "refresh" | "finish" | "price" | "delet
 export type MineResult = { freeLeft?: number; paid?: boolean; expiresAt?: string };
 // `truncated` names the providers whose list is cut.
 export type MineLoad = { items: MyListing[]; errors: Partial<Record<ProviderId, "error" | "expired">>; truncated: ProviderId[] };
-
-export const PROVIDER_NAME: Record<ProviderId, string> = { olx: "OLX", svex: "SVEX" };
 
 function olxCall(s: OlxSession, id: number, op: MineOp, price: number): Promise<MineResult | unknown> {
 	switch (op) {

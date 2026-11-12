@@ -1,3 +1,4 @@
+import type { ProviderId } from "@lagano/providers";
 import { lang } from "./lang";
 
 const bs = {
@@ -22,8 +23,6 @@ const bs = {
 	connectSubtitle: "Prijavi se jednim klikom. Ključ ostaje samo u ovom pregledniku.",
 	footerSource: "Izvorni kod",
 	sourceUrl: "https://github.com/omznc/trgo",
-	sourceOlx: "OLX.ba",
-	sourceSvex: "SVEX.ba",
 	scrollBottom: "Skroluj na dno",
 	copyAnswer: "Kopiraj odgovor",
 	copyImage: "Kopiraj kao sliku",
@@ -141,12 +140,13 @@ const bs = {
 	connecting: "Povezujem...",
 	accountFailed: "Prijava nije uspjela. Provjeri podatke.",
 	needKeySend: "Poveži OpenRouter da pošaljem poruku.",
-	needPublish: { olx: "Poveži OLX da objavim oglas.", svex: "Poveži SVEX da objavim oglas." },
+	// A new provider fails the typecheck until it has an entry here.
+	needPublish: { olx: "Poveži OLX da objavim oglas.", svex: "Poveži SVEX da objavim oglas." } satisfies Record<ProviderId, string>,
 	needConnect: {
 		openrouter: "Poveži OpenRouter da mogu pretraživati i odgovarati.",
 		olx: "Poveži OLX da objavljuješ i vidiš svoje oglase.",
 		svex: "Poveži SVEX da objavljuješ oglase.",
-	},
+	} satisfies Record<ProviderId | "openrouter", string>,
 	needMine: "Poveži OLX ili SVEX da vidim tvoje oglase.",
 	notConnected: "Nisi povezan. Poveži račun i pokušaj ponovo.",
 	sessionExpired: "Sesija je istekla. Poveži račun ponovo.",
@@ -216,8 +216,6 @@ const en: typeof bs = {
 	connectSubtitle: "Sign in with one click. The key stays in this browser only.",
 	footerSource: "Source code",
 	sourceUrl: "https://github.com/omznc/trgo",
-	sourceOlx: "OLX.ba",
-	sourceSvex: "SVEX.ba",
 	scrollBottom: "Scroll to bottom",
 	copyAnswer: "Copy answer",
 	copyImage: "Copy as image",

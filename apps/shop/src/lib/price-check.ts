@@ -1,6 +1,7 @@
 import { fetchRecent, selectComparable, type Provider } from "@lagano/providers";
 import { z } from "zod";
 import { priceReport, type PriceReport } from "./price-stats";
+import { PRICE_UNIT } from "./system-prompt";
 
 export const priceCheckSchema = z.object({
 	item: z.string().describe("Short item name for the card, for example 'PlayStation 5'."),
@@ -8,8 +9,8 @@ export const priceCheckSchema = z.object({
 	mustInclude: z.array(z.string()).optional().describe("Extra words that every title must have, for example 'disc'."),
 	exclude: z.array(z.string()).optional().describe("Words that no title may have, for example 'slim'."),
 	condition: z.enum(["new", "used"]).optional(),
-	minPrice: z.number().positive().optional().describe("Lowest price in KM that a real offer of this item can have. About half of the usual used price. It cuts games, cases and accessories."),
-	maxPrice: z.number().positive().optional().describe("Highest price in KM for a real offer. Use it only when the user gave a limit."),
+	minPrice: z.number().positive().optional().describe(`Lowest price in ${PRICE_UNIT} that a real offer of this item can have. About half of the usual used price. It cuts games, cases and accessories.`),
+	maxPrice: z.number().positive().optional().describe(`Highest price in ${PRICE_UNIT} for a real offer. Use it only when the user gave a limit.`),
 	days: z.number().int().min(7).max(365).optional().describe("Use only the listings of the last N days, for example 90 for 3 months. Set it only when the user asks for a period."),
 });
 export type PriceCheckInput = z.infer<typeof priceCheckSchema>;
