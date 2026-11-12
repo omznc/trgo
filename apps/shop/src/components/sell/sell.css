@@ -71,10 +71,7 @@
 .sell-btn:active {
 	transform: scale(0.97);
 }
-.sell-btn:focus-visible,
-.sell-field:focus-visible,
-.sell-link:focus-visible,
-.sell-focus-within:focus-within {
+.sell-btn:focus-visible {
 	outline: 2px solid var(--color-focus, #8fb4ff);
 	outline-offset: 3px;
 }
@@ -87,31 +84,5 @@
 	background: var(--color-glass, rgba(22, 24, 46, 0.58));
 	backdrop-filter: blur(28px) saturate(170%);
 	border: 1px solid var(--color-line, rgba(255, 255, 255, 0.1));
-}
-.sell-chip {
-	background: var(--color-chip, rgba(255, 255, 255, 0.07));
-	border: 1px solid var(--color-chip-line, rgba(255, 255, 255, 0.08));
-}
-
-.sell-field {
-	background: rgba(255, 255, 255, 0.06);
-	border: 1px solid rgba(255, 255, 255, 0.1);
-	border-radius: 12px;
-	color: #f5f5f7;
-	font: inherit;
-	font-size: 15px;
-	padding: 0 14px;
-	height: 44px;
-	width: 100%;
-}
-.sell-field::placeholder {
-	color: rgba(235, 235, 245, 0.45);
-}
-.sell-lbl {
-	font-size: 12px;
-	font-weight: 600;
-	letter-spacing: 0.02em;
-	color: rgba(235, 235, 245, 0.68);
-	text-transform: uppercase;
 }
 }
