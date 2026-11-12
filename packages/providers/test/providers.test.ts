@@ -5,9 +5,9 @@ import svexSearch from "./fixtures/svex-search.json";
 import olxDetail from "./fixtures/olx-detail.json";
 import svexDetail from "./fixtures/svex-detail.json";
 import { listingIdFromUrl } from "../src/detail";
-import { flattenOlxCities, htmlToText, mapOlxDetail, mapOlxItem, olxSearchParams } from "../src/olx";
+import { createOlxProvider, flattenOlxCities, htmlToText, mapOlxDetail, mapOlxItem, olxSearchParams } from "../src/olx";
 import { searchAll } from "../src/search-all";
-import { mapSvexDetail, mapSvexItem, svexSearchParams } from "../src/svex";
+import { createSvexProvider, mapSvexDetail, mapSvexItem, svexSearchParams } from "../src/svex";
 import type { Provider } from "../src/types";
 
 describe("olx", () => {
@@ -120,5 +120,67 @@ describe("listing detail", () => {
 		expect(listingIdFromUrl("svex", `https://svex.ba/oglas/${svexDetail.id}-slug`)).toBe(svexDetail.id);
 		expect(listingIdFromUrl("olx", "123")).toBe("123");
 		expect(() => listingIdFromUrl("olx", "https://olx.ba/x")).toThrow();
+	});
+});
+
+type Call = { url: URL };
+function stubFetch(handler: (url: URL) => Response) {
+	const calls: Call[] = [];
+	const f = (async (url: string | URL) => {
+		const u = new URL(String(url));
+		calls.push({ url: u });
+		return handler(u);
+	}) as unknown as typeof fetch;
+	return { f, calls };
+}
+
+const svexItem = (id: string) => ({ id, slug: id, title: id, price: "10" });
+
+describe("svex condition groups", () => {
+	// Each group returns as many items as the call asks for.
+	const grouped = () =>
+		stubFetch((u) => {
+			const c = u.searchParams.get("condition")!;
+			const n = Number(u.searchParams.get("limit"));
+			return Response.json({ items: Array.from({ length: n }, (_, i) => svexItem(`${c}-${i}`)), total: 50 });
+		});
+
+	test("relevance asks each group for its share and interleaves the groups", async () => {
+		const { f, calls } = grouped();
+		const svex = createSvexProvider({ proxyUrl: "https://p.test", fetch: f });
+		const res = await svex.search({ q: "x", condition: "used", limit: 6 });
+		// ceil(6 / 3) + margin 2
+		expect(calls.map((c) => c.url.searchParams.get("limit"))).toEqual(["4", "4", "4"]);
+		expect(res.listings.map((l) => l.id)).toEqual([
+			"used_excellent-0",
+			"used_good-0",
+			"used_fair-0",
+			"used_excellent-1",
+			"used_good-1",
+			"used_fair-1",
+		]);
+	});
+
+	test("a price sort still asks each group for the full limit", async () => {
+		const { f, calls } = grouped();
+		const svex = createSvexProvider({ proxyUrl: "https://p.test", fetch: f });
+		await svex.search({ q: "x", condition: "new", limit: 6, sort: "price_asc" });
+		expect(calls.map((c) => c.url.searchParams.get("limit"))).toEqual(["6", "6"]);
+	});
+});
+
+describe("olx city list", () => {
+	test("a failed city call is not cached", async () => {
+		let cityCalls = 0;
+		const { f } = stubFetch((u) => {
+			if (u.pathname === "/olx/cities") return ++cityCalls === 1 ? new Response("no", { status: 500 }) : Response.json(olxCities);
+			return Response.json(olxSearch);
+		});
+		const olx = createOlxProvider({ proxyUrl: "https://p.test", fetch: f });
+		const first = await olx.search({ q: "x" });
+		expect(first.listings[0]!.city).toBeUndefined();
+		const second = await olx.search({ q: "x" });
+		expect(cityCalls).toBe(2);
+		expect(second.listings[0]!.city).toBe("Tuzla");
 	});
 });

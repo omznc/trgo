@@ -57,7 +57,14 @@ export function svexSearchParams(query: SearchQuery, condition?: string) {
 // Merges results of parallel calls: dedupe by id, then sort and cut again.
 export function mergeSvexResults(results: SearchResult[], query: SearchQuery): SearchResult {
 	const byId = new Map<string, Listing>();
-	for (const result of results) for (const l of result.listings) byId.set(l.id, l);
+	// Round-robin, so a cut keeps a share of every group. A plain concat would keep mostly the first group.
+	const longest = Math.max(0, ...results.map((r) => r.listings.length));
+	for (let i = 0; i < longest; i++) {
+		for (const result of results) {
+			const l = result.listings[i];
+			if (l && !byId.has(l.id)) byId.set(l.id, l);
+		}
+	}
 	const price = (l: Listing) => l.price ?? Number.POSITIVE_INFINITY;
 	const sorters: Partial<Record<NonNullable<SearchQuery["sort"]>, (a: Listing, b: Listing) => number>> = {
 		price_asc: (a, b) => price(a) - price(b),
@@ -68,6 +75,14 @@ export function mergeSvexResults(results: SearchResult[], query: SearchQuery): S
 	const all = [...byId.values()];
 	if (sorter) all.sort(sorter);
 	return { listings: all.slice(0, query.limit ?? 20), total: results.reduce((sum, r) => sum + r.total, 0) };
+}
+
+const GROUP_MARGIN = 2;
+
+// Without a sort, each group needs only its share. Other sorts can take all results from one group.
+export function groupLimit(query: SearchQuery, groups: number) {
+	const limit = query.limit ?? 20;
+	return (query.sort ?? "relevance") === "relevance" ? Math.min(limit, Math.ceil(limit / groups) + GROUP_MARGIN) : limit;
 }
 
 type SvexDetail = SvexItem & {
@@ -146,7 +161,9 @@ export function createSvexProvider(options: ProviderOptions): Provider & ReturnT
 		name: "SVEX.ba",
 		async search(query): Promise<SearchResult> {
 			if (!query.condition) return searchOne(query);
-			const results = await Promise.all(CONDITIONS[query.condition].map((c) => searchOne(query, c)));
+			const conditions = CONDITIONS[query.condition];
+			const perGroup = { ...query, limit: groupLimit(query, conditions.length) };
+			const results = await Promise.all(conditions.map((c) => searchOne(perGroup, c)));
 			return mergeSvexResults(results, query);
 		},
 		async getListing(id): Promise<ListingDetail> {

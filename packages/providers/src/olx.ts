@@ -132,7 +132,13 @@ export function createOlxProvider(options: ProviderOptions): Provider & ReturnTy
 	let cities: Promise<Map<number, string>> | undefined;
 	// The city list is nice to have: a failure leaves the city empty.
 	const loadCities = () =>
-		(cities ??= getJson<OlxCityTree>("/olx/cities").then(flattenOlxCities, () => new Map<number, string>()));
+		(cities ??= getJson<OlxCityTree>("/olx/cities")
+			.then(flattenOlxCities)
+			.catch(() => {
+				// Do not cache a failure: the next call tries again.
+				cities = undefined;
+				return new Map<number, string>();
+			}));
 
 	return {
 		...account,
