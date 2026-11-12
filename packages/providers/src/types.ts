@@ -1,4 +1,6 @@
-export type ProviderId = "olx" | "svex";
+import type { Currency, ProviderId } from "./registry";
+
+export type { ProviderId };
 
 export type Listing = {
 	provider: ProviderId;
@@ -6,7 +8,7 @@ export type Listing = {
 	title: string;
 	price: number | null;
 	priceText: string;
-	currency: "BAM";
+	currency: Currency;
 	condition?: "new" | "used";
 	city?: string;
 	imageUrl?: string;

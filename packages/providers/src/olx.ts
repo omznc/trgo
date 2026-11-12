@@ -1,5 +1,6 @@
 import { createGetJson } from "./http";
 import { createOlxAccount } from "./olx-account";
+import { PROVIDERS } from "./registry";
 import type { Listing, ListingDetail, Provider, ProviderOptions, SearchQuery, SearchResult } from "./types";
 
 type OlxItem = {
@@ -28,7 +29,7 @@ export function mapOlxItem(item: OlxItem, cities: Map<number, string> = new Map(
 		title: item.title,
 		price: hasPrice ? item.price : null,
 		priceText: item.display_price,
-		currency: "BAM",
+		currency: PROVIDERS.olx.currency,
 		condition: item.state === "new" || item.state === "used" ? item.state : undefined,
 		city: item.city_id === undefined ? undefined : cities.get(item.city_id),
 		imageUrl: item.image,
@@ -143,7 +144,7 @@ export function createOlxProvider(options: ProviderOptions): Provider & ReturnTy
 	return {
 		...account,
 		id: "olx",
-		name: "OLX.ba",
+		name: PROVIDERS.olx.siteName,
 		async search(query): Promise<SearchResult> {
 			const [res, cityMap] = await Promise.all([
 				getJson<{ data: OlxItem[]; meta?: { total?: number; last_page?: number } }>("/olx/search", olxSearchParams(query), query.signal),

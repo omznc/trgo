@@ -1,5 +1,6 @@
 import { cookieHeader, parseSetCookies } from "./cookies";
 import { createRequest, readJson } from "./http";
+import { PROVIDERS } from "./registry";
 import { actionData, parseActionReply } from "./rsc";
 import { type MineList, parseSvexMinePage } from "./mine";
 import { type ActionIds, type ActionName, discoverActions, KNOWN_ACTIONS, MINE_NAMES } from "./svex-actions";
@@ -29,7 +30,7 @@ export function svexListingPayload(input: SvexListingInput, publish: boolean) {
 		description: input.description,
 		categoryId: input.categoryId,
 		price: input.price,
-		currency: "BAM",
+		currency: PROVIDERS.svex.currency,
 		priceType: "fixed",
 		condition: input.condition,
 		exchangePossible: input.exchangePossible ?? false,

@@ -1,5 +1,4 @@
-import { createOlxProvider } from "./olx";
-import { createSvexProvider } from "./svex";
+import { createProvider } from "./adapters";
 import type { ListingDetail, ProviderId, ProviderOptions } from "./types";
 
 // Takes a plain id or a listing URL. SVEX URLs are /oglas/{uuid}-{slug}; the uuid has 36 characters.
@@ -12,6 +11,5 @@ export function listingIdFromUrl(provider: ProviderId, idOrUrl: string): string 
 }
 
 export function getListing(options: ProviderOptions, provider: ProviderId, idOrUrl: string): Promise<ListingDetail> {
-	const p = provider === "olx" ? createOlxProvider(options) : createSvexProvider(options);
-	return p.getListing(listingIdFromUrl(provider, idOrUrl));
+	return createProvider(provider, options).getListing(listingIdFromUrl(provider, idOrUrl));
 }

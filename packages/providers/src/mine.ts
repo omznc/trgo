@@ -1,4 +1,5 @@
 import { mapOlxItem } from "./olx";
+import { PROVIDERS } from "./registry";
 import { svexListingUrl } from "./svex";
 import type { Listing } from "./types";
 
@@ -71,7 +72,7 @@ export function mapSvexMine(item: SvexMineItem): MyListing | null {
 		title: item.title,
 		price: hasPrice ? price : null,
 		priceText: hasPrice ? `${price} KM` : "Po dogovoru",
-		currency: "BAM",
+		currency: PROVIDERS.svex.currency,
 		imageUrl: item.thumbnailUrl ?? undefined,
 		url: svexListingUrl(item.id, item.slug),
 		postedAt: item.publishedAt ?? item.createdAt,

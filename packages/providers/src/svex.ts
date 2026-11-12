@@ -1,4 +1,5 @@
 import { createGetJson } from "./http";
+import { PROVIDERS } from "./registry";
 import { createSvexAccount } from "./svex-account";
 import type { Listing, ListingDetail, Provider, ProviderOptions, SearchQuery, SearchResult } from "./types";
 
@@ -26,7 +27,7 @@ export function mapSvexItem(item: SvexItem): Listing {
 		title: item.title,
 		price: hasPrice ? price : null,
 		priceText: hasPrice ? `${item.price} KM` : "Po dogovoru",
-		currency: "BAM",
+		currency: PROVIDERS.svex.currency,
 		condition: item.condition?.startsWith("new") ? "new" : item.condition?.startsWith("used") ? "used" : undefined,
 		city: item.city || undefined,
 		imageUrl: item.thumbnailMediumUrl ?? item.thumbnailUrl,
@@ -158,7 +159,7 @@ export function createSvexProvider(options: ProviderOptions): Provider & ReturnT
 	return {
 		...account,
 		id: "svex",
-		name: "SVEX.ba",
+		name: PROVIDERS.svex.siteName,
 		async search(query): Promise<SearchResult> {
 			if (!query.condition) return searchOne(query);
 			const conditions = CONDITIONS[query.condition];
