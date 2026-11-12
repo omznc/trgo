@@ -109,7 +109,7 @@ describe("selectComparable", () => {
 });
 
 describe("fetchRecent", () => {
-	const fake = (id: "olx" | "svex", size: number, pages: number[]): Provider & { calls: number[] } => {
+	const fake = (id: "olx" | "svex" | "kp", size: number, pages: number[]): Provider & { calls: number[] } => {
 		const calls: number[] = [];
 		return {
 			id,
@@ -172,6 +172,12 @@ describe("fetchRecent", () => {
 		const same = await fetchRecent([flaky], "ps5", { now: NOW, concurrency: 2, perProvider: 1000 });
 		expect(same.listings).toHaveLength(200);
 		expect(same.partial).toEqual(["olx"]);
+	});
+	test("a provider with a sample limit loads fewer pages", async () => {
+		const kp = fake("kp", 30, Array.from({ length: 20 }, () => 30));
+		const { listings } = await fetchRecent([kp], "ps5", { now: NOW });
+		expect(kp.calls).toEqual([1, 2, 3, 4, 5]);
+		expect(listings).toHaveLength(150);
 	});
 	test("a failing provider does not stop the other", async () => {
 		const bad: Provider = { ...fake("svex", 100, []), search: () => Promise.reject(new Error("down")) };

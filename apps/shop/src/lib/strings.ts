@@ -52,6 +52,7 @@ const bs = {
 	priceNew: "Novo",
 	priceUsed: "Korišteno",
 	priceTrend: (pct: number) => `${pct > 0 ? "+" : ""}${pct}% zadnjih 30 dana`,
+	pricePartial: (names: string) => `${names}: učitan je samo dio oglasa`,
 	priceAnalyzed: (used: number, fetched: number, dropped: string) => `Analizirano ${used} od ${fetched}${dropped ? ` (izbačeno: ${dropped})` : ""}`,
 	priceDropped: {
 		accessory: "dodatak",
@@ -246,6 +247,7 @@ const en: typeof bs = {
 	priceNew: "New",
 	priceUsed: "Used",
 	priceTrend: (pct: number) => `${pct > 0 ? "+" : ""}${pct}% last 30 days`,
+	pricePartial: (names: string) => `${names}: only part of the listings loaded`,
 	priceAnalyzed: (used: number, fetched: number, dropped: string) => `Analyzed ${used} of ${fetched}${dropped ? ` (dropped: ${dropped})` : ""}`,
 	priceDropped: {
 		accessory: "accessories",

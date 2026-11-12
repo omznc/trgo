@@ -1,3 +1,4 @@
+import { PROVIDERS, type ProviderId } from "@lagano/providers";
 import type { ToolUIPart } from "ai";
 import { Tag } from "lucide-react";
 import type { PriceCheckOutput } from "@/lib/price-check";
@@ -108,6 +109,7 @@ export function PriceCheckPart({ part }: { part: ToolUIPart }) {
 				<span>{km(stats.hi)} {unit}</span>
 			</div>
 			<div className="text-xs text-fg-3">{strings.priceAnalyzed(stats.count, report.fetched, droppedText(report.dropped))}</div>
+			{output.partial?.length ? <div role="status" className="text-xs text-warn">{strings.pricePartial(output.partial.map((id) => PROVIDERS[id as ProviderId].name).join(", "))}</div> : null}
 		</section>
 	);
 }

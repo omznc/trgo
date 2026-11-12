@@ -69,4 +69,17 @@ describe("price check currency", () => {
 		expect(seen.find((q) => q.maxPrice === 1956)?.minPrice).toBe(196);
 		expect(seen.find((q) => q.maxPrice === 1000)?.minPrice).toBe(100);
 	});
+
+	test("the result lists a provider that lost a page", async () => {
+		const flaky: Provider = {
+			...stub("olx", "BAM", 300, []),
+			search: async (q) => {
+				if (q.page === 2) throw new Error("down");
+				return { listings: Array.from({ length: 10 }, (_, i) => listing("olx", "BAM", 300, i)), total: 99, hasMore: true };
+			},
+		};
+		let last: unknown;
+		for await (const out of runPriceCheck({ item: "PS5", query: "ps5" }, [flaky], { currency: "BAM", label: "KM" }, undefined, table)) last = out;
+		expect((last as { partial: string[] }).partial).toEqual(["olx"]);
+	});
 });

@@ -23,7 +23,8 @@ export type PriceCheckInput = z.infer<ReturnType<typeof priceCheckSchema>>;
 export type PriceCheckOutput =
 	| { item: string; loading: true; fetched: number }
 	// `label` is missing in a report that was saved before the markets.
-	| { item: string; report: PriceReport | null; errors: string[]; label?: string };
+	// `partial` lists providers that lost some pages. It is missing in a report that was saved before.
+	| { item: string; report: PriceReport | null; errors: string[]; label?: string; partial?: string[] };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -45,9 +46,9 @@ export async function* runPriceCheck(input: PriceCheckInput, providers: Provider
 		await Promise.race([job, sleep(250)]);
 	}
 	if (signal?.aborted) return;
-	const { listings, errors } = await job;
+	const { listings, errors, partial } = await job;
 	const converted = listings.map((l) => inCurrency(l, unit.currency));
-	yield { item, report: priceReport(selectComparable(converted, { query, ...filters })), errors, label: unit.label };
+	yield { item, report: priceReport(selectComparable(converted, { query, ...filters })), errors, label: unit.label, partial };
 }
 
 // The model sees this short text, not the histogram.
@@ -63,6 +64,7 @@ export function summarize(output: PriceCheckOutput): string {
 		`${stats.count} listings of the last ${windowDays} days (${report.fetched} fetched).`,
 		trendPct === undefined ? "" : `Trend of the last 30 days: ${trendPct}%.`,
 		stats.count < 10 ? "The sample is small. Say so." : "",
+		output.partial?.length ? `Only part of the listings loaded for: ${output.partial.join(", ")}. Say so.` : "",
 		"Answer in one or two sentences. Refer to the card. Do not repeat other numbers.",
 	]
 		.filter(Boolean)

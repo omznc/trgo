@@ -1,4 +1,5 @@
 import { type FilterOptions, normalizeTitle, rejectTitle } from "./price-filter";
+import { PROVIDERS, type ProviderInfo } from "./registry";
 import type { Listing, Provider, ProviderId, SearchQuery, SearchResult } from "./types";
 
 // The largest page that each API accepts.
@@ -30,7 +31,8 @@ const isLastPage = (r: SearchResult, limit: number) => (r.hasMore === undefined 
 async function fetchProvider(provider: Provider, q: string, options: FetchOptions, onBatch: (n: number) => void) {
 	const { perProvider = 600, concurrency = 2, now = Date.now(), adapt = (_: ProviderId, query: SearchQuery) => query } = options;
 	const limit = PAGE_SIZE[provider.id];
-	const pages = Math.ceil(perProvider / limit);
+	const max = (PROVIDERS[provider.id] as ProviderInfo).priceSampleMax ?? Number.POSITIVE_INFINITY;
+	const pages = Math.ceil(Math.min(perProvider, max) / limit);
 	const out: Listing[] = [];
 	for (let first = 1; first <= pages; first += concurrency) {
 		const numbers = Array.from({ length: Math.min(concurrency, pages - first + 1) }, (_, i) => first + i);
