@@ -18,6 +18,7 @@ import { HistoryPanel } from "@/components/shell/HistoryPanel";
 import { HistoryRegion, SidePanelRegion, useSidePanel } from "@/components/shell/side-panel";
 import { useHistory } from "@/components/shell/use-history";
 import type { LaganoMessage } from "@/lib/agent";
+import { onSaveFailure } from "@/lib/chat-history";
 import { applyPageLang } from "@/lib/page-lang";
 import { addPhoto, photoNote } from "@/lib/photos";
 import { isPublishing } from "@/lib/publish-resume";
@@ -140,6 +141,7 @@ export function Chat() {
 		return () => ro.disconnect();
 	}, [started]);
 	const busy = status === "submitted" || status === "streaming";
+	useEffect(() => onSaveFailure(() => setToast(strings.historySaveFailed)), []);
 	const history = useHistory(chat, setDocked, withTransition, () => setToast(strings.publishWait));
 	// A stop in the middle of a post would leave a draft, so the stop button waits.
 	const publishing = busy && isPublishing(messages);

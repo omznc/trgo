@@ -28,7 +28,8 @@ export const newest = (chats: StoredChat[]) => [...chats].sort((a, b) => b.updat
 const isQuota = (e: unknown) => e instanceof Error && (e.name === "QuotaExceededError" || e.name === "QuotaExceeded");
 
 // Writes the chat. On a full disk it drops the oldest other chat and tries again. Returns the kept list.
-export async function saveChat(backend: Backend, list: StoredChat[], chat: StoredChat): Promise<StoredChat[]> {
+// onDrop tells the caller about each chat that the full disk cost.
+export async function saveChat(backend: Backend, list: StoredChat[], chat: StoredChat, onDrop?: (id: string) => void): Promise<StoredChat[]> {
 	let next = newest([chat, ...list.filter((c) => c.id !== chat.id)]);
 	for (const extra of next.slice(MAX_CHATS)) await backend.del(extra.id);
 	next = next.slice(0, MAX_CHATS);
@@ -40,6 +41,7 @@ export async function saveChat(backend: Backend, list: StoredChat[], chat: Store
 			const oldest = next.findLast((c) => c.id !== chat.id);
 			if (!isQuota(e) || !oldest) throw e;
 			await backend.del(oldest.id);
+			onDrop?.(oldest.id);
 			next = next.filter((c) => c.id !== oldest.id);
 		}
 	}
@@ -83,6 +85,19 @@ const db = () => (backend ??= idbBackend());
 let queue: Promise<unknown> = Promise.resolve();
 const enqueue = (job: () => Promise<void>) => (queue = queue.then(job).catch(() => {}));
 
+// A failed save, or a chat dropped to make room, is reported one time for each page session.
+let saveListener: (() => void) | null = null;
+let reported = false;
+export const onSaveFailure = (cb: () => void) => {
+	saveListener = cb;
+	return () => void (saveListener = null);
+};
+function reportSaveFailure() {
+	if (reported || !saveListener) return;
+	reported = true;
+	saveListener();
+}
+
 export function initHistory() {
 	if (started || typeof indexedDB === "undefined") return;
 	started = true;
@@ -99,8 +114,12 @@ export function persistChat(id: string, messages: LaganoMessage[]) {
 	// The list shows the chat at once. The write follows.
 	set(newest([chat, ...chats.filter((c) => c.id !== id)]).slice(0, MAX_CHATS));
 	enqueue(async () => {
-		const kept = new Set((await saveChat(db(), chats, chat)).map((c) => c.id));
-		set(chats.filter((c) => kept.has(c.id)));
+		try {
+			const kept = new Set((await saveChat(db(), chats, chat, reportSaveFailure)).map((c) => c.id));
+			set(chats.filter((c) => kept.has(c.id)));
+		} catch {
+			reportSaveFailure();
+		}
 	});
 }
 

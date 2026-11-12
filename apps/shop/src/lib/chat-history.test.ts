@@ -48,6 +48,15 @@ test("quota error drops the oldest chat and retries", async () => {
 	expect(list.map((c) => c.id).sort()).toEqual(["b", "c"]);
 });
 
+test("quota cleanup reports each dropped chat", async () => {
+	const { b } = memory(2);
+	let list = await saveChat(b, [], chat("a", 1));
+	list = await saveChat(b, list, chat("b", 2));
+	const dropped: string[] = [];
+	await saveChat(b, list, chat("c", 3), (id) => dropped.push(id));
+	expect(dropped).toEqual(["a"]);
+});
+
 test("restore blocks an old approval", () => {
 	const m = { id: "a", role: "assistant", parts: [{ type: "tool-create_listing", state: "approval-requested", approval: { id: "x" } }] } as unknown as LaganoMessage;
 	const part = restoreMessages([m], "stop", "unknown")[0]?.parts[0] as { state: string };
