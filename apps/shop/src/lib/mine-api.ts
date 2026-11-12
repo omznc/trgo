@@ -1,10 +1,11 @@
-import type { MyListing, OlxSession, ProviderId, SvexSession } from "@lagano/providers";
+import type { MineList, MyListing, OlxSession, ProviderId, SvexSession } from "@lagano/providers";
 import { olxAccount, svexAccount } from "./publish";
 import { expireSession, getSession, isAuthError } from "./sessions";
 
 export type MineOp = "hide" | "unhide" | "refresh" | "finish" | "price" | "delete";
 export type MineResult = { freeLeft?: number; paid?: boolean; expiresAt?: string };
-export type MineLoad = { items: MyListing[]; errors: Partial<Record<ProviderId, "error" | "expired">> };
+// `truncated` names the providers whose list is cut.
+export type MineLoad = { items: MyListing[]; errors: Partial<Record<ProviderId, "error" | "expired">>; truncated: ProviderId[] };
 
 export const PROVIDER_NAME: Record<ProviderId, string> = { olx: "OLX", svex: "SVEX" };
 
@@ -58,20 +59,22 @@ export async function mineCall(item: MyListing, op: MineOp, price = 0): Promise<
 	}
 }
 
-async function loadOne(provider: ProviderId): Promise<MyListing[]> {
+async function loadOne(provider: ProviderId): Promise<MineList> {
 	const session = getSession(provider);
-	if (!session) return [];
+	if (!session) return { listings: [], truncated: false };
 	return provider === "olx" ? olxAccount.listMine(session as OlxSession) : svexAccount.listMine(session as SvexSession);
 }
 
 // A failed provider does not hide the list of the other one.
 export async function loadMine(providers: ProviderId[]): Promise<MineLoad> {
 	const results = await Promise.allSettled(providers.map(loadOne));
-	const out: MineLoad = { items: [], errors: {} };
+	const out: MineLoad = { items: [], errors: {}, truncated: [] };
 	results.forEach((r, i) => {
 		const provider = providers[i]!;
-		if (r.status === "fulfilled") out.items.push(...r.value);
-		else if (isAuthError(r.reason)) {
+		if (r.status === "fulfilled") {
+			out.items.push(...r.value.listings);
+			if (r.value.truncated) out.truncated.push(provider);
+		} else if (isAuthError(r.reason)) {
 			expireSession(provider);
 			out.errors[provider] = "expired";
 		} else out.errors[provider] = "error";

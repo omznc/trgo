@@ -32,7 +32,8 @@ describe("olx my listings", () => {
 			return Response.json(empty);
 		});
 		const olx = createOlxProvider({ proxyUrl: "https://p.test", fetch: f });
-		const list = await olx.listMine(session);
+		const { listings: list, truncated } = await olx.listMine(session);
+		expect(truncated).toBe(false);
 		expect(list.map((l) => [l.id, l.status])).toEqual([
 			["81109655", "active"],
 			["2", "hidden"],
@@ -42,6 +43,14 @@ describe("olx my listings", () => {
 		const urls = calls.map((c) => c.url);
 		expect(urls.some((u) => u.includes("/users/7/listings/inactive"))).toBe(true);
 		expect(urls.some((u) => u.includes("/users/7/listings/expired"))).toBe(true);
+	});
+
+	test("flags a list cut at the page cap", async () => {
+		const { f } = mockFetch(({ url }) =>
+			Response.json(url.includes("/olx/me") ? { data: { id: 7, username: "Omar" } } : { data: [], meta: { last_page: 9 } }),
+		);
+		const out = await createOlxProvider({ proxyUrl: "https://p.test", fetch: f }).listMine(session);
+		expect(out.truncated).toBe(true);
 	});
 
 	test("encodes the username in the path", async () => {

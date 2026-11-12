@@ -1,10 +1,10 @@
 import { createRequest, readJson } from "./http";
-import { type MyListing, mapOlxMine, OLX_STATES, type RefreshResult } from "./mine";
+import { type MineList, mapOlxMine, OLX_STATES, type RefreshResult } from "./mine";
 import { flattenOlxCities } from "./olx";
 import type { NamedId, OlxListingInput, OlxSession, ProviderOptions } from "./types";
 
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
-// Each state reads at most 5 pages of 50. listMine returns a plain array, so it cannot flag the cut.
+// Each state reads at most 5 pages of 50. listMine flags a cut list.
 const MAX_PAGES = 5;
 type RefreshLimits = { free_limit: number; free_count: number; paid_count: number; listing_count: number };
 const DEVICE_NAME = "lagano-shop";
@@ -88,27 +88,31 @@ export function createOlxAccount(options: ProviderOptions) {
 
 	async function listPages(path: string, s: OlxSession) {
 		const items: Parameters<typeof mapOlxMine>[0][] = [];
+		let truncated = false;
 		for (let page = 1; page <= MAX_PAGES; page++) {
 			const res = await readJson<{ data?: typeof items; meta?: { last_page?: number } }>(
 				await request(`/olx${path}?per_page=50&page=${page}`, { headers: auth(s) }),
 				`OLX ${path}`,
 			);
 			items.push(...(res.data ?? []));
-			if (page >= (res.meta?.last_page ?? 1)) break;
+			const last = res.meta?.last_page ?? 1;
+			if (page >= last) break;
+			truncated = page === MAX_PAGES;
 		}
-		return items;
+		return { items, truncated };
 	}
 
 	// The active list needs the username. The other lists need the numeric id.
-	async function listMine(s: OlxSession): Promise<MyListing[]> {
+	async function listMine(s: OlxSession): Promise<MineList> {
 		const user = await me(s);
 		const lists = await Promise.all(
 			OLX_STATES.map(async ([state, status]) => {
 				const path = state === "active" ? `/users/${encodeURIComponent(user.username)}/listings` : `/users/${user.id}/listings/${state}`;
-				return (await listPages(path, s)).map((item) => mapOlxMine(item, status));
+				const { items, truncated } = await listPages(path, s);
+				return { listings: items.map((item) => mapOlxMine(item, status)), truncated };
 			}),
 		);
-		return lists.flat();
+		return { listings: lists.flatMap((l) => l.listings), truncated: lists.some((l) => l.truncated) };
 	}
 
 	async function refresh(s: OlxSession, id: number): Promise<RefreshResult> {

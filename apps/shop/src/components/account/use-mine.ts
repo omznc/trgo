@@ -36,7 +36,7 @@ const refreshNotice = (res: MineResult): Notice => ({
 });
 
 export function useMine(providers: ProviderId[]) {
-	const [data, setData] = useState<MineLoad>({ items: [], errors: {} });
+	const [data, setData] = useState<MineLoad>({ items: [], errors: {}, truncated: [] });
 	const [loading, setLoading] = useState(true);
 	const [busy, setBusy] = useState<Set<string>>(new Set());
 	const [notice, setNotice] = useState<Notice>(null);

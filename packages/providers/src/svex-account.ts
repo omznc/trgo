@@ -1,7 +1,7 @@
 import { cookieHeader, parseSetCookies } from "./cookies";
 import { createRequest, readJson } from "./http";
 import { actionData, parseActionReply } from "./rsc";
-import { type MyListing, parseSvexMine } from "./mine";
+import { type MineList, parseSvexMinePage } from "./mine";
 import { type ActionIds, type ActionName, discoverActions, KNOWN_ACTIONS, MINE_NAMES } from "./svex-actions";
 import type { NamedId, ProviderOptions, SvexListingInput, SvexMedia, SvexSession } from "./types";
 
@@ -182,10 +182,10 @@ export function createSvexAccount(options: ProviderOptions) {
 		return actionData(parseActionReply(await res.text()), "SVEX publishListing");
 	}
 
-	async function listMine(session: SvexSession): Promise<MyListing[]> {
+	async function listMine(session: SvexSession): Promise<MineList> {
 		const res = await request("/svex/moji-oglasi", { headers: svexCookies(session) });
 		if (!res.ok) throw new Error(`SVEX my listings failed with HTTP ${res.status}`);
-		return parseSvexMine(await res.text());
+		return parseSvexMinePage(await res.text());
 	}
 
 	// One call for a listing action. The reply has `ok` and `data`.

@@ -4,6 +4,9 @@ import type { Listing } from "./types";
 
 export type MineStatus = "active" | "hidden" | "sold" | "expired" | "draft";
 
+// `truncated` is true when the provider has more listings than the list holds.
+export type MineList = { listings: MyListing[]; truncated: boolean };
+
 export type MyListing = Listing & {
 	status: MineStatus;
 	views?: number;
