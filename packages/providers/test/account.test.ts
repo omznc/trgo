@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { parseSetCookies } from "../src/cookies";
 import { checkOlxImages, olxDescription, olxListingBody } from "../src/olx-account";
 import { createOlxProvider } from "../src/olx";
-import { actionData, parseActionReply } from "../src/rsc";
+import { ActionReplyError, actionData, parseActionReply } from "../src/rsc";
 import { createSvexProvider, mergeSvexResults } from "../src/svex";
 import { checkSvexListing, svexListingPayload } from "../src/svex-account";
 import { discoverActions, findActions, KNOWN_ACTIONS } from "../src/svex-actions";
@@ -43,6 +43,11 @@ describe("rsc", () => {
 		const bad = parseActionReply('1:{"ok":false,"message":"bad password"}');
 		expect(() => actionData(bad, "login")).toThrow("bad password");
 		expect(() => parseActionReply("nothing")).toThrow("Unexpected");
+	});
+
+	test("marks an unreadable reply, because the action may have run", () => {
+		expect(() => parseActionReply('1:{"ok":tru')).toThrow(ActionReplyError);
+		expect(() => parseActionReply("nothing")).toThrow(ActionReplyError);
 	});
 });
 
