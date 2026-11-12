@@ -1,0 +1,15 @@
+// Runs on the trgo page only. It passes requests to the background worker and sends back the reply.
+import { api } from "./api";
+import { acceptPageMessage, failure, HELLO, isExtResponse, respond } from "./protocol";
+
+const version = api.runtime.getManifest().version;
+document.documentElement.dataset.trgoExtension = version;
+window.postMessage({ type: HELLO, version }, location.origin);
+
+window.addEventListener("message", async (event) => {
+	const request = acceptPageMessage(event, window, location.origin);
+	if (!request) return;
+	const reply = await api.runtime.sendMessage(request).catch(() => null);
+	// Never "*": only this page gets the reply.
+	window.postMessage(isExtResponse(reply) ? reply : respond(request.id, failure(502, "extension unavailable")), location.origin);
+});
