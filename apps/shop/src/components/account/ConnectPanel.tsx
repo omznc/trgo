@@ -20,6 +20,10 @@ const LOGIN: Record<ProviderId, (username: string, password: string) => Promise<
 	kp: async () => {
 		throw new Error("KupujemProdajem has no account.");
 	},
+	// Njuškalo is search-only too.
+	njuskalo: async () => {
+		throw new Error("Njuškalo has no account.");
+	},
 };
 const SPIN = "animate-spin";
 const CARD = "rounded-[24px] p-5";

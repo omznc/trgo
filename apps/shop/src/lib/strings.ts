@@ -144,12 +144,13 @@ const bs = {
 	accountFailed: "Prijava nije uspjela. Provjeri podatke.",
 	needKeySend: "Poveži OpenRouter da pošaljem poruku.",
 	// A new provider fails the typecheck until it has an entry here.
-	needPublish: { olx: "Poveži OLX da objavim oglas.", svex: "Poveži SVEX da objavim oglas.", kp: "KP ne podržava objavu oglasa." } satisfies Record<ProviderId, string>,
+	needPublish: { olx: "Poveži OLX da objavim oglas.", svex: "Poveži SVEX da objavim oglas.", kp: "KP ne podržava objavu oglasa.", njuskalo: "Njuškalo ne podržava objavu oglasa." } satisfies Record<ProviderId, string>,
 	needConnect: {
 		openrouter: "Poveži OpenRouter da mogu pretraživati i odgovarati.",
 		olx: "Poveži OLX da objavljuješ i vidiš svoje oglase.",
 		svex: "Poveži SVEX da objavljuješ oglase.",
 		kp: "KP nema račun u ovoj aplikaciji.",
+		njuskalo: "Njuškalo nema račun u ovoj aplikaciji.",
 	} satisfies Record<ProviderId | "openrouter", string>,
 	needMine: "Poveži OLX ili SVEX da vidim tvoje oglase.",
 	notConnected: "Nisi povezan. Poveži račun i pokušaj ponovo.",
@@ -196,6 +197,7 @@ const bs = {
 	markets: "Tržišta",
 	message: "Poruka",
 	marketsAria: "Izbor tržišta za pretragu",
+	needsExtension: "Treba trgo ekstenziju za preglednik",
 };
 
 const en: typeof bs = {
@@ -340,12 +342,13 @@ const en: typeof bs = {
 	connecting: "Connecting...",
 	accountFailed: "Sign-in failed. Check your details.",
 	needKeySend: "Connect OpenRouter to send a message.",
-	needPublish: { olx: "Connect OLX to publish a listing.", svex: "Connect SVEX to publish a listing.", kp: "KP does not support publishing." },
+	needPublish: { olx: "Connect OLX to publish a listing.", svex: "Connect SVEX to publish a listing.", kp: "KP does not support publishing.", njuskalo: "Njuškalo does not support publishing." },
 	needConnect: {
 		openrouter: "Connect OpenRouter so I can search and answer.",
 		olx: "Connect OLX to publish and see your listings.",
 		svex: "Connect SVEX to publish listings.",
 		kp: "KP has no account in this app.",
+		njuskalo: "Njuškalo has no account in this app.",
 	},
 	needMine: "Connect OLX or SVEX so I can see your listings.",
 	notConnected: "You are not connected. Connect an account and try again.",
@@ -392,6 +395,7 @@ const en: typeof bs = {
 	markets: "Markets",
 	message: "Message",
 	marketsAria: "Choose the markets to search",
+	needsExtension: "Needs the trgo browser extension",
 };
 
 export const strings = lang === "en" ? en : bs;

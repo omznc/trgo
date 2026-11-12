@@ -1,5 +1,6 @@
 import {
 	createKpProvider,
+	createNjuskaloProvider,
 	createOlxProvider,
 	createSvexProvider,
 	OLX_SHIPPING_NOTE,
@@ -15,6 +16,7 @@ import {
 	type SvexSession,
 	type SvexCondition,
 } from "@lagano/providers";
+import { createTransport } from "./extension";
 import { expireSession, getSession, isAuthError } from "./sessions";
 import { getPhoto } from "./photos";
 import { outcomeUnknown, savedTrack, type Track, trackOf } from "./publish-resume";
@@ -63,13 +65,20 @@ type OlxAttribute = {
 type SvexCategory = NamedId & { isLeaf?: boolean };
 
 export const proxyUrl = import.meta.env.VITE_PROXY_URL ?? "http://localhost:8787";
-export const olxAccount = createOlxProvider({ proxyUrl });
-export const svexAccount = createSvexProvider({ proxyUrl });
+// Reads of the extension hosts go through the browser extension when it is there. All else uses the proxy.
+export const transportFetch = createTransport(proxyUrl);
+export const olxAccount = createOlxProvider({ proxyUrl, fetch: transportFetch });
+export const svexAccount = createSvexProvider({ proxyUrl, fetch: transportFetch });
 const olx = olxAccount;
 const svex = svexAccount;
 
 // A new provider fails the typecheck here until its client exists.
-const ACCOUNTS: Record<ProviderId, Provider> = { olx: olxAccount, svex: svexAccount, kp: createKpProvider({ proxyUrl }) };
+const ACCOUNTS: Record<ProviderId, Provider> = {
+	olx: olxAccount,
+	svex: svexAccount,
+	kp: createKpProvider({ proxyUrl, fetch: transportFetch }),
+	njuskalo: createNjuskaloProvider({ proxyUrl, fetch: transportFetch }),
+};
 export const accountsWith = (capability: Capability): Provider[] => providersWith(capability).map((id) => ACCOUNTS[id]);
 export const clientsOf = (ids: readonly ProviderId[]): Provider[] => ids.map((id) => ACCOUNTS[id]);
 
@@ -239,7 +248,12 @@ async function* publishKp(): Step {
 	throw new Error("KupujemProdajem does not support publishing.");
 }
 
-const STEPS: Record<ProviderId, (args: ListingArgs, track: Track) => Step> = { olx: publishOlx, svex: publishSvex, kp: publishKp };
+// Njuškalo is search-only too.
+async function* publishNjuskalo(): Step {
+	throw new Error("Njuškalo does not support publishing.");
+}
+
+const STEPS: Record<ProviderId, (args: ListingArgs, track: Track) => Step> = { olx: publishOlx, svex: publishSvex, kp: publishKp, njuskalo: publishNjuskalo };
 
 // Runs after the user approved. Providers run one after the other, so progress is easy to show.
 // `previous` holds failed results of an earlier run. A provider with a saved id goes on from it and never makes a second listing.

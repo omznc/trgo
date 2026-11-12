@@ -1,6 +1,6 @@
 import { getListing, type ListingDetail, PROVIDERS, type ProviderId } from "@lagano/providers";
 import { useCallback, useEffect, useState } from "react";
-import { proxyUrl } from "@/lib/publish";
+import { proxyUrl, transportFetch } from "@/lib/publish";
 
 // One request for each listing for the whole session. A failed request leaves the cache.
 const cache = new Map<string, Promise<ListingDetail>>();
@@ -9,7 +9,7 @@ function load(provider: ProviderId, url: string) {
 	const key = `${provider}:${url}`;
 	let p = cache.get(key);
 	if (!p) {
-		p = getListing({ proxyUrl }, provider, url);
+		p = getListing({ proxyUrl, fetch: transportFetch },provider, url);
 		p.catch(() => cache.delete(key));
 		cache.set(key, p);
 	}

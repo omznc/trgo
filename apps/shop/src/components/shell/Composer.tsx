@@ -1,6 +1,7 @@
 import { countryProviders, marketCountries, PROVIDERS, type ProviderId } from "@lagano/providers";
 import { ArrowUp, ChevronDown, ImagePlus } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useExtensionVersion } from "@/lib/extension";
 import { countryName } from "@/lib/market";
 import { type MutableRefObject, type Ref, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FileUIPart } from "ai";
@@ -121,14 +122,14 @@ function TaggedSlot() {
 }
 
 // The site icons, in public/logos. A new provider must add one here.
-const LOGOS: Record<ProviderId, string> = { olx: "/logos/olx.svg", svex: "/logos/svex.svg", kp: "/logos/kp.png" };
+const LOGOS: Record<ProviderId, string> = { olx: "/logos/olx.svg", svex: "/logos/svex.svg", kp: "/logos/kp.png", njuskalo: "/logos/njuskalo.svg" };
 // The trigger shows this many logos, then "+N".
 const MAX_LOGOS = 3;
 
 // The menu shows the site name under a country heading, the trigger shows the logos.
 const MARKETS = marketCountries(PROVIDERS).map((country) => ({
 	country,
-	providers: countryProviders(PROVIDERS, country).map((key) => ({ key, name: PROVIDERS[key].siteName, shortName: PROVIDERS[key].name, logo: LOGOS[key] })),
+	providers: countryProviders(PROVIDERS, country).map((key) => ({ key, name: PROVIDERS[key].siteName, shortName: PROVIDERS[key].name, logo: LOGOS[key], needsExtension: "needsExtension" in PROVIDERS[key] })),
 }));
 
 const Logo = ({ src, className = "" }: { src: string; className?: string }) => (
@@ -139,6 +140,7 @@ function MarketsMenu({ selected, onToggle }: { selected: ProviderId[]; onToggle:
 	const on = MARKETS.flatMap((g) => g.providers).filter((m) => selected.includes(m.key));
 	const [only] = on;
 	const extra = on.length - MAX_LOGOS;
+	const hasExtension = useExtensionVersion() !== null;
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
@@ -174,12 +176,16 @@ function MarketsMenu({ selected, onToggle }: { selected: ProviderId[]; onToggle:
 							<DropdownMenuCheckboxItem
 								key={m.key}
 								checked={selected.includes(m.key)}
+								disabled={m.needsExtension && !hasExtension}
 								onCheckedChange={() => onToggle(m.key)}
 								onSelect={(event) => event.preventDefault()}
 								className="min-h-10 gap-2 rounded-xl text-sm"
 							>
 								<Logo src={m.logo} />
-								{m.name}
+								<span className="flex flex-col">
+									{m.name}
+									{m.needsExtension && !hasExtension && <span className="text-xs text-fg-4">{strings.needsExtension}</span>}
+								</span>
 							</DropdownMenuCheckboxItem>
 						))}
 					</DropdownMenuGroup>

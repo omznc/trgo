@@ -1,10 +1,14 @@
-import { displayCurrency, displayLabel, marketSelection, parseSelection, PROVIDERS, type ProviderId } from "@lagano/providers";
+import { availableTable, displayCurrency, displayLabel, marketSelection, parseSelection, PROVIDERS, type ProviderId } from "@lagano/providers";
 import { useSyncExternalStore } from "react";
+import { extensionVersion } from "./extension";
 import { lang } from "./lang";
 import { proxyUrl } from "./publish";
 
 // The saved market choice: a JSON list of provider ids.
 const KEY = "trgo-market";
+
+// The providers that work now. Njuškalo needs the extension, so a saved choice or /geo never picks it without it.
+const available = () => availableTable(PROVIDERS, extensionVersion() !== null);
 
 // The server and the first render use the default market. Browser storage is read after mount.
 let selection: ProviderId[] = marketSelection(PROVIDERS, null);
@@ -54,7 +58,7 @@ export function chooseMarket(next: ProviderId[]) {
 
 function readSaved(): ProviderId[] | null {
 	try {
-		return parseSelection(PROVIDERS, JSON.parse(localStorage.getItem(KEY) ?? "null"));
+		return parseSelection(available(), JSON.parse(localStorage.getItem(KEY) ?? "null"));
 	} catch {
 		return null;
 	}
@@ -81,5 +85,5 @@ export async function initMarket() {
 		return publish(saved);
 	}
 	const country = await fetchCountry();
-	if (!chosen) publish(marketSelection(PROVIDERS, country));
+	if (!chosen) publish(marketSelection(available(), country));
 }

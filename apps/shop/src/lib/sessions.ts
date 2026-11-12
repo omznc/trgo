@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 // A new provider fails the typecheck here until its session type exists.
 // KupujemProdajem is search-only and has no session.
-type SessionOf = { olx: OlxSession; svex: SvexSession; kp: Record<string, never> };
+type SessionOf = { olx: OlxSession; svex: SvexSession; kp: Record<string, never>; njuskalo: Record<string, never> };
 type Sessions = { [P in ProviderId]: SessionOf[P] };
 
 const keyOf = (p: ProviderId) => `lagano.session.${p}`;

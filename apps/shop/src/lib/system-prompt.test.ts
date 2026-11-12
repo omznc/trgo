@@ -17,6 +17,12 @@ test("a Serbian selection tells the model to use Latin ekavian terms", () => {
 	expect(prompt).toContain("Prices are in din (RSD).");
 });
 
+test("a Njuškalo selection names the site, the currency and the language", () => {
+	const prompt = buildSystemPrompt("en", ["njuskalo"]);
+	expect(prompt).toContain("You search Njuškalo.hr with the search_listings tool. Prices are in EUR.");
+	expect(prompt).toContain("Njuškalo.hr are Croatian sites.");
+});
+
 test("the prompt of the Bosnian market is the same when other markets exist", async () => {
 	expect(buildSystemPrompt("bs", ["olx", "svex"], FAKE)).toBe(await fixed("system-prompt.bs.txt"));
 });

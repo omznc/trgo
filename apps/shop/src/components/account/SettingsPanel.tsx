@@ -1,4 +1,5 @@
-import { countryProviders, marketCountries, PROVIDERS, selectionCountry } from "@lagano/providers";
+import { availableTable, countryProviders, marketCountries, PROVIDERS, selectionCountry } from "@lagano/providers";
+import { useExtensionVersion } from "@/lib/extension";
 import { chooseMarket, countryName, useSelection } from "@/lib/market";
 import { Check, ChevronRight, ChevronsUpDown, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -84,6 +85,8 @@ function ModelList({ connected }: { connected: boolean }) {
 // A market is a country. A pick sets the search providers of that country and saves the choice.
 function MarketRow() {
 	const selected = useSelection();
+	// A country that only the extension serves is not a market without it.
+	const table = availableTable(PROVIDERS, useExtensionVersion() !== null);
 	const current = selectionCountry(PROVIDERS, selected);
 	return (
 		<div className={ROW}>
@@ -94,8 +97,8 @@ function MarketRow() {
 					<ChevronsUpDown size={14} aria-hidden />
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="end" className="solid min-w-44 rounded-2xl p-1.5">
-					<DropdownMenuRadioGroup value={current ?? ""} onValueChange={(c) => chooseMarket(countryProviders(PROVIDERS, c))}>
-						{marketCountries(PROVIDERS).map((c) => (
+					<DropdownMenuRadioGroup value={current ?? ""} onValueChange={(c) => chooseMarket(countryProviders(table, c))}>
+						{marketCountries(table).map((c) => (
 							<DropdownMenuRadioItem key={c} value={c} className="min-h-10 rounded-xl text-sm">
 								{countryName(c)}
 							</DropdownMenuRadioItem>
@@ -112,6 +115,7 @@ export default function SettingsPanel() {
 	const sessions = useSessions();
 	const key = useOpenRouterKey();
 	const connected = [!!key, sessions.olx, sessions.svex].filter(Boolean).length;
+	const extension = useExtensionVersion();
 	return (
 		<div className="flex h-full min-h-0 flex-col">
 			<PanelHeader title={ta.settings} onClose={close} />
@@ -175,6 +179,10 @@ export default function SettingsPanel() {
 							<span>{ta.whatWeStore}</span>
 							<ChevronRight size={16} aria-hidden className="text-fg-3" />
 						</button>
+						<div className={ROW}>
+							<span>{ta.extension}</span>
+							<span className="text-fg-3">{extension ? ta.extensionOn(extension) : ta.extensionOff}</span>
+						</div>
 					</Group>
 				</Section>
 			</PanelBody>
