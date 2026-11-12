@@ -1,4 +1,5 @@
 // Messages between the trgo page, the content script and the background worker.
+import { EXTENSION_ERROR } from "@lagano/providers/hosts";
 
 // The build sets this. It is a list of extra origins that only the dev build allows.
 declare const __DEV_ORIGINS__: string[] | undefined;
@@ -48,6 +49,7 @@ export const respond = (id: string, result: ExtResult): ExtResponse => ({ type: 
 export const failure = (status: number, error: string): ExtResult => ({
 	status,
 	statusText: error,
-	headers: { "content-type": "application/json" },
+	// The mark tells the page that the extension failed, not the site. Upstream headers never carry it.
+	headers: { "content-type": "application/json", [EXTENSION_ERROR]: error },
 	body: JSON.stringify({ error }),
 });

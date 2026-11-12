@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { createExtensionFetch, type ExtensionCall } from "../src/extension-fetch";
+import { EXTENSION_ERROR } from "../src/hosts";
 
 const PROXY = "https://p.test";
 
@@ -52,6 +53,26 @@ describe("extension fetch", () => {
 		await fetch(`${PROXY}x/olx/search`);
 		expect(sent).toEqual([]);
 		expect(fallbackUrls).toHaveLength(10);
+	});
+
+	test("falls back to the proxy when the extension fails", async () => {
+		const failed = { status: 403, statusText: "permission", headers: { [EXTENSION_ERROR]: "permission" }, body: "{}" };
+		const { fetch, fallbackUrls } = setup(async () => failed);
+		expect(await (await fetch(`${PROXY}/olx/search`)).text()).toBe("proxied");
+		const thrown = setup(async () => Promise.reject(new Error("The browser extension did not answer.")));
+		expect(await (await thrown.fetch(`${PROXY}/kp/pretraga`)).text()).toBe("proxied");
+		expect(fallbackUrls).toEqual([`${PROXY}/olx/search`]);
+	});
+
+	test("keeps an upstream error and the errors of an extension-only host", async () => {
+		const upstream = setup(async () => ({ status: 403, statusText: "Forbidden", headers: {}, body: "no" }));
+		expect((await upstream.fetch(`${PROXY}/olx/search`)).status).toBe(403);
+		expect(upstream.fallbackUrls).toEqual([]);
+		const only = setup(async () => ({ status: 403, statusText: "permission", headers: { [EXTENSION_ERROR]: "permission" }, body: "{}" }));
+		expect((await only.fetch(`${PROXY}/njuskalo/search/?keywords=x`)).status).toBe(403);
+		expect(only.fallbackUrls).toEqual([]);
+		const silent = setup(async () => Promise.reject(new Error("no answer")));
+		await expect(silent.fetch(`${PROXY}/njuskalo/search/?keywords=x`)).rejects.toThrow("no answer");
 	});
 
 	test("rejects with the abort reason", async () => {

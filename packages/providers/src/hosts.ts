@@ -8,15 +8,18 @@ export const UPSTREAMS: Record<string, string> = {
 	"svex-search": "https://search.api.svex.ba",
 };
 
-// "paths" limits a host to some path prefixes.
-export type ExtensionHost = { origin: string; credentials: "include" | "omit"; paths?: string[] };
+// The header that marks a reply as an error of the extension itself.
+export const EXTENSION_ERROR = "x-trgo-extension-error";
+
+// "paths" limits a host to some path prefixes. "extensionOnly" hosts have no proxy route to fall back to.
+export type ExtensionHost = { origin: string; credentials: "include" | "omit"; paths?: string[]; extensionOnly?: boolean };
 
 // Only njuskalo needs the user's own session. The other hosts never get the browser cookies.
 // With the session, njuskalo could show the user's account pages, so it gets the search pages only.
 export const EXTENSION_HOSTS: Record<string, ExtensionHost> = {
 	...Object.fromEntries(Object.entries(UPSTREAMS).map(([key, origin]) => [key, { origin, credentials: "omit" as const }])),
 	kp: { origin: "https://www.kupujemprodajem.com", credentials: "omit" },
-	njuskalo: { origin: "https://www.njuskalo.hr", credentials: "include", paths: ["/search/"] },
+	njuskalo: { origin: "https://www.njuskalo.hr", credentials: "include", paths: ["/search/"], extensionOnly: true },
 };
 
 // Checks the path before and after percent-decoding.
