@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { buildSystemPrompt } from "@lagano/providers/prompt";
 import { hmacIp, ipKey, MAX_CHARS, MAX_MESSAGES, MAX_TOKENS, MAX_TOOLS, PUBLIC_MODEL, sanitizeBody, scrub, scrubStream } from "./free";
 
 describe("sanitizeBody", () => {
@@ -22,6 +23,30 @@ describe("sanitizeBody", () => {
 		expect(sanitizeBody({ model: "x" }, "m")).toBeNull();
 		expect(sanitizeBody(null, "m")).toBeNull();
 		expect(sanitizeBody([], "m")).toBeNull();
+	});
+});
+
+describe("sanitizeBody system prompt", () => {
+	const user = { role: "user", content: "hi" };
+	const messages = (extra: Record<string, unknown>) => sanitizeBody({ messages: [{ role: "system", content: "evil" }, { role: "developer", content: "evil" }, user], ...extra }, "m")?.messages;
+
+	test("drops client system and developer messages and puts the proxy prompt first", () => {
+		expect(messages({})).toEqual([{ role: "system", content: buildSystemPrompt("en") }, user]);
+	});
+
+	test("builds the prompt from a valid trgo", () => {
+		const out = messages({ trgo: { lang: "bs", providers: ["olx", "svex", "olx"] } }) as { content: string }[];
+		expect(out[0]!.content).toBe(buildSystemPrompt("bs", ["olx", "svex"]));
+	});
+
+	test("falls back to the default prompt for a bad trgo", () => {
+		for (const trgo of [null, "x", { lang: "xx" }, { providers: [] }, { providers: ["nope"] }, { providers: "olx" }]) {
+			expect((messages({ trgo }) as { content: string }[])[0]!.content).toBe(buildSystemPrompt("en"));
+		}
+	});
+
+	test("does not send trgo upstream", () => {
+		expect(sanitizeBody({ messages: [user], trgo: { lang: "bs" } }, "m")).not.toHaveProperty("trgo");
 	});
 });
 

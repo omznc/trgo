@@ -52,7 +52,7 @@ missing after step 1.
 5. Tests.
    - Add fixtures and adapter tests in `packages/providers/test/`.
    - `registry.test.ts` checks each capability flag against the adapter.
-   - The prompt test in `apps/shop/src/lib/system-prompt.test.ts` holds the
+   - The prompt test in `packages/providers/test/prompt.test.ts` holds the
      text of the prompt for the current sites. Update its fixtures on
      purpose when the new site changes the prompt.
 6. Run `bun run typecheck`, `bun test` and

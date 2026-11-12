@@ -11,7 +11,7 @@ import { clientsOf, proxyUrl, publishListing } from "./publish";
 import { expireSession, getSession, isAuthError } from "./sessions";
 import { lang } from "./lang";
 import { getSelection } from "./market";
-import { buildSystemPrompt, promptFacts } from "./system-prompt";
+import { buildSystemPrompt, promptFacts } from "@lagano/providers/prompt";
 import { nonEmpty, toolNames, toolProviders, type ToolProviders } from "./tool-gate";
 import { strings } from "./strings";
 import { knownModelName } from "./openrouter-models";
@@ -235,19 +235,19 @@ function errorCode(error: unknown) {
 
 // Built per send, so the latest key and model are used. Runs only in the browser.
 export function createTransport(apiKey: string | null, model: string) {
-	// The proxy ignores the placeholder key. It sends its own key.
+	const selected = getSelection();
+	// The proxy ignores the placeholder key and any client system prompt. It builds the prompt from trgo.
 	const openrouter = isFreeModel(model)
-		? createOpenRouter({ apiKey: "free", baseURL: `${proxyUrl}/ai` })
+		? createOpenRouter({ apiKey: "free", baseURL: `${proxyUrl}/ai`, extraBody: { trgo: { lang, providers: selected } } })
 		: createOpenRouter({
 				apiKey: apiKey ?? "",
 				headers: { "HTTP-Referer": location.origin, "X-OpenRouter-Title": "trgo" },
 			});
-	const selected = getSelection();
 	// A tool without a provider is left out at run time. The type keeps all five names.
 	const tools = buildTools(selected) as Tools;
 	const agent = new ToolLoopAgent({
 		model: openrouter(model),
-		instructions: buildSystemPrompt(lang, selected),
+		instructions: isFreeModel(model) ? undefined : buildSystemPrompt(lang, selected),
 		tools,
 		// The price card is the whole answer, so no text follows it.
 		stopWhen: [isStepCount(8), hasToolCall("price_check")],

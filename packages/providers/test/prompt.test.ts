@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { PROVIDERS, type Table } from "@lagano/providers";
-import { buildSystemPrompt, promptFacts } from "./system-prompt";
+import { buildSystemPrompt, promptFacts } from "../src/prompt";
 
 const fixed = (name: string) => Bun.file(new URL(`./fixtures/${name}`, import.meta.url)).text();
 

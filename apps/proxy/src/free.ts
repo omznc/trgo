@@ -1,4 +1,6 @@
 // Helpers for POST /ai/chat/completions. Pure functions, so they are easy to test.
+import { LANGS, type Lang } from "@lagano/providers/langs";
+import { buildSystemPrompt, SEARCH_IDS } from "@lagano/providers/prompt";
 
 export const PUBLIC_MODEL = "trgo-free";
 export const MAX_TOKENS = 4000;
@@ -18,7 +20,7 @@ const ALLOWED_KEYS = [
 	"response_format",
 ];
 
-// Limits for one request. The shop sends the system prompt (about 3k chars), then the chat.
+// Limits for one request. They count the client messages. The proxy adds its own system prompt (about 3k chars) after the check.
 // A tool result is about 2k chars (a search summary), but list_my_listings is about 12k.
 // 120k chars is about 30k tokens: a long chat of 30 turns fits, a pasted book does not.
 // The shop has 5 tools; 8 leaves room. A tool loop adds 2 messages per step (8 steps per turn).
@@ -71,12 +73,31 @@ function withinLimits(source: Record<string, unknown>, messages: unknown[]): boo
 	return messages.every((message) => messageChars(message) !== null);
 }
 
+// Reads the prompt inputs from the client. A missing or bad value gives the default, so an old shop page still works.
+function promptInputs(trgo: unknown) {
+	const { lang, providers } = (typeof trgo === "object" && trgo !== null ? trgo : {}) as { lang?: unknown; providers?: unknown };
+	const picked = Array.isArray(providers) ? [...new Set(providers)] : [];
+	const valid = picked.length > 0 && picked.every((id) => SEARCH_IDS.includes(id));
+	return {
+		lang: (LANGS as readonly unknown[]).includes(lang) ? (lang as Lang) : "en",
+		providers: valid ? (picked as string[]) : [...SEARCH_IDS],
+	};
+}
+
+// The proxy owns the system prompt. It drops every client system and developer message.
+function withProxyPrompt(messages: unknown[], trgo: unknown): unknown[] {
+	const { lang, providers } = promptInputs(trgo);
+	const rest = messages.filter((m) => !["system", "developer"].includes((m as { role?: unknown }).role as string));
+	return [{ role: "system", content: buildSystemPrompt(lang, providers) }, ...rest];
+}
+
 export function sanitizeBody(input: unknown, model: string): Record<string, unknown> | null {
 	if (typeof input !== "object" || input === null || Array.isArray(input)) return null;
 	const source = input as Record<string, unknown>;
 	if (!Array.isArray(source.messages) || !withinLimits(source, source.messages)) return null;
 	const body: Record<string, unknown> = {};
 	for (const key of ALLOWED_KEYS) if (key in source) body[key] = source[key];
+	body.messages = withProxyPrompt(source.messages, source.trgo);
 	const asked = Number(source.max_tokens);
 	body.max_tokens = Number.isFinite(asked) && asked > 0 ? Math.min(Math.floor(asked), MAX_TOKENS) : MAX_TOKENS;
 	body.model = model;
