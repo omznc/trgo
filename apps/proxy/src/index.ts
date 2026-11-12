@@ -26,6 +26,8 @@ interface Env {
 	RL_FREE?: RateLimit;
 	RL_FREE_ALL?: RateLimit;
 	RL_STATIC?: RateLimit;
+	RL_KP?: RateLimit;
+	RL_KP_ALL?: RateLimit;
 	FREE_KV?: KVNamespace;
 	// Secrets. Set them with "cf workers secrets update".
 	FREE_MODEL?: string;
@@ -72,6 +74,8 @@ const isLogin = (request: Request, path: string) => {
 const isStaticChunk = (request: Request, path: string) =>
 	request.method === "GET" && path.startsWith("/svex/_next/static/");
 
+const isKp = (path: string) => path === "/kp" || path.startsWith("/kp/");
+
 const clientKey = (request: Request) => ipKey(request.headers.get("cf-connecting-ip") ?? "unknown");
 
 // Fixed window per client (IPv4 address or IPv6 /64). Login routes also use the stricter limit.
@@ -84,9 +88,12 @@ async function checkLimit(request: Request, env: Env, path: string): Promise<"ok
 		return (await env.RL_STATIC.limit({ key })).success ? "ok" : "limited";
 	}
 	const login = isLogin(request, path);
-	if (!env.RL_API || (login && !env.RL_LOGIN)) return "misconfigured";
+	const kp = isKp(path);
+	if (!env.RL_API || (login && !env.RL_LOGIN) || (kp && (!env.RL_KP || !env.RL_KP_ALL))) return "misconfigured";
 	const checks = [env.RL_API.limit({ key })];
 	if (login) checks.push(env.RL_LOGIN!.limit({ key }));
+	// RL_KP_ALL has one fixed key. It is a ceiling for each Cloudflare location.
+	if (kp) checks.push(env.RL_KP!.limit({ key }), env.RL_KP_ALL!.limit({ key: "all" }));
 	const results = await Promise.all(checks);
 	return results.every((r) => r.success) ? "ok" : "limited";
 }
@@ -373,7 +380,7 @@ export default {
 		if (url.pathname === "/version") return versionResponse(env, cors);
 		if (url.pathname === "/geo") return geoResponse(request, cors);
 		if (url.pathname === "/upload") return upload(request, url, cors);
-		if (url.pathname === "/kp" || url.pathname.startsWith("/kp/")) return kpRoute(request, env, url, cors);
+		if (isKp(url.pathname)) return kpRoute(request, env, url, cors);
 		const route = resolveTarget(url);
 		if (!route) return text(400, "bad route", cors);
 		return proxy(request, route.key, route.target, cors);

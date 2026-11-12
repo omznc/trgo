@@ -12,6 +12,8 @@ const env = {
 	RL_FREE: ok,
 	RL_FREE_ALL: ok,
 	RL_STATIC: ok,
+	RL_KP: ok,
+	RL_KP_ALL: ok,
 	FREE_KV: kv,
 	FREE_MODEL: "m/real",
 	OPENROUTER_KEY: "test-key",
@@ -411,6 +413,20 @@ describe("kp relay", () => {
 			expect(await res.json()).toEqual({ error: "kp-unavailable" });
 		}
 		expect(seen).toEqual([]);
+	});
+
+	test("returns 500 without RL_KP or RL_KP_ALL, and 429 when one is full", async () => {
+		const full = { limit: async () => ({ success: false }) };
+		for (const name of ["RL_KP", "RL_KP_ALL"]) {
+			expect((await call("/kp/oglasi", {}, { ...kpEnv, [name]: undefined } as typeof env)).status).toBe(500);
+			expect((await call("/kp/oglasi", {}, { ...kpEnv, [name]: full } as typeof env)).status).toBe(429);
+		}
+		expect(seen).toEqual([]);
+	});
+
+	test("another route does not use the KP limits", async () => {
+		const full = { limit: async () => ({ success: false }) };
+		expect((await call("/olx/x", {}, { ...kpEnv, RL_KP: full, RL_KP_ALL: full } as typeof env)).status).toBe(200);
 	});
 
 	test("returns 503 for a relay URL without https", async () => {
