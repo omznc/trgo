@@ -5,6 +5,17 @@
     "": {
       "name": "lagano-shop",
     },
+    "apps/extension": {
+      "name": "@lagano/extension",
+      "version": "0.1.0",
+      "dependencies": {
+        "@lagano/providers": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "1.4.4",
+        "typescript": "^5.9.0",
+      },
+    },
     "apps/kp-relay": {
       "name": "@lagano/kp-relay",
       "devDependencies": {
@@ -223,6 +234,8 @@
     "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.6.0", "", {}, "sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw=="],
 
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.9", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.0.3", "@jridgewell/sourcemap-codec": "^1.4.10" } }, "sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ=="],
+
+    "@lagano/extension": ["@lagano/extension@workspace:apps/extension"],
 
     "@lagano/kp-relay": ["@lagano/kp-relay@workspace:apps/kp-relay"],
 
