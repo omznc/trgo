@@ -18,10 +18,58 @@ const ALLOWED_KEYS = [
 	"response_format",
 ];
 
+// Limits for one request. The shop sends the system prompt (about 3k chars), then the chat.
+// A tool result is about 2k chars (a search summary), but list_my_listings is about 12k.
+// 120k chars is about 30k tokens: a long chat of 30 turns fits, a pasted book does not.
+// The shop has 5 tools; 8 leaves room. A tool loop adds 2 messages per step (8 steps per turn).
+export const MAX_BODY_BYTES = 512 * 1024;
+export const MAX_MESSAGES = 120;
+export const MAX_CHARS = 120_000;
+export const MAX_TOOLS = 8;
+
+// Counts the text of message content. Returns null for a part that is not plain text.
+function contentChars(content: unknown): number | null {
+	if (typeof content === "string") return content.length;
+	if (content == null) return 0;
+	if (!Array.isArray(content)) return null;
+	let chars = 0;
+	for (const part of content) {
+		const p = part as { type?: unknown; text?: unknown } | null;
+		if (p?.type !== "text" || typeof p.text !== "string") return null;
+		chars += p.text.length;
+	}
+	return chars;
+}
+
+function callChars(calls: unknown): number {
+	if (!Array.isArray(calls)) return 0;
+	return calls.reduce((sum, call) => sum + String(call?.function?.arguments ?? "").length, 0);
+}
+
+function messageChars(message: unknown): number | null {
+	if (typeof message !== "object" || message === null) return null;
+	const { content, tool_calls: calls } = message as { content?: unknown; tool_calls?: unknown };
+	const chars = contentChars(content);
+	return chars === null ? null : chars + callChars(calls);
+}
+
+// Runs before any quota is spent.
+function withinLimits(source: Record<string, unknown>, messages: unknown[]): boolean {
+	if (messages.length > MAX_MESSAGES) return false;
+	if (source.tools !== undefined && (!Array.isArray(source.tools) || source.tools.length > MAX_TOOLS)) return false;
+	let total = 0;
+	for (const message of messages) {
+		const chars = messageChars(message);
+		if (chars === null) return false;
+		total += chars;
+	}
+	return total <= MAX_CHARS;
+}
+
 export function sanitizeBody(input: unknown, model: string): Record<string, unknown> | null {
 	if (typeof input !== "object" || input === null || Array.isArray(input)) return null;
 	const source = input as Record<string, unknown>;
-	if (!Array.isArray(source.messages)) return null;
+	if (!Array.isArray(source.messages) || !withinLimits(source, source.messages)) return null;
 	const body: Record<string, unknown> = {};
 	for (const key of ALLOWED_KEYS) if (key in source) body[key] = source[key];
 	const asked = Number(source.max_tokens);
@@ -76,7 +124,26 @@ export function scrubStream(): TransformStream<Uint8Array, Uint8Array> {
 export const secondsUntilNextUtcDay = (now = new Date()) =>
 	Math.max(1, Math.ceil((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1) - now.getTime()) / 1000));
 
-export async function hashIp(ip: string): Promise<string> {
-	const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(ip));
+// Keyed hash, so the stored key cannot be reversed by hashing the IPv4 space.
+export async function hmacIp(ip: string, secret: string): Promise<string> {
+	const encoder = new TextEncoder();
+	const key = await crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+	const digest = await crypto.subtle.sign("HMAC", key, encoder.encode(ip));
 	return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// IPv4 stays whole. IPv6 maps to its /64, because one customer owns a whole /64 and can rotate in it.
+export function ipKey(ip: string): string {
+	if (!ip.includes(":")) return ip;
+	const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(ip);
+	if (mapped) return mapped[1]!;
+	const halves = ip.split("::");
+	if (halves.length > 2) return ip;
+	const front = halves[0] ? halves[0].split(":") : [];
+	const back = halves[1] ? halves[1].split(":") : [];
+	const gap = halves.length === 2 ? 8 - front.length - back.length : 0;
+	const groups = [...front, ...Array<string>(Math.max(gap, 0)).fill("0"), ...back];
+	if (groups.length !== 8) return ip;
+	const head = groups.slice(0, 4).map((g) => (/^[0-9a-f]{1,4}$/i.test(g) ? parseInt(g, 16).toString(16) : null));
+	return head.includes(null) ? ip : `${head.join(":")}::/64`;
 }

@@ -16,6 +16,10 @@ export default defineConfig({
 			RL_API: bindings.rateLimit({ namespace: "2001", simple: { limit: 60, period: 60 } }),
 			RL_LOGIN: bindings.rateLimit({ namespace: "2002", simple: { limit: 5, period: 60 } }),
 			RL_FREE: bindings.rateLimit({ namespace: "2003", simple: { limit: 12, period: 60 } }),
+			// One fixed key: the ceiling for the whole free route, over all clients.
+			RL_FREE_ALL: bindings.rateLimit({ namespace: "2004", simple: { limit: 60, period: 60 } }),
+			// SVEX static chunks (action discovery fetches about 50 per run).
+			RL_STATIC: bindings.rateLimit({ namespace: "2005", simple: { limit: 300, period: 60 } }),
 			FREE_KV: bindings.kv({ id: "9ce40f97b1684d3eabb9ab846ccdd97f" }),
 			// Set with "cf workers secrets update". Declared here so a deploy keeps them.
 			FREE_MODEL: bindings.secret(),

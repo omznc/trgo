@@ -1,7 +1,7 @@
 // Pass-through proxy. It never stores or logs bodies, headers or URLs.
 // The only state is a per-day request counter for the free AI route (see free.ts).
 // Read the whole file in a few minutes.
-import { hashIp, sanitizeBody, scrub, scrubStream, secondsUntilNextUtcDay } from "./free";
+import { hmacIp, ipKey, MAX_BODY_BYTES, sanitizeBody, scrub, scrubStream, secondsUntilNextUtcDay } from "./free";
 
 // SSRF guard: the only hosts this Worker can reach. Keep this list short.
 const UPSTREAMS: Record<string, string> = {
@@ -14,6 +14,7 @@ const UPSTREAMS: Record<string, string> = {
 const FORWARD_HEADERS = ["content-type", "accept", "authorization", "next-action", "next-router-state-tree"];
 
 // Upload targets: S3 buckets only, over https.
+// shortcut: matches any S3 bucket, pin it to the SVEX bucket host once a real presign URL is captured
 const UPLOAD_HOSTS: RegExp[] = [/^[a-z0-9.-]+\.s3[a-z0-9.-]*\.amazonaws\.com$/];
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 
@@ -23,6 +24,8 @@ interface Env {
 	RL_API?: RateLimit;
 	RL_LOGIN?: RateLimit;
 	RL_FREE?: RateLimit;
+	RL_FREE_ALL?: RateLimit;
+	RL_STATIC?: RateLimit;
 	FREE_KV?: KVNamespace;
 	// Secrets. Set them with "cf workers secrets update".
 	FREE_MODEL?: string;
@@ -46,28 +49,46 @@ function corsHeaders(request: Request, env: Env): Headers | null {
 	});
 }
 
-const isLogin = (request: Request, path: string) =>
-	request.method === "POST" && (path === "/olx/auth/login" || path === "/svex/prijava");
+// Lowercase, decoded once, no trailing slash. Upstream treats "/Login/" like "/login".
+function normalizePath(path: string): string {
+	let decoded = path;
+	try {
+		decoded = decodeURIComponent(path);
+	} catch {
+		// A bad escape stays as it is.
+	}
+	return decoded.toLowerCase().replace(/\/+$/, "");
+}
+
+const isLogin = (request: Request, path: string) => {
+	const p = normalizePath(path);
+	return request.method === "POST" && (p === "/olx/auth/login" || p === "/svex/prijava");
+};
 
 // SVEX action discovery fetches about 50 public static chunks.
 const isStaticChunk = (request: Request, path: string) =>
 	request.method === "GET" && path.startsWith("/svex/_next/static/");
 
-// Fixed window per client IP. Login routes also use the stricter limit.
-// Missing bindings fail closed, unless DEV_NO_RATE_LIMIT is set.
+const clientKey = (request: Request) => ipKey(request.headers.get("cf-connecting-ip") ?? "unknown");
+
+// Fixed window per client (IPv4 address or IPv6 /64). Login routes also use the stricter limit.
+// Static chunks use their own, larger limit. Missing bindings fail closed, unless DEV_NO_RATE_LIMIT is set.
 async function checkLimit(request: Request, env: Env, path: string): Promise<"ok" | "limited" | "misconfigured"> {
 	if (env.DEV_NO_RATE_LIMIT === "1") return "ok";
+	const key = clientKey(request);
+	if (isStaticChunk(request, path)) {
+		if (!env.RL_STATIC) return "misconfigured";
+		return (await env.RL_STATIC.limit({ key })).success ? "ok" : "limited";
+	}
 	const login = isLogin(request, path);
 	if (!env.RL_API || (login && !env.RL_LOGIN)) return "misconfigured";
-	const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
-	const checks = [env.RL_API.limit({ key: ip })];
-	if (login) checks.push(env.RL_LOGIN!.limit({ key: ip }));
+	const checks = [env.RL_API.limit({ key })];
+	if (login) checks.push(env.RL_LOGIN!.limit({ key }));
 	const results = await Promise.all(checks);
 	return results.every((r) => r.success) ? "ok" : "limited";
 }
 
 async function limitResponse(request: Request, env: Env, path: string, cors: Headers): Promise<Response | null> {
-	if (isStaticChunk(request, path)) return null;
 	const limit = await checkLimit(request, env, path);
 	if (limit === "misconfigured") return jsonError(500, "rate limit bindings are missing", cors);
 	return limit === "limited" ? jsonError(429, "too many requests", cors) : null;
@@ -173,7 +194,6 @@ async function proxy(request: Request, key: string, target: URL, cors: Headers):
 }
 
 const FREE_DAILY_CAP = 150;
-const MAX_FREE_BODY = 2 * 1024 * 1024;
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 const freeLimited = (scope: "minute" | "day", retryAfter: number, cors: Headers) => {
@@ -182,16 +202,28 @@ const freeLimited = (scope: "minute" | "day", retryAfter: number, cors: Headers)
 	return Response.json({ error: "free-limit", scope }, { status: 429, headers });
 };
 
-// Per IP: 12 per minute (binding), then a per-day count in KV. KV is approximate under load.
-async function freeLimit(request: Request, env: Env, cors: Headers): Promise<Response | null> {
+// Per IP: 12 per minute (binding). The whole route has a global ceiling too (RL_FREE_ALL, one key).
+async function freeMinuteLimit(request: Request, env: Env, cors: Headers): Promise<Response | null> {
 	if (env.DEV_NO_RATE_LIMIT === "1") return null;
-	if (!env.RL_FREE || !env.FREE_KV) return jsonError(500, "rate limit bindings are missing", cors);
-	const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
-	if (!(await env.RL_FREE.limit({ key: ip })).success) return freeLimited("minute", 60, cors);
-	const key = `d:${new Date().toISOString().slice(0, 10)}:${await hashIp(ip)}`;
-	const count = Number(await env.FREE_KV.get(key)) || 0;
-	if (count >= FREE_DAILY_CAP) return freeLimited("day", secondsUntilNextUtcDay(), cors);
-	await env.FREE_KV.put(key, String(count + 1), { expirationTtl: 2 * 24 * 3600 });
+	if (!env.RL_FREE || !env.RL_FREE_ALL || !env.FREE_KV) return jsonError(500, "rate limit bindings are missing", cors);
+	if (!(await env.RL_FREE.limit({ key: clientKey(request) })).success) return freeLimited("minute", 60, cors);
+	// A global counter in KV is not safe (write limits, eventual consistency), so use a binding.
+	if (!(await env.RL_FREE_ALL.limit({ key: "all" })).success) return freeLimited("minute", 60, cors);
+	return null;
+}
+
+// Per IP per day in KV. KV is approximate under load. A KV error lets the request pass.
+async function freeDayLimit(request: Request, env: Env, cors: Headers): Promise<Response | null> {
+	if (env.DEV_NO_RATE_LIMIT === "1" || !env.FREE_KV || !env.OPENROUTER_KEY) return null;
+	try {
+		const ip = await hmacIp(clientKey(request), env.OPENROUTER_KEY);
+		const key = `d:${new Date().toISOString().slice(0, 10)}:${ip}`;
+		const count = Number(await env.FREE_KV.get(key)) || 0;
+		if (count >= FREE_DAILY_CAP) return freeLimited("day", secondsUntilNextUtcDay(), cors);
+		await env.FREE_KV.put(key, String(count + 1), { expirationTtl: 2 * 24 * 3600 });
+	} catch {
+		// Fail open: the per-minute limits still apply.
+	}
 	return null;
 }
 
@@ -200,10 +232,12 @@ const freeUnavailable = (cors: Headers) => jsonError(503, "free-unavailable", co
 async function freeChat(request: Request, env: Env, cors: Headers): Promise<Response> {
 	if (request.method !== "POST") return jsonError(405, "use POST", cors);
 	if (!env.FREE_MODEL || !env.OPENROUTER_KEY) return freeUnavailable(cors);
-	const limited = await freeLimit(request, env, cors);
+	const limited = await freeMinuteLimit(request, env, cors);
 	if (limited) return limited;
 	const body = await readFreeBody(request, env.FREE_MODEL, cors);
 	if (body instanceof Response) return body;
+	const dayLimited = await freeDayLimit(request, env, cors);
+	if (dayLimited) return dayLimited;
 	let upstream: Response;
 	try {
 		upstream = await fetch(OPENROUTER_URL, {
@@ -225,8 +259,11 @@ async function freeChat(request: Request, env: Env, cors: Headers): Promise<Resp
 }
 
 async function readFreeBody(request: Request, model: string, cors: Headers): Promise<Record<string, unknown> | Response> {
+	// Check the declared size first, so a large body is never read.
+	const length = Number(request.headers.get("content-length"));
+	if (!Number.isInteger(length) || length <= 0 || length > MAX_BODY_BYTES) return jsonError(413, "body too large", cors);
 	const raw = await request.text();
-	if (raw.length > MAX_FREE_BODY) return jsonError(413, "body too large", cors);
+	if (raw.length > MAX_BODY_BYTES) return jsonError(413, "body too large", cors);
 	let parsed: unknown;
 	try {
 		parsed = JSON.parse(raw);

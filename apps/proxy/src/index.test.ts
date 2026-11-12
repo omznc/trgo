@@ -10,7 +10,11 @@ const env = {
 	RL_API: ok,
 	RL_LOGIN: ok,
 	RL_FREE: ok,
+	RL_FREE_ALL: ok,
+	RL_STATIC: ok,
 	FREE_KV: kv,
+	FREE_MODEL: "m/real",
+	OPENROUTER_KEY: "test-key",
 } as unknown as Parameters<typeof worker.fetch>[1];
 
 const call = (path: string, init: RequestInit = {}, e = env, origin: string | null = ORIGIN) => {
@@ -54,7 +58,7 @@ describe("route allowlist", () => {
 	);
 
 	// The URL parser resolves these before the Worker sees them, so the guard never runs.
-	// The upstream host stays fixed. The README says 400, so this differs from the README.
+	// The upstream host stays fixed.
 	test.each([
 		["/olx/a/../b", "https://api.olx.ba/b"],
 		["/olx/a/%2E%2E/b", "https://api.olx.ba/b"],
@@ -162,5 +166,169 @@ describe("rate limit bindings", () => {
 		const bare = { ALLOWED_ORIGINS: ORIGIN, FREE_MODEL: "m", OPENROUTER_KEY: "k" } as unknown as typeof env;
 		const res = await call("/ai/chat/completions", { method: "POST", body: "{}" }, bare);
 		expect(res.status).toBe(500);
+	});
+
+	test("return 500 on the free route without RL_FREE_ALL", async () => {
+		const res = await call("/ai/chat/completions", { method: "POST", body: "{}" }, { ...env, RL_FREE_ALL: undefined } as typeof env);
+		expect(res.status).toBe(500);
+		expect(res.headers.get("access-control-allow-origin")).toBe(ORIGIN);
+	});
+
+	test("return 500 for a static chunk without RL_STATIC", async () => {
+		const res = await call("/svex/_next/static/a.js", {}, { ...env, RL_STATIC: undefined } as typeof env);
+		expect(res.status).toBe(500);
+	});
+});
+
+describe("limiter keys", () => {
+	const spy = () => {
+		const keys: string[] = [];
+		return { keys, binding: { limit: async ({ key }: { key: string }) => (keys.push(key), { success: true }) } };
+	};
+	const withIp = (init: RequestInit = {}, ip = "2001:db8:1:2:aaaa:bbbb:cccc:dddd") => ({
+		...init,
+		headers: { ...(init.headers as Record<string, string>), "cf-connecting-ip": ip },
+	});
+
+	test("an IPv6 client is keyed by its /64", async () => {
+		const api = spy();
+		await call("/olx/x", withIp(), { ...env, RL_API: api.binding } as typeof env);
+		await call("/olx/x", withIp({}, "2001:db8:1:2:1::9"), { ...env, RL_API: api.binding } as typeof env);
+		expect(api.keys).toEqual(["2001:db8:1:2::/64", "2001:db8:1:2::/64"]);
+	});
+
+	test("static chunks use RL_STATIC and not RL_API", async () => {
+		const api = spy();
+		const stat = spy();
+		const e = { ...env, RL_API: api.binding, RL_STATIC: stat.binding } as typeof env;
+		await call("/svex/_next/static/a.js", withIp({}, "203.0.113.5"), e);
+		expect(api.keys).toEqual([]);
+		expect(stat.keys).toEqual(["203.0.113.5"]);
+	});
+
+	test("a static chunk over its limit gets 429", async () => {
+		const full = { limit: async () => ({ success: false }) };
+		const res = await call("/svex/_next/static/a.js", {}, { ...env, RL_STATIC: full } as typeof env);
+		expect(res.status).toBe(429);
+	});
+
+	test.each(["/olx/auth/login/", "/olx/auth/%6Cogin", "/olx/Auth/LOGIN", "/olx/auth/login//", "/svex/Prijava/"])(
+		"the login limit applies to %s",
+		async (path) => {
+			const login = spy();
+			await call(path, { method: "POST" }, { ...env, RL_LOGIN: login.binding } as typeof env);
+			expect(login.keys.length).toBe(1);
+		},
+	);
+
+	test("a GET to the login path has no login limit", async () => {
+		const login = spy();
+		await call("/olx/auth/login", {}, { ...env, RL_LOGIN: login.binding } as typeof env);
+		expect(login.keys).toEqual([]);
+	});
+
+	test("a bad percent escape does not throw", async () => {
+		expect((await call("/olx/%E0%A4%A", { method: "POST" })).status).toBe(400);
+	});
+});
+
+describe("free route", () => {
+	const chat = (body: unknown, e = env, headers: Record<string, string> = {}) => {
+		const raw = typeof body === "string" ? body : JSON.stringify(body);
+		return call(
+			"/ai/chat/completions",
+			{ method: "POST", body: raw, headers: { "content-length": String(new TextEncoder().encode(raw).length), ...headers } },
+			e,
+		);
+	};
+	const good = { messages: [{ role: "user", content: "hi" }] };
+	const kvSpy = (fail = false) => {
+		const state = { gets: [] as string[], puts: [] as string[] };
+		const store = {
+			get: async (k: string) => {
+				state.gets.push(k);
+				if (fail) throw new Error("kv down");
+				return null;
+			},
+			put: async (k: string) => {
+				state.puts.push(k);
+				if (fail) throw new Error("kv write limit");
+			},
+		};
+		return { state, e: { ...env, FREE_KV: store } as typeof env };
+	};
+
+	test("forwards a good request to OpenRouter", async () => {
+		const res = await chat(good);
+		expect(res.status).toBe(200);
+		expect(fetched).toEqual(["https://openrouter.ai/api/v1/chat/completions"]);
+	});
+
+	test("returns 413 without content-length", async () => {
+		const res = await call("/ai/chat/completions", { method: "POST", body: JSON.stringify(good) });
+		expect(res.status).toBe(413);
+		expect(fetched).toEqual([]);
+	});
+
+	test("returns 413 for a large content-length and spends no KV quota", async () => {
+		const { state, e } = kvSpy();
+		const res = await chat(good, e, { "content-length": String(10 * 1024 * 1024) });
+		expect(res.status).toBe(413);
+		expect(state.gets.length + state.puts.length).toBe(0);
+	});
+
+	test("rejects an image part before the KV quota is spent", async () => {
+		const { state, e } = kvSpy();
+		const body = { messages: [{ role: "user", content: [{ type: "image_url", image_url: { url: "data:x" } }] }] };
+		expect((await chat(body, e)).status).toBe(400);
+		expect(state.gets.length + state.puts.length).toBe(0);
+		expect(fetched).toEqual([]);
+	});
+
+	test("spends the KV quota with an HMAC key, not the IP", async () => {
+		const { state, e } = kvSpy();
+		await call(
+			"/ai/chat/completions",
+			{ method: "POST", body: JSON.stringify(good), headers: { "content-length": "100", "cf-connecting-ip": "203.0.113.5" } },
+			e,
+		);
+		expect(state.puts).toHaveLength(1);
+		expect(state.puts[0]).toMatch(/^d:\d{4}-\d{2}-\d{2}:[0-9a-f]{64}$/);
+		expect(state.puts[0]).not.toContain("203.0.113.5");
+	});
+
+	test("the day key changes with the secret", async () => {
+		const a = kvSpy();
+		const b = kvSpy();
+		await chat(good, { ...a.e, OPENROUTER_KEY: "one" } as typeof env);
+		await chat(good, { ...b.e, OPENROUTER_KEY: "two" } as typeof env);
+		expect(a.state.puts[0]).not.toBe(b.state.puts[0]);
+	});
+
+	test("a KV error fails open and keeps the CORS headers", async () => {
+		const { e } = kvSpy(true);
+		const res = await chat(good, e);
+		expect(res.status).toBe(200);
+		expect(res.headers.get("access-control-allow-origin")).toBe(ORIGIN);
+	});
+
+	test("the global limit gives 429 minute", async () => {
+		const full = { limit: async () => ({ success: false }) };
+		const res = await chat(good, { ...env, RL_FREE_ALL: full } as typeof env);
+		expect(res.status).toBe(429);
+		expect(await res.json()).toEqual({ error: "free-limit", scope: "minute" });
+		expect(fetched).toEqual([]);
+	});
+
+	test("the global limit uses one fixed key", async () => {
+		const keys: string[] = [];
+		const all = { limit: async ({ key }: { key: string }) => (keys.push(key), { success: true }) };
+		await chat(good, { ...env, RL_FREE_ALL: all } as typeof env);
+		await call(
+			"/ai/chat/completions",
+			{ method: "POST", body: JSON.stringify(good), headers: { "content-length": "100", "cf-connecting-ip": "198.51.100.9" } },
+			{ ...env, RL_FREE_ALL: all } as typeof env,
+		);
+		expect(keys).toEqual(["all", "all"]);
 	});
 });
