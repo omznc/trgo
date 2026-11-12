@@ -48,6 +48,24 @@ function useOnline() {
 	return online;
 }
 
+// Runs one job at a time. A call while a job runs is dropped. `active` drives the busy look.
+function useSingleFlight() {
+	const running = useRef(false);
+	const [active, setActive] = useState(false);
+	const run = async (job: () => Promise<void>) => {
+		if (running.current) return;
+		running.current = true;
+		setActive(true);
+		try {
+			await job();
+		} finally {
+			running.current = false;
+			setActive(false);
+		}
+	};
+	return { run, running, active };
+}
+
 function sourceNote(s: Sources) {
 	if (s.olx && s.svex) return "";
 	return `\n\n[Search only on: ${s.olx ? "olx" : "svex"}]`;
@@ -155,14 +173,11 @@ export function Chat() {
 	useSessionExpired(openConnect);
 
 	// Photos shrink before the send. A second Enter in that time would send the same files again.
-	const sendingRef = useRef(false);
-	const [sending, setSending] = useState(false);
+	const guard = useSingleFlight();
+	const sending = guard.active;
 	const send = async (text: string, files: FileUIPart[] = []) => {
 		if (!text.trim() && files.length === 0) return;
-		if (sendingRef.current) return;
-		sendingRef.current = true;
-		setSending(true);
-		try {
+		await guard.run(async () => {
 			if (!started) withTransition(() => setDocked(true));
 			// A photo that cannot be decoded is skipped.
 			const added = await Promise.allSettled(files.map(async (f) => addPhoto(await (await fetch(f.url)).blob())));
@@ -171,10 +186,7 @@ export function Chat() {
 			const note = tagged.map(taggedNote).join("");
 			chat.sendMessage({ text: text.trim() + photoNote(ids) + note + sourceNote(sources), metadata: { photoIds: ids, tagged: tagged.length ? tagged : undefined } });
 			clearTaggedListing();
-		} finally {
-			sendingRef.current = false;
-			setSending(false);
-		}
+		});
 	};
 	const hold = usePendingSend({ apiKey, send, textarea, box, clearAttachments });
 	// A throw keeps the attached photos in the composer.
@@ -184,7 +196,7 @@ export function Chat() {
 			throw new Error("no-key");
 		}
 		// A throw keeps the text and the files of the second try in the composer.
-		if (sendingRef.current) throw new Error("sending");
+		if (guard.running.current) throw new Error("sending");
 		await send(text, files);
 	};
 	const pick = (text: string) => (chat.ready ? void send(text) : hold(text, []));
