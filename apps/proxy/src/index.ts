@@ -1,15 +1,8 @@
 // Pass-through proxy. It never stores or logs bodies, headers or URLs.
 // The only state is a per-day request counter for the free AI route (see free.ts).
 // Read the whole file in a few minutes.
+import { isSafePath, resolveTarget } from "@lagano/providers/hosts";
 import { hmacIp, ipKey, isChatTooLong, MAX_BODY_BYTES, sanitizeBody, scrub, scrubStream, secondsUntilNextUtcDay } from "./free";
-
-// SSRF guard: the only hosts this Worker can reach. Keep this list short.
-const UPSTREAMS: Record<string, string> = {
-	olx: "https://api.olx.ba",
-	svex: "https://svex.ba",
-	"svex-listing": "https://listing.api.svex.ba",
-	"svex-search": "https://search.api.svex.ba",
-};
 
 const FORWARD_HEADERS = ["content-type", "accept", "authorization", "next-action", "next-router-state-tree"];
 
@@ -137,34 +130,6 @@ async function upload(request: Request, url: URL, cors: Headers): Promise<Respon
 	} catch {
 		return jsonError(502, "upload failed", cors);
 	}
-}
-
-// Checks the path before and after percent-decoding.
-function isSafePath(path: string): boolean {
-	let decoded: string;
-	try {
-		decoded = decodeURIComponent(path);
-	} catch {
-		return false;
-	}
-	const bad = (s: string) => s === ".." || s === "." || s.includes("\\");
-	return ![path, decoded].some((p) => p.includes("//") || p.split("/").some(bad));
-}
-
-// Returns the upstream URL, or null when the path is not allowed.
-function resolveTarget(url: URL): { key: string; target: URL } | null {
-	const rest = url.pathname.slice(1);
-	const slash = rest.indexOf("/");
-	const key = slash === -1 ? rest : rest.slice(0, slash);
-	const base = Object.hasOwn(UPSTREAMS, key) ? UPSTREAMS[key] : undefined;
-	if (!base) return null;
-	const path = slash === -1 ? "/" : rest.slice(slash);
-	if (!isSafePath(path)) return null;
-	const target = new URL(base + path);
-	// Reject any path that changes the host (for example "@host" tricks).
-	if (target.origin !== base) return null;
-	target.search = url.search;
-	return { key, target };
 }
 
 function upstreamHeaders(request: Request, key: string): Headers {
