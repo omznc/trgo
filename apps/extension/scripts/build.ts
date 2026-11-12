@@ -16,6 +16,8 @@ const manifest = {
 	description: "Optional helper for trgo. It reads marketplace pages in your own browser, not through the trgo proxy.",
 	icons: Object.fromEntries([16, 32, 48, 128].map((size) => [size, `icons/icon-${size}.png`])),
 	host_permissions: Object.values(EXTENSION_HOSTS).map((host) => `${host.origin}/*`),
+	// The user can open the welcome page again here.
+	options_ui: { page: "welcome.html", open_in_tab: true },
 	content_scripts: [{ matches: origins.map((origin) => `${origin}/*`), js: ["content.js"], run_at: "document_start" }],
 };
 
@@ -32,7 +34,7 @@ const targets = {
 
 await Bun.$`rm -rf ${root}dist`;
 const built = await Bun.build({
-	entrypoints: [`${root}src/background.ts`, `${root}src/content.ts`],
+	entrypoints: [`${root}src/background.ts`, `${root}src/content.ts`, `${root}src/welcome.ts`],
 	outdir: `${root}dist/chrome`,
 	target: "browser",
 	format: "iife",
@@ -42,6 +44,7 @@ const built = await Bun.build({
 if (!built.success) throw new Error(built.logs.join("\n"));
 
 await Bun.$`cp -r ${root}icons ${root}dist/chrome/icons`;
+await Bun.$`cp ${root}src/welcome.html ${root}dist/chrome/welcome.html`;
 for (const [name, content] of Object.entries(targets)) {
 	const dir = `${root}dist/${name}`;
 	if (name !== "chrome") await Bun.$`cp -r ${root}dist/chrome ${dir}`;

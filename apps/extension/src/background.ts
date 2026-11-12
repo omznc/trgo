@@ -44,6 +44,8 @@ async function load(request: ExtRequest): Promise<ExtResult> {
 	// The page is not trusted for the URL. Resolve it again here.
 	const route = resolveExtensionTarget(request.key, request.path, request.search);
 	if (!route) return failure(400, "bad route");
+	// Firefox grants host permissions only after the user agrees on the welcome page.
+	if (!(await api.permissions.contains({ origins: [`${route.target.origin}/*`] }))) return failure(403, "permission");
 	if (rateLimited(request.key)) return failure(429, "too many requests");
 	try {
 		const res = await fetch(route.target, {
@@ -72,6 +74,11 @@ function fromAllowedPage(sender: Sender): boolean {
 		return false;
 	}
 }
+
+// A new install opens the welcome page, where the user can allow the sites.
+api.runtime.onInstalled.addListener(({ reason }) => {
+	if (reason === "install") void api.tabs.create({ url: api.runtime.getURL("welcome.html") });
+});
 
 // Answer with sendResponse and return true. This works in Chrome and in Firefox.
 api.runtime.onMessage.addListener((message, sender, sendResponse) => {
