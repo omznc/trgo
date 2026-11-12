@@ -149,7 +149,7 @@ function MarketsMenu({ selected, onToggle }: { selected: ProviderId[]; onToggle:
 					type="button"
 					aria-label={on.length ? `${strings.marketsAria}: ${on.map((m) => m.shortName).join(", ")}` : strings.marketsAria}
 					title={on.map((m) => m.name).join(", ") || undefined}
-					className="chip inline-flex h-8 items-center gap-1.5 rounded-full pr-2.5 pl-2 text-[13px] font-medium text-fg max-sm:hidden"
+					className="chip inline-flex h-8 items-center gap-1.5 rounded-full pr-2.5 pl-2 text-[13px] font-medium text-fg"
 				>
 					{on.length === 0 && <span className="pl-1">{strings.markets}</span>}
 					{on.length === 1 && only && (
