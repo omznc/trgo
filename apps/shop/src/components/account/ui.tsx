@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { ta } from "@/lib/strings-account";
 import { clearKey, getKey, setKey } from "@/lib/openrouter-auth";
-import { PROXY_SOURCE } from "@/components/ConnectControls";
 import { KEY_CHANGED } from "@/components/shell/key-event";
 import { useSidePanel } from "@/components/shell/side-panel";
 
@@ -27,7 +26,7 @@ export const FIELD =
 
 export const LBL = "text-[12px] font-semibold uppercase tracking-[.02em] text-fg-3";
 
-export { PROXY_SOURCE };
+export const PROXY_SOURCE = "https://github.com/omznc/trgo/tree/main/apps/proxy";
 
 export function PanelHeader({ title, onClose }: { title: string; onClose: () => void }) {
 	const { canGoBack, back } = useSidePanel();
