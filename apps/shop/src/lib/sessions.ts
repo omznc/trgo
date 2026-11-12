@@ -32,7 +32,8 @@ export function expireSession(p: ProviderId) {
 }
 
 // The SVEX "not logged in" wording is a guess. Fix it when a real reply is seen.
-const AUTH_ERROR = /HTTP (401|403)\b|not logged in|not authenticated|unauthori[sz]ed|unauthenticated/i;
+// A bare 403 is not a logout: it can be a block or a rule. It counts only with a not-logged-in text.
+const AUTH_ERROR = /HTTP 401\b|not logged in|not authenticated|unauthori[sz]ed|unauthenticated/i;
 export const isAuthError = (error: unknown) => AUTH_ERROR.test(error instanceof Error ? error.message : String(error));
 
 // Browser storage is read after mount, so the server and client render the same.
