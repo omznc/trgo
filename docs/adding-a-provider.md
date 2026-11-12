@@ -21,7 +21,10 @@ missing after step 1.
    - the client and the publish step in `apps/shop/src/lib/publish.ts`;
    - the login call in `apps/shop/src/components/account/ConnectPanel.tsx`;
    - the delivery text in `apps/shop/src/components/sell/ApprovalCard.tsx`;
-   - `needPublish` and `needConnect` in `apps/shop/src/lib/strings.ts`.
+   - `needPublish` and `needConnect` in `apps/shop/src/lib/strings.ts`;
+   - the site icon in `LOGOS` in `apps/shop/src/components/shell/Composer.tsx`.
+     Put the file in `apps/shop/public/logos/`. Use the site's own favicon
+     (SVG if the site has one), and read the SVG first: it must have no script.
    - A search-only provider gets a stub in each of these maps (see `kp`).
      The capability gating hides it, so no code runs the stub.
 4. Proxy. Add the hosts of the site to `UPSTREAMS` in

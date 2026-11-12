@@ -120,23 +120,49 @@ function TaggedSlot() {
 	);
 }
 
-// The menu shows the site name under a country heading, the trigger shows the short name.
+// The site icons, in public/logos. A new provider must add one here.
+const LOGOS: Record<ProviderId, string> = { olx: "/logos/olx.svg", svex: "/logos/svex.svg", kp: "/logos/kp.png" };
+// The trigger shows this many logos, then "+N".
+const MAX_LOGOS = 3;
+
+// The menu shows the site name under a country heading, the trigger shows the logos.
 const MARKETS = marketCountries(PROVIDERS).map((country) => ({
 	country,
-	providers: countryProviders(PROVIDERS, country).map((key) => ({ key, name: PROVIDERS[key].siteName, shortName: PROVIDERS[key].name })),
+	providers: countryProviders(PROVIDERS, country).map((key) => ({ key, name: PROVIDERS[key].siteName, shortName: PROVIDERS[key].name, logo: LOGOS[key] })),
 }));
+
+const Logo = ({ src, className = "" }: { src: string; className?: string }) => (
+	<img src={src} alt="" width={16} height={16} className={`size-4 shrink-0 rounded-[5px] outline outline-1 -outline-offset-1 outline-white/20 ${className}`} />
+);
 
 function MarketsMenu({ selected, onToggle }: { selected: ProviderId[]; onToggle: (key: ProviderId) => void }) {
 	const on = MARKETS.flatMap((g) => g.providers).filter((m) => selected.includes(m.key));
+	const [only] = on;
+	const extra = on.length - MAX_LOGOS;
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
 				<button
 					type="button"
-					aria-label={strings.marketsAria}
-					className="chip inline-flex h-8 items-center gap-1 rounded-full pr-2.5 pl-3 text-[13px] font-medium text-fg max-sm:hidden"
+					aria-label={on.length ? `${strings.marketsAria}: ${on.map((m) => m.shortName).join(", ")}` : strings.marketsAria}
+					title={on.map((m) => m.name).join(", ") || undefined}
+					className="chip inline-flex h-8 items-center gap-1.5 rounded-full pr-2.5 pl-2 text-[13px] font-medium text-fg max-sm:hidden"
 				>
-					{on.length ? on.map((m) => m.shortName).join(" · ") : strings.markets}
+					{on.length === 0 && <span className="pl-1">{strings.markets}</span>}
+					{on.length === 1 && only && (
+						<>
+							<Logo src={only.logo} />
+							{only.shortName}
+						</>
+					)}
+					{on.length > 1 && (
+						<span className="flex items-center">
+							{on.slice(0, MAX_LOGOS).map((m, i) => (
+								<Logo key={m.key} src={m.logo} className={`ring-2 ring-bg ${i ? "-ml-1" : ""}`} />
+							))}
+							{extra > 0 && <span className="ml-1 tabular-nums">+{extra}</span>}
+						</span>
+					)}
 					<ChevronDown className="size-3.5 shrink-0" aria-hidden />
 				</button>
 			</DropdownMenuTrigger>
@@ -150,8 +176,9 @@ function MarketsMenu({ selected, onToggle }: { selected: ProviderId[]; onToggle:
 								checked={selected.includes(m.key)}
 								onCheckedChange={() => onToggle(m.key)}
 								onSelect={(event) => event.preventDefault()}
-								className="min-h-10 rounded-xl text-sm"
+								className="min-h-10 gap-2 rounded-xl text-sm"
 							>
+								<Logo src={m.logo} />
 								{m.name}
 							</DropdownMenuCheckboxItem>
 						))}
