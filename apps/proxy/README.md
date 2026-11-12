@@ -29,6 +29,7 @@ The path has the form `/<upstream-key>/<path>`. The allowlist is the `UPSTREAMS`
 | `willhaben` | `https://www.willhaben.at` |
 
 - Any other key returns 400.
+- The keys in `READ_ONLY` (`bolha`, `olxbg`, `willhaben`) are read-only. They accept only `GET` and `HEAD`, and a different method gets 405. They accept only the path prefixes in `READ_ONLY`, and a different path gets 400. They get no `cookie` and no `authorization` header.
 - The URL parser resolves a raw `..`, `.` and backslash (`\`) before the Worker sees the path. For example `/olx/a/../b` becomes `/olx/b`. These cannot change the upstream host, because the host comes from the `UPSTREAMS` key.
 - The Worker returns 400 for a path with `//`, or with a `..` or `.` segment, or with a backslash, that stays after parsing (for example `%2e%2e`, `%5C`, `%2f%2f`, `a%2f..%2fb`). It checks the path before and after percent-decoding. A single encoded `/` that does not form `..` or `//` passes (for example `/olx/a%2fb`).
 - The Worker also returns 400 when the final target origin differs from the upstream origin.
@@ -51,8 +52,8 @@ The path has the form `/<upstream-key>/<path>`. The allowlist is the `UPSTREAMS`
 ## Headers
 
 - The Worker forwards the method, the query and the body.
-- The Worker forwards only these request headers: `content-type`, `accept`, `authorization`, `next-action`, `next-router-state-tree`.
-- The request header `x-lagano-cookie` becomes the upstream `cookie` header.
+- The Worker forwards only these request headers: `content-type`, `accept`, `authorization`, `next-action`, `next-router-state-tree`. A `READ_ONLY` key gets no `authorization`.
+- The request header `x-lagano-cookie` becomes the upstream `cookie` header, except for a `READ_ONLY` key.
 - The upstream `set-cookie` headers return in the response header `x-lagano-set-cookie`, as a JSON array of strings.
 - For the `svex` key, the Worker sets `origin` and `referer` to `https://svex.ba`.
 

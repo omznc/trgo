@@ -76,16 +76,18 @@ export function mapOlxBgItem(item: OlxBgItem): Listing {
 }
 
 // The API mixes promoted ads into the page, so a page can hold more items than the limit.
-// The promoted ads can also repeat a regular ad. Drop them, then drop a repeated id.
+// Regular ads go first and the limit cuts promoted ads, so paging skips no regular ad.
+// On a narrow search a promoted ad can be a real match that is not in the regular list, so it stays when there is room.
 export function parseOlxBgSearch(reply: OlxBgReply, query: SearchQuery): SearchResult {
 	const { offset, limit } = olxBgSearchParams(query);
 	const promoted = new Set(reply.metadata?.promoted);
-	const items = (reply.data ?? []).filter((_, i) => !promoted.has(i));
+	const data = reply.data ?? [];
+	const items = [...data.filter((_, i) => !promoted.has(i)), ...data.filter((_, i) => promoted.has(i))];
 	const listings = items.map(mapOlxBgItem).filter((l, i, all) => all.findIndex((o) => o.id === l.id) === i).slice(0, limit);
+	// total_elements stops at 1000, so the visible count is the real total.
 	const total = reply.metadata?.visible_total_count ?? reply.metadata?.total_elements ?? listings.length;
-	// The next offset must stay within the cap.
 	const next = offset + limit;
-	return { listings, total, hasMore: next <= MAX_OFFSET && next < (reply.metadata?.total_elements ?? total) };
+	return { listings, total, hasMore: next <= MAX_OFFSET && next < total };
 }
 
 export function createOlxBgProvider(options: ProviderOptions): Provider {

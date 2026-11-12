@@ -22,14 +22,14 @@ describe("olx.bg parser", () => {
 		});
 	});
 
-	test("drops a duplicate id", () => {
-		expect(result.listings.map((l) => l.id)).toEqual(["149773178", "149766011", "149700001"]);
+	test("drops a duplicate id, and puts the promoted ads last", () => {
+		expect(result.listings.map((l) => l.id)).toEqual(["149773178", "149766011", "149700001", "149000001"]);
 	});
 
-	test("drops the promoted ads and keeps all regular ads", () => {
-		expect(result.listings.map((l) => l.id)).not.toContain("149000001");
-		const regular = { ...reply, data: [...reply.data!, ...reply.data!.slice(0, 1)], metadata: { ...reply.metadata, promoted: [0, 4] } };
-		expect(parseOlxBgSearch(regular, { q: "x", limit: 40 }).listings.map((l) => l.id)).toEqual(["149766011", "149773178", "149700001"]);
+	test("the limit cuts promoted ads before regular ads", () => {
+		const mixed = { ...reply, data: [...reply.data!, ...reply.data!.slice(0, 1)], metadata: { ...reply.metadata, promoted: [0, 4] } };
+		expect(parseOlxBgSearch(mixed, { q: "x", limit: 40 }).listings.map((l) => l.id)).toEqual(["149766011", "149773178", "149700001", "149000001"]);
+		expect(parseOlxBgSearch(mixed, { q: "x", limit: 3 }).listings.map((l) => l.id)).toEqual(["149766011", "149773178", "149700001"]);
 	});
 
 	test("cuts the list to the limit", () => {
@@ -47,7 +47,9 @@ describe("olx.bg parser", () => {
 	test("reads the total and hasMore", () => {
 		expect(result.total).toBe(11672);
 		expect(result.hasMore).toBe(true);
-		expect(parseOlxBgSearch(reply, { q: "x", limit: 50, page: 20 }).hasMore).toBe(false);
+		// Offset 950 can go on to offset 1000, the last one that the API accepts.
+		expect(parseOlxBgSearch(reply, { q: "x", limit: 50, page: 20 }).hasMore).toBe(true);
+		expect(parseOlxBgSearch(reply, { q: "x", limit: 50, page: 21 }).hasMore).toBe(false);
 	});
 
 	test("clamps the limit to 50", () => {
@@ -79,7 +81,7 @@ describe("olx.bg provider", () => {
 		const calls: string[] = [];
 		const res = await make(reply, calls).search({ q: "iphone", maxPrice: 300, limit: 40 });
 		expect(calls[0]).toBe("https://proxy.test/olxbg/api/v1/offers/?query=iphone&limit=40&offset=0&filter_float_price%3Ato=300");
-		expect(res.listings).toHaveLength(3);
+		expect(res.listings).toHaveLength(4);
 	});
 
 	test("returns an empty page past the offset cap without a request", async () => {

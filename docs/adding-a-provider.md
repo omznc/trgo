@@ -39,6 +39,9 @@ missing after step 1.
      `PROXY_ONLY` in `hosts.ts`. A new proxy key that the extension does
      not need goes in `PROXY_ONLY`. Then the extension permissions stay
      the same and no store review is needed.
+   - A search-only site with no account goes in `READ_ONLY` with the path
+     prefixes that the adapter uses. The proxy then allows only GET on
+     those paths and sends no cookie and no `authorization` header.
    - Send the user's cookies (`credentials: "include"`) only when the site
      needs them, and then limit the host to the paths it needs with `paths`.
    - The extension build takes its `host_permissions` from
