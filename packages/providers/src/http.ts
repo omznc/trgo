@@ -2,12 +2,12 @@ import type { ProviderOptions } from "./types";
 
 export function createGetJson({ proxyUrl, fetch: f = fetch }: ProviderOptions) {
 	const base = proxyUrl.replace(/\/+$/, "");
-	return async function getJson<T>(path: string, params?: Record<string, string | number | undefined>): Promise<T> {
+	return async function getJson<T>(path: string, params?: Record<string, string | number | undefined>, signal?: AbortSignal): Promise<T> {
 		const url = new URL(base + path);
 		for (const [key, value] of Object.entries(params ?? {})) {
 			if (value !== undefined && value !== "") url.searchParams.set(key, String(value));
 		}
-		const res = await f(url);
+		const res = await f(url, signal ? { signal } : undefined);
 		if (!res.ok) throw new Error(`${path} failed with HTTP ${res.status}`);
 		return (await res.json()) as T;
 	};

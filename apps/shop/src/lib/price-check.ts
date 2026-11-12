@@ -21,18 +21,20 @@ export type PriceCheckOutput =
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Yields the live count while the pages load, then the final result.
-export async function* runPriceCheck(input: PriceCheckInput, providers: Provider[]): AsyncGenerator<PriceCheckOutput> {
+export async function* runPriceCheck(input: PriceCheckInput, providers: Provider[], signal?: AbortSignal): AsyncGenerator<PriceCheckOutput> {
 	const { item, query, ...filters } = input;
 	let fetched = 0;
 	const { minPrice, maxPrice } = filters;
-	const job = fetchRecent(providers, query, { minPrice, maxPrice, onProgress: (n) => (fetched = n) });
+	const job = fetchRecent(providers, query, { minPrice, maxPrice, onProgress: (n) => (fetched = n), signal });
 	let done = false;
 	// fetchRecent never rejects: it reports a failed provider in `errors`.
 	void job.then(() => (done = true));
-	while (!done) {
+	// An abort ends the poll. The page requests stop through the same signal.
+	while (!done && !signal?.aborted) {
 		yield { item, loading: true, fetched };
 		await Promise.race([job, sleep(250)]);
 	}
+	if (signal?.aborted) return;
 	const { listings, errors } = await job;
 	yield { item, report: priceReport(selectComparable(listings, { query, ...filters })), errors };
 }

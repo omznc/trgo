@@ -157,6 +157,7 @@ export function createSvexProvider(options: ProviderOptions): Provider & ReturnT
 		const res = await getJson<{ items: SvexItem[]; total?: number; nextCursor?: string | null }>(
 			"/svex-search/v1/search",
 			svexSearchParams(query, condition),
+			query.signal,
 		);
 		// Only the fixture shows nextCursor. We assume it is empty or null on the last page.
 		const hasMore = "nextCursor" in res ? Boolean(res.nextCursor) : undefined;

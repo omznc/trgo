@@ -103,10 +103,10 @@ const toCard = (l: Listing): SearchCard => ({
 
 const DAY_MS = 86_400_000;
 
-async function searchListings({ days, ...query }: z.infer<typeof searchSchema>): Promise<SearchToolOutput> {
+async function searchListings({ days, ...query }: z.infer<typeof searchSchema>, signal?: AbortSignal): Promise<SearchToolOutput> {
 	// A period filter needs the newest first and a deeper page.
 	const limit = query.limit ?? (days ? 100 : DEFAULT_LIMIT);
-	const { listings, total, errors } = await searchAll(providers, { ...query, limit, ...(days && { sort: "newest" as const }) });
+	const { listings, total, errors } = await searchAll(providers, { ...query, limit, signal, ...(days && { sort: "newest" as const }) });
 	const now = Date.now();
 	const kept = days ? listings.filter((l) => now - Date.parse(l.postedAt ?? "") <= days * DAY_MS) : listings;
 	return { total, errors, days, listings: kept.map(toCard) };
@@ -140,7 +140,7 @@ const tools = {
 	search_listings: tool({
 		description: "Search used and new listings on OLX.ba and SVEX.ba. Prices are in KM.",
 		inputSchema: searchSchema,
-		execute: searchListings,
+		execute: (input, { abortSignal }) => searchListings(input, abortSignal),
 		toModelOutput: ({ output }) => ({ type: "text", value: summarizeSearch(output) }),
 	}),
 	price_check: tool({
@@ -148,8 +148,8 @@ const tools = {
 			"Show a price card for one item: what it is worth now. The app loads the newest listings from OLX.ba and SVEX.ba, " +
 			"removes accessories, bad prices and outliers, and computes the median and range. Pass only search words.",
 		inputSchema: priceCheckSchema,
-		async *execute(input) {
-			yield* runPriceCheck(input, providers);
+		async *execute(input, { abortSignal }) {
+			yield* runPriceCheck(input, providers, abortSignal);
 		},
 		toModelOutput: ({ output }) => ({ type: "text", value: summarize(output) }),
 	}),

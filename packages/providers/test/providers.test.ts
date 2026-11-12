@@ -201,3 +201,16 @@ describe("paging data", () => {
 		}
 	});
 });
+
+describe("abort signal", () => {
+	test("search passes the signal to fetch", async () => {
+		const signals: (AbortSignal | undefined)[] = [];
+		const f = (async (url: URL, init?: RequestInit) => {
+			if (!String(url).includes("/cities")) signals.push(init?.signal ?? undefined);
+			return Response.json({ data: [], meta: { last_page: 1 } });
+		}) as unknown as typeof fetch;
+		const signal = new AbortController().signal;
+		await createOlxProvider({ proxyUrl: "https://p.test", fetch: f }).search({ q: "x", signal });
+		expect(signals).toEqual([signal]);
+	});
+});

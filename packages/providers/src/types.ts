@@ -43,6 +43,8 @@ export type SearchQuery = {
 	limit?: number;
 	// 1-based page of `limit` results.
 	page?: number;
+	// Cancels the request.
+	signal?: AbortSignal;
 };
 
 export type SearchResult = {

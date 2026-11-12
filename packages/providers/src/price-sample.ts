@@ -16,6 +16,7 @@ export type FetchOptions = {
 	concurrency?: number;
 	now?: number;
 	onProgress?: (fetched: number) => void;
+	signal?: AbortSignal;
 };
 
 const ageDays = (l: Listing, now: number) => (l.postedAt ? (now - Date.parse(l.postedAt)) / DAY_MS : Number.POSITIVE_INFINITY);
@@ -31,7 +32,7 @@ async function fetchProvider(provider: Provider, q: string, options: FetchOption
 	const out: Listing[] = [];
 	for (let first = 1; first <= pages; first += concurrency) {
 		const numbers = Array.from({ length: Math.min(concurrency, pages - first + 1) }, (_, i) => first + i);
-		const settled = await Promise.allSettled(numbers.map((page) => provider.search({ q, sort: "newest", limit, page, minPrice: options.minPrice, maxPrice: options.maxPrice })));
+		const settled = await Promise.allSettled(numbers.map((page) => provider.search({ q, sort: "newest", limit, page, minPrice: options.minPrice, maxPrice: options.maxPrice, signal: options.signal })));
 		const results = settled.flatMap((s) => (s.status === "fulfilled" ? [s.value] : []));
 		const batch = results.flatMap((r) => r.listings);
 		out.push(...batch);
