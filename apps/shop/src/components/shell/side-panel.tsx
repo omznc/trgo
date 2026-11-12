@@ -153,10 +153,10 @@ function Content({ view }: { view: SidePanelView }) {
 }
 
 const LABELS: Record<SidePanelView["kind"], string> = {
-	detail: "Detalji oglasa",
-	settings: "Postavke",
-	"my-listings": "Moji oglasi",
-	connect: "Povezivanje",
+	detail: strings.detailLabel,
+	settings: strings.settings,
+	"my-listings": strings.myListings,
+	connect: strings.connectLabel,
 };
 
 type PageCtx = { dir: number; wide: boolean };

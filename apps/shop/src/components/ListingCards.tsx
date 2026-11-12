@@ -114,8 +114,8 @@ function StatusLine({
 const NEXT_CONDITION: Record<Condition, Condition> = { all: "new", new: "used", used: "all" };
 const CONDITION_LABEL: Record<Condition, string> = {
 	all: strings.conditionAll,
-	new: `Stanje: ${strings.conditionNew.toLowerCase()}`,
-	used: `Stanje: ${strings.conditionUsed.toLowerCase()}`,
+	new: `${strings.conditionPrefix}${strings.conditionNew.toLowerCase()}`,
+	used: `${strings.conditionPrefix}${strings.conditionUsed.toLowerCase()}`,
 };
 
 type Controls = { condition: Condition; cheapest: boolean; view: ViewMode };
@@ -232,7 +232,7 @@ function EmptyResult({ q, maxPrice }: { q?: string; maxPrice?: number }) {
 			<h2 className="m-0 text-[17px] font-semibold tracking-[-0.02em]">{strings.emptyTitle}</h2>
 			{q && <p className="m-0 text-sm leading-snug text-fg-3">{strings.emptyBody(q, maxPrice)}</p>}
 			{raised && (
-				<button type="button" onClick={() => actions.send(`${q ?? ""} do ${raised} KM`.trim())} className="chip mt-1 inline-flex h-9 items-center rounded-full px-4 text-[13px] font-medium">
+				<button type="button" onClick={() => actions.send(strings.raiseQuery(q ?? "", raised))} className="chip mt-1 inline-flex h-9 items-center rounded-full px-4 text-[13px] font-medium">
 					{strings.raisePrice}
 				</button>
 			)}
