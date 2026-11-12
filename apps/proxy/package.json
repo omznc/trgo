@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev --port 8787",
+    "test": "bun test",
     "deploy": "cf deploy",
     "typecheck": "tsc --noEmit"
   },

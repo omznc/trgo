@@ -35,6 +35,7 @@ describe("olx", () => {
 		expect(olxSearchParams({ q: "ender", minPrice: 10, condition: "used", sort: "newest", limit: 5 })).toEqual({
 			q: "ender",
 			per_page: 5,
+			page: undefined,
 			price_from: 10,
 			price_to: undefined,
 			state: "used",
