@@ -40,7 +40,6 @@ const bs = {
 			delivery: "Dostava",
 			description: "Opis",
 		},
-		currency: "KM",
 		condition: { new: "Novo", likeNew: "Kao novo", used: "Korišteno", damaged: "Oštećeno" },
 		delivery: { pickup: "Lično preuzimanje", free: "Besplatna dostava", freeNote: "Samo SVEX" },
 		target: { label: "Gdje objaviti", olx: "OLX", svex: "SVEX", both: "Oba" },
@@ -87,7 +86,7 @@ const bs = {
 	success: {
 		mascotAria: "Maskota slavi",
 		title: "Oglas je objavljen!",
-		subtitle: (title: string, price: number) => `${title} · ${price} KM`,
+		subtitle: (title: string, price: number, unit: string) => `${title} · ${price} ${unit}`,
 		open: (name: string) => `Otvori na ${name}`,
 		copyLinks: "Kopiraj linkove",
 		copied: "Linkovi su kopirani",
@@ -147,7 +146,6 @@ const en: typeof bs = {
 			delivery: "Delivery",
 			description: "Description",
 		},
-		currency: "KM",
 		condition: { new: "New", likeNew: "Like new", used: "Used", damaged: "Damaged" },
 		delivery: { pickup: "Pickup in person", free: "Free delivery", freeNote: "SVEX only" },
 		target: { label: "Where to publish", olx: "OLX", svex: "SVEX", both: "Both" },
@@ -194,7 +192,7 @@ const en: typeof bs = {
 	success: {
 		mascotAria: "The mascot celebrates",
 		title: "The listing is published!",
-		subtitle: (title: string, price: number) => `${title} · ${price} KM`,
+		subtitle: (title: string, price: number, unit: string) => `${title} · ${price} ${unit}`,
 		open: (name: string) => `Open on ${name}`,
 		copyLinks: "Copy links",
 		copied: "Links copied",

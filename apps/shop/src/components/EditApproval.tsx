@@ -10,10 +10,10 @@ import { ta } from "@/lib/strings-account";
 import { btn } from "./account/ui";
 
 type Part = Extract<LaganoMessage["parts"][number], { type: "tool-edit_my_listing" }>;
-type Complete = z.infer<typeof editSchema>;
+type Complete = z.infer<ReturnType<typeof editSchema>>;
 
 function describe(input: Complete) {
-	return `${ta.editAction[input.action](input.price)} · ${PROVIDERS[input.provider].name}`;
+	return `${ta.editAction[input.action](input.price, PROVIDERS[input.provider].currencyLabel)} · ${PROVIDERS[input.provider].name}`;
 }
 
 function warningFor(problem: EditProblem | null, status?: MineStatus) {

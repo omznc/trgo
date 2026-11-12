@@ -38,10 +38,10 @@ function Fact({ icon: Icon, text }: { icon: typeof MapPin; text: string }) {
 
 const Bone = ({ className }: { className?: string }) => <div aria-hidden className={cn("animate-pulse rounded-lg bg-white/6", className)} />;
 
-function deliveryFacts(d: ListingDetail["delivery"]) {
+function deliveryFacts(d: ListingDetail["delivery"], unit: string) {
 	const facts: string[] = [];
 	if (d.freeShipping) facts.push(details.freeShipping);
-	else if (d.shipping) facts.push(typeof d.price === "number" && d.price > 0 ? details.shippingPrice(d.price) : details.shipping);
+	else if (d.shipping) facts.push(typeof d.price === "number" && d.price > 0 ? details.shippingPrice(d.price, unit) : details.shipping);
 	if (d.pickup) facts.push(details.pickup);
 	return facts;
 }
@@ -54,7 +54,7 @@ function Facts({ listing, detail, loading }: { listing: DetailListing; detail?: 
 			{listing.condition && <Fact icon={Package} text={CONDITIONS[listing.condition]} />}
 			{ago ? <Fact icon={Calendar} text={ago} /> : loading && <Bone className="h-8 w-24 rounded-full" />}
 			{detail &&
-				deliveryFacts(detail.delivery).map((text) => <Fact key={text} icon={Truck} text={text} />)}
+				deliveryFacts(detail.delivery, PROVIDERS[listing.provider].currencyLabel).map((text) => <Fact key={text} icon={Truck} text={text} />)}
 		</div>
 	);
 }

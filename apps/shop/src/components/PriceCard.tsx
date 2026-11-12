@@ -10,10 +10,10 @@ import { strings } from "@/lib/strings";
 
 const km = (n: number) => Math.round(n).toLocaleString(lang === "en" ? "en-US" : "de-DE");
 
-function Histogram({ stats }: { stats: PriceStats }) {
+function Histogram({ stats, unit }: { stats: PriceStats; unit: string }) {
 	const { buckets, peak } = stats;
 	const top = buckets[peak]!.count;
-	const label = strings.priceHistogram(Math.round(buckets[peak]!.from), Math.round(buckets[peak]!.to));
+	const label = strings.priceHistogram(Math.round(buckets[peak]!.from), Math.round(buckets[peak]!.to), unit);
 	return (
 		<div role="img" aria-label={label} className="flex h-[72px] items-end gap-1">
 			{buckets.map((b, i) => (
@@ -58,11 +58,11 @@ function droppedText(dropped: Record<string, number>) {
 		.join(", ");
 }
 
-function Extras({ report }: { report: PriceReport }) {
+function Extras({ report, unit }: { report: PriceReport; unit: string }) {
 	const { newMedian, usedMedian, trendPct } = report;
 	const parts = [
-		usedMedian && `${strings.priceUsed}: ${km(usedMedian)} KM`,
-		newMedian && `${strings.priceNew}: ${km(newMedian)} KM`,
+		usedMedian && `${strings.priceUsed}: ${km(usedMedian)} ${unit}`,
+		newMedian && `${strings.priceNew}: ${km(newMedian)} ${unit}`,
 		trendPct !== undefined && strings.priceTrend(trendPct),
 	].filter(Boolean);
 	return parts.length ? <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-fg-2">{parts.map((p) => <span key={String(p)}>{p}</span>)}</div> : null;
@@ -77,6 +77,8 @@ export function PriceCheckPart({ part }: { part: ToolUIPart }) {
 	const { report } = output;
 	if (!report) return <section className={shell}><Title item={output.item} /><p className="m-0 text-sm text-fg-2">{strings.priceEmpty(output.item)}</p></section>;
 	const { stats } = report;
+	// A report that was saved before the markets has no label. It was in KM.
+	const unit = output.label ?? "KM";
 	return (
 		<section ref={card} className={shell} style={{ animationDelay: "120ms" }}>
 			<div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -89,21 +91,21 @@ export function PriceCheckPart({ part }: { part: ToolUIPart }) {
 			<div className="flex flex-wrap items-end gap-7">
 				<div>
 					<div className="lbl">{strings.priceMedian}</div>
-					<div className="text-[40px] leading-[1.1] font-bold tracking-[-0.03em]">{km(stats.median)} KM</div>
+					<div className="text-[40px] leading-[1.1] font-bold tracking-[-0.03em]">{km(stats.median)} {unit}</div>
 				</div>
 				<div>
 					<div className="lbl">{strings.priceRange}</div>
 					<div className="text-xl font-semibold tracking-[-0.02em]">
-						{km(stats.p25)} – {km(stats.p75)} KM
+						{km(stats.p25)} – {km(stats.p75)} {unit}
 					</div>
 				</div>
 			</div>
-			<Extras report={report} />
-			<Histogram stats={stats} />
+			<Extras report={report} unit={unit} />
+			<Histogram stats={stats} unit={unit} />
 			<div className="flex justify-between text-xs text-fg-3">
-				<span>{km(stats.lo)} KM</span>
+				<span>{km(stats.lo)} {unit}</span>
 				<span>{km((stats.lo + stats.hi) / 2)}</span>
-				<span>{km(stats.hi)} KM</span>
+				<span>{km(stats.hi)} {unit}</span>
 			</div>
 			<div className="text-xs text-fg-3">{strings.priceAnalyzed(stats.count, report.fetched, droppedText(report.dropped))}</div>
 		</section>

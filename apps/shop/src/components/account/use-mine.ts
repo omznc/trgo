@@ -1,4 +1,4 @@
-import type { MineStatus, MyListing, ProviderId } from "@lagano/providers";
+import { type MineStatus, type MyListing, PROVIDERS, type ProviderId } from "@lagano/providers";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type MineLoad, type MineOp, type MineResult, clearMineMemo, loadMine, mineCall } from "@/lib/mine-api";
 import { ta } from "@/lib/strings-account";
@@ -18,7 +18,7 @@ function optimistic(item: MyListing, op: MineOp, price: number): MyListing | nul
 		case "finish":
 			return { ...status("sold"), soldAt: new Date().toISOString() };
 		case "price":
-			return { ...item, price, priceText: `${price} KM` };
+			return { ...item, price, priceText: `${price} ${PROVIDERS[item.provider].currencyLabel}` };
 		case "delete":
 			return null;
 		default:

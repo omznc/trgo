@@ -1,5 +1,7 @@
-import { useSyncExternalStore } from "react";
+import { convert, type Currency } from "@lagano/providers";
+import { useMemo, useSyncExternalStore } from "react";
 import { lang } from "./lang";
+import { currencyOf, labelOf, useSelection } from "./market";
 
 export type Kind = "search" | "price" | "sell";
 
@@ -111,29 +113,44 @@ export function pickSuggestions(month: number, rnd: () => number = Math.random):
 	});
 }
 
-const textOf = (p: Suggestion) => (lang === "en" ? p.en : p.text);
+// The prompts name amounts in KM. Another currency gets the amount converted and rounded.
+const niceAmount = (n: number) => {
+	const step = n < 100 ? 5 : n < 500 ? 10 : n < 1000 ? 50 : 100;
+	return Math.max(step, Math.round(n / step) * step);
+};
+export type Unit = { currency: Currency; label: string };
+const BA_UNIT: Unit = { currency: "BAM", label: "KM" };
+
+function priced(text: string, max: number | undefined, unit: Unit) {
+	if (!max || unit.currency === "BAM") return text;
+	return text.replace(`${max} KM`, `${niceAmount(convert(max, "BAM", unit.currency))} ${unit.label}`);
+}
+
+const textOf = (p: Suggestion, unit: Unit) => priced(lang === "en" ? p.en : p.text, p.max, unit);
 
 /** Text for the composer placeholder, for example "Npr. 3D printer do 500 KM". */
-export const placeholderOf = (p: Suggestion) =>
-	lang === "en" ? `E.g. ${p.en.replace(/^Find (an? )?/, "")}` : `Npr. ${p.text.replace(/^Nađi /, "")}`;
+export const placeholderOf = (p: Suggestion, unit: Unit = BA_UNIT) => {
+	const t = textOf(p, unit);
+	return lang === "en" ? `E.g. ${t.replace(/^Find (an? )?/, "")}` : `Npr. ${t.replace(/^Nađi /, "")}`;
+};
 
 type Picks = { chips: string[]; placeholder: string };
+type Raw = { list: Suggestion[]; source: Suggestion };
 
-const toPicks = (list: Suggestion[], placeholderSource: Suggestion): Picks => ({
-	chips: list.map(textOf),
-	placeholder: placeholderOf(placeholderSource),
+const toPicks = ({ list, source }: Raw, unit: Unit): Picks => ({
+	chips: list.map((p) => textOf(p, unit)),
+	placeholder: placeholderOf(source, unit),
 });
 
 // The server and the first client render use this. The chips are still hidden by the load animation then.
-const SERVER_PICKS = toPicks(pickSuggestions(1, () => 0), POOL[0] as Suggestion);
+const SERVER_PICKS: Raw = { list: pickSuggestions(1, () => 0), source: POOL[0] as Suggestion };
 
-let clientPicks: Picks | undefined;
-function getClientPicks(): Picks {
+let clientPicks: Raw | undefined;
+function getClientPicks(): Raw {
 	if (!clientPicks) {
 		const month = new Date().getMonth() + 1;
-		const list = pickSuggestions(month);
 		const searches = candidates("search", month);
-		clientPicks = toPicks(list, searches[Math.floor(Math.random() * searches.length)] as Suggestion);
+		clientPicks = { list: pickSuggestions(month), source: searches[Math.floor(Math.random() * searches.length)] as Suggestion };
 	}
 	return clientPicks;
 }
@@ -142,5 +159,7 @@ const noSubscribe = () => () => {};
 
 /** Random picks for one page load. React swaps from the server picks to the client picks without a hydration warning. */
 export function useSuggestions(): Picks {
-	return useSyncExternalStore(noSubscribe, getClientPicks, () => SERVER_PICKS);
+	const raw = useSyncExternalStore(noSubscribe, getClientPicks, () => SERVER_PICKS);
+	const selected = useSelection();
+	return useMemo(() => toPicks(raw, { currency: currencyOf(selected), label: labelOf(selected) }), [raw, selected]);
 }

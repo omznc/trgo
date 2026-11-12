@@ -1,4 +1,4 @@
-import { PROVIDERS, type ProviderId } from "@lagano/providers";
+import { displayLabel, PROVIDERS, type ProviderId } from "@lagano/providers";
 import { Copy, ExternalLink, Info, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { publishListing, type ListingArgs, type ProviderResult } from "@/lib/publish";
@@ -67,7 +67,7 @@ function Hero({ input, results }: { input: ListingArgs; results: ProviderResult[
 			))}
 			<SellMascot pose="celebrate" width={96} label={sell.success.mascotAria} />
 			<h2 className="m-0 text-[26px] font-bold tracking-[-0.03em]">{sell.success.title}</h2>
-			<p className="m-0 text-[15px] text-fg-3">{sell.success.subtitle(input.title, input.price)}</p>
+			<p className="m-0 text-[15px] text-fg-3">{sell.success.subtitle(input.title, input.price, displayLabel(PROVIDERS, input.providers))}</p>
 			<div className="flex flex-wrap justify-center gap-2">
 				{okOf(results).map((r) => (
 					<a key={r.provider} href={r.url} target="_blank" rel="noopener noreferrer" className={LIGHT}>

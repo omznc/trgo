@@ -79,7 +79,7 @@ function PriceEdit({ item, onSave, onCancel }: { item: MyListing; onSave: (price
 				}}
 				className={`${FIELD} h-9 w-24 font-semibold`}
 			/>
-			<span className="text-[13px] text-fg-3">{ta.priceUnit}</span>
+			<span className="text-[13px] text-fg-3">{PROVIDERS[item.provider].currencyLabel}</span>
 			<button type="button" onClick={save} className={btn("accent", "h-9 min-h-9 px-4 text-[13px]")}>
 				{ta.priceSave}
 			</button>

@@ -8,6 +8,7 @@ import { Mascot } from "@/components/Mascot";
 import { CopyImageButton } from "@/components/shell/CopyImageButton";
 import { useChatActions } from "@/components/shell/chat-actions";
 import { ListingCard, SkeletonCard, type ViewMode } from "@/components/shell/ListingCard";
+import { labelOf, useSelection } from "@/lib/market";
 import { strings } from "@/lib/strings";
 import { cn } from "@/lib/utils";
 
@@ -121,6 +122,7 @@ const CONDITION_LABEL: Record<Condition, string> = {
 type Controls = { condition: Condition; cheapest: boolean; view: ViewMode };
 
 function FilterBar({ maxPrice, controls, onChange }: { maxPrice?: number; controls: Controls; onChange: (c: Controls) => void }) {
+	const unit = labelOf(useSelection());
 	const set = (patch: Partial<Controls>) => onChange({ ...controls, ...patch });
 	const viewBtn = (v: ViewMode, label: string, Icon: typeof List) => (
 		<button
@@ -136,7 +138,7 @@ function FilterBar({ maxPrice, controls, onChange }: { maxPrice?: number; contro
 	return (
 		<div className={cn("flex items-center justify-between gap-2.5 sm:flex-wrap max-sm:gap-1.5 max-sm:overflow-x-auto max-sm:[&>div]:shrink-0", HIDE_BAR)}>
 			<div className="flex items-center gap-1.5 sm:flex-wrap">
-				{maxPrice !== undefined && <span className={cn(pill, "chip text-fg")}>{strings.maxPrice(maxPrice)}</span>}
+				{maxPrice !== undefined && <span className={cn(pill, "chip text-fg")}>{strings.maxPrice(maxPrice, unit)}</span>}
 				<button type="button" onClick={() => set({ condition: NEXT_CONDITION[controls.condition] })} className={cn(pill, "chip text-fg")}>
 					{CONDITION_LABEL[controls.condition]}
 					<ChevronDown className="size-[13px]" strokeWidth={2.2} aria-hidden />
@@ -225,14 +227,15 @@ function Results({ cards, view, loading, mine = false }: { cards: DetailListing[
 
 function EmptyResult({ q, maxPrice }: { q?: string; maxPrice?: number }) {
 	const actions = useChatActions();
+	const unit = labelOf(useSelection());
 	const raised = maxPrice ? Math.round((maxPrice * 1.3) / 10) * 10 : undefined;
 	return (
 		<section className="glass flex max-w-[560px] flex-col items-center gap-2.5 rounded-panel px-5 py-7 text-center shadow-none">
 			<Mascot mood="empty" width={72} label={strings.emptyTitle} />
 			<h2 className="m-0 text-[17px] font-semibold tracking-[-0.02em]">{strings.emptyTitle}</h2>
-			{q && <p className="m-0 text-sm leading-snug text-fg-3">{strings.emptyBody(q, maxPrice)}</p>}
+			{q && <p className="m-0 text-sm leading-snug text-fg-3">{strings.emptyBody(q, unit, maxPrice)}</p>}
 			{raised && (
-				<button type="button" onClick={() => actions.send(strings.raiseQuery(q ?? "", raised))} className="chip mt-1 inline-flex h-9 items-center rounded-full px-4 text-[13px] font-medium">
+				<button type="button" onClick={() => actions.send(strings.raiseQuery(q ?? "", raised, unit))} className="chip mt-1 inline-flex h-9 items-center rounded-full px-4 text-[13px] font-medium">
 					{strings.raisePrice}
 				</button>
 			)}
