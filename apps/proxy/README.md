@@ -64,7 +64,7 @@ KupujemProdajem blocks all Cloudflare Worker traffic with a 403. The Worker cann
 - The path rules are the same as for the other routes (400 for `//`, `..` and a backslash).
 - The Worker forwards only the `accept` header. It does not forward cookies, `authorization` or `x-lagano-cookie`.
 - The response has only the status, the `content-type` and the body.
-- `/kp/*` has its own limits, in addition to `RL_API`: 10 per 60 seconds for each client (`RL_KP`) and 60 per 60 seconds over all clients (`RL_KP_ALL`, one fixed key). A Cloudflare binding counts for each location, so `RL_KP_ALL` is a ceiling for each location. A missing binding returns 500, like the other limits. A missing relay setting returns 503.
+- `/kp/*` has its own limits, in addition to `RL_API`: 30 per 60 seconds for each client (`RL_KP`; one price check uses 5 pages) and 60 per 60 seconds over all clients (`RL_KP_ALL`, one fixed key). A Cloudflare binding counts for each location, so `RL_KP_ALL` is a ceiling for each location. A missing binding returns 500, like the other limits. A missing relay setting returns 503.
 - The relay allows only GET, checks the secret, blocks `/api/` paths and allows 30 upstream requests per 10 seconds. See `apps/kp-relay/README.md`.
 - Privacy: the relay writes no request logs and keeps nothing. It is a pass-through, like the Worker.
 

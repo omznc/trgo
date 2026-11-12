@@ -24,7 +24,7 @@ export default defineConfig({
 			// SVEX static chunks (action discovery fetches about 50 per run).
 			RL_STATIC: bindings.rateLimit({ namespace: "2005", simple: { limit: 300, period: 60 } }),
 			// The KP relay is a home connection: a stricter limit per client, and a ceiling over all clients.
-			RL_KP: bindings.rateLimit({ namespace: "2006", simple: { limit: 10, period: 60 } }),
+			RL_KP: bindings.rateLimit({ namespace: "2006", simple: { limit: 30, period: 60 } }),
 			RL_KP_ALL: bindings.rateLimit({ namespace: "2007", simple: { limit: 60, period: 60 } }),
 			FREE_KV: bindings.kv({ id: "9ce40f97b1684d3eabb9ab846ccdd97f" }),
 			// Set with "cf workers secrets update". Declared here so a deploy keeps them.
