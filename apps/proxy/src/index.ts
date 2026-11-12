@@ -92,15 +92,15 @@ async function checkLimit(request: Request, env: Env, path: string): Promise<"ok
 	if (!env.RL_API || !hasRouteLimits(env, login, kp)) return "misconfigured";
 	const checks = [env.RL_API.limit({ key })];
 	if (login) checks.push(env.RL_LOGIN!.limit({ key }));
-	if (kp) checks.push(...kpLimits(env, key));
-	const results = await Promise.all(checks);
-	return results.every((r) => r.success) ? "ok" : "limited";
+	if (kp) checks.push(env.RL_KP!.limit({ key }));
+	if (!(await Promise.all(checks)).every((r) => r.success)) return "limited";
+	// RL_KP_ALL has one fixed key. It runs last, so a rejected client does not fill it for others.
+	// It is a ceiling for each Cloudflare location.
+	if (kp && !(await env.RL_KP_ALL!.limit({ key: "all" })).success) return "limited";
+	return "ok";
 }
 
 const hasRouteLimits = (env: Env, login: boolean, kp: boolean) => (!login || !!env.RL_LOGIN) && (!kp || (!!env.RL_KP && !!env.RL_KP_ALL));
-
-// RL_KP_ALL has one fixed key. It is a ceiling for each Cloudflare location.
-const kpLimits = (env: Env, key: string) => [env.RL_KP!.limit({ key }), env.RL_KP_ALL!.limit({ key: "all" })];
 
 async function limitResponse(request: Request, env: Env, path: string, cors: Headers): Promise<Response | null> {
 	const limit = await checkLimit(request, env, path);

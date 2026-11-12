@@ -424,6 +424,17 @@ describe("kp relay", () => {
 		expect(seen).toEqual([]);
 	});
 
+	test("a client rejected by RL_KP or RL_API does not call RL_KP_ALL", async () => {
+		const full = { limit: async () => ({ success: false }) };
+		let all = 0;
+		const RL_KP_ALL = { limit: async () => (all++, { success: true }) };
+		for (const name of ["RL_KP", "RL_API"]) {
+			const res = await call("/kp/oglasi", {}, { ...kpEnv, RL_KP_ALL, [name]: full } as typeof env);
+			expect(res.status).toBe(429);
+		}
+		expect(all).toBe(0);
+	});
+
 	test("another route does not use the KP limits", async () => {
 		const full = { limit: async () => ({ success: false }) };
 		expect((await call("/olx/x", {}, { ...kpEnv, RL_KP: full, RL_KP_ALL: full } as typeof env)).status).toBe(200);
