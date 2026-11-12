@@ -5,7 +5,7 @@ export { convert, RATES } from "./rates";
 export * from "./market";
 export { createOlxProvider, olxListingUrl } from "./olx";
 export { createKpProvider, KP_RATE_LIMITED, KP_UNAVAILABLE } from "./kp";
-export { createNjuskaloProvider } from "./njuskalo";
+export { createNjuskaloProvider, NJUSKALO_CHECK } from "./njuskalo";
 export { createSvexProvider, svexListingUrl } from "./svex";
 export { OLX_SHIPPING_NOTE, olxDescription } from "./olx-account";
 export type { MineList, MineStatus, MyListing, RefreshResult } from "./mine";

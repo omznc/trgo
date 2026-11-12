@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { createNjuskaloProvider, njuskaloIdFromUrl, njuskaloSearchParams, parseNjuskaloPrice, parseNjuskaloSearch } from "../src/njuskalo";
+import { KP_RATE_LIMITED } from "../src/kp";
+import { createNjuskaloProvider, NJUSKALO_CHECK, njuskaloIdFromUrl, njuskaloSearchParams, parseNjuskaloPrice, parseNjuskaloSearch } from "../src/njuskalo";
 
 const html = await Bun.file(new URL("./fixtures/njuskalo-search.html", import.meta.url)).text();
 
@@ -82,7 +83,7 @@ describe("njuskalo parser", () => {
 	});
 
 	test("throws on a page without data", () => {
-		expect(() => parseNjuskaloSearch("<html>captcha</html>")).toThrow(/no data/);
+		expect(() => parseNjuskaloSearch("<html>captcha</html>")).toThrow(NJUSKALO_CHECK);
 	});
 });
 
@@ -147,11 +148,14 @@ describe("njuskalo provider", () => {
 		expect(res.hasMore).toBe(true);
 	});
 
-	test("throws on an HTTP error", async () => {
-		const provider = createNjuskaloProvider({
-			proxyUrl: "https://proxy.test",
-			fetch: (async () => new Response("no", { status: 503 })) as unknown as typeof fetch,
-		});
-		await expect(provider.search({ q: "x" })).rejects.toThrow(/503/);
+	test("maps HTTP errors to the errors the shop explains", async () => {
+		const withStatus = (status: number) =>
+			createNjuskaloProvider({
+				proxyUrl: "https://proxy.test",
+				fetch: (async () => new Response("no", { status })) as unknown as typeof fetch,
+			}).search({ q: "x" });
+		for (const status of [403, 502, 503]) await expect(withStatus(status)).rejects.toThrow(NJUSKALO_CHECK);
+		await expect(withStatus(429)).rejects.toThrow(KP_RATE_LIMITED);
+		await expect(withStatus(404)).rejects.toThrow(/404/);
 	});
 });

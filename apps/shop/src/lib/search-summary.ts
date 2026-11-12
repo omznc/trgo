@@ -1,4 +1,4 @@
-import { KP_RATE_LIMITED, KP_UNAVAILABLE, PROVIDER_IDS, PROVIDERS, type ProviderId } from "@lagano/providers";
+import { KP_RATE_LIMITED, KP_UNAVAILABLE, NJUSKALO_CHECK, PROVIDER_IDS, PROVIDERS, type ProviderId } from "@lagano/providers";
 
 export type SearchCard = {
 	provider: ProviderId;
@@ -34,6 +34,8 @@ const DAY_MS = 86_400_000;
 
 export const isUnavailable = (e: SearchError) => e.message === KP_UNAVAILABLE;
 export const isRateLimited = (e: SearchError) => e.message === KP_RATE_LIMITED;
+export const needsCheck = (e: SearchError) => e.message === NJUSKALO_CHECK;
+const isKnown = (e: SearchError) => isUnavailable(e) || isRateLimited(e) || needsCheck(e);
 
 // The searched providers in registry order. An old output falls back to the providers that it shows.
 export function searchedOf(output: { searched?: string[]; listings: { provider: string }[]; errors: { provider: string }[] }): ProviderId[] {
@@ -65,8 +67,9 @@ function line(l: SearchCard, now: number) {
 function failedText(errors: SearchError[]) {
 	const down = errors.filter(isUnavailable).map((e) => `${PROVIDERS[e.provider as ProviderId]?.siteName ?? e.provider} (${e.provider}) is not available right now.`);
 	const limited = errors.filter(isRateLimited).map((e) => `${PROVIDERS[e.provider as ProviderId]?.siteName ?? e.provider} (${e.provider}) has too many requests. Try again in a minute.`);
-	const others = errors.filter((e) => !isUnavailable(e) && !isRateLimited(e)).map((e) => e.provider);
-	return [...down, ...limited, ...(others.length ? [`Failed providers: ${others.join(", ")}.`] : [])].map((t) => ` ${t}`).join("");
+	const check = errors.filter(needsCheck).map((e) => `${PROVIDERS[e.provider as ProviderId]?.siteName ?? e.provider} (${e.provider}) needs a check by the user: open the site once in a browser tab, or allow the trgo extension access to it.`);
+	const others = errors.filter((e) => !isKnown(e)).map((e) => e.provider);
+	return [...down, ...limited, ...check, ...(others.length ? [`Failed providers: ${others.join(", ")}.`] : [])].map((t) => ` ${t}`).join("");
 }
 
 // The model sees this short text. The UI part keeps all the listings.

@@ -1,10 +1,13 @@
 import { createRequest } from "./http";
+import { KP_RATE_LIMITED } from "./kp";
 import type { Listing, ListingDetail, Provider, ProviderOptions, SearchQuery, SearchResult } from "./types";
 
 const SITE = "https://www.njuskalo.hr";
 const STATE_MARKER = "window.__INITIAL_STATE__=";
 
 const PROVIDER = "njuskalo";
+// Njuskalo wants a check that only the user can do: open the site once, or allow the extension access.
+export const NJUSKALO_CHECK = "njuskalo-check";
 const EUR = "EUR";
 
 type NjuskaloAd = {
@@ -81,7 +84,8 @@ function readState(html: string): NjuskaloState | undefined {
 // Ads that the seller paid to promote also show in the regular list. Regular ads go first, so a sort keeps its order.
 export function parseNjuskaloSearch(html: string): SearchResult {
 	const data = readState(html)?.searchPage?.pageData;
-	if (!data) throw new Error("Njuskalo search page has no data (blocked by a bot check?)");
+	// A page with no data is a bot check page.
+	if (!data) throw new Error(NJUSKALO_CHECK);
 	const listings = dedupe([...(data.regularListings ?? []), ...(data.promotedListings ?? [])].map(mapAd));
 	const { totalPageCount, fields } = data;
 	return {
@@ -123,6 +127,9 @@ export function createNjuskaloProvider(options: ProviderOptions): Provider {
 		async search(query): Promise<SearchResult> {
 			const path = `/njuskalo/search/?${njuskaloSearchParams(query)}`;
 			const res = await request(path, query.signal ? { signal: query.signal } : undefined);
+			if (res.status === 429) throw new Error(KP_RATE_LIMITED);
+			// A block, a redirect to a check page, or no site access in the extension. The user can fix each one.
+			if (res.status === 403 || res.status >= 500) throw new Error(NJUSKALO_CHECK);
 			if (!res.ok) throw new Error(`${path} failed with HTTP ${res.status}`);
 			const result = parseNjuskaloSearch(await res.text());
 			return query.limit ? { ...result, listings: result.listings.slice(0, query.limit) } : result;
