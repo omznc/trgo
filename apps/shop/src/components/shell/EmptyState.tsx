@@ -58,7 +58,7 @@ export function ConnectBanner({ onPasteKey, cue, free }: { onPasteKey: () => voi
 export function Suggestions({ onPick }: { onPick: (text: string) => void }) {
 	const { chips } = useSuggestions();
 	return (
-		<div className="flex max-w-[760px] flex-wrap justify-center gap-2">
+		<div className="flex w-full max-w-[760px] flex-wrap justify-center gap-2">
 			{chips.map((s, i) => {
 				const Icon = ICONS[i] ?? Search;
 				return (
@@ -68,10 +68,10 @@ export function Suggestions({ onPick }: { onPick: (text: string) => void }) {
 						onClick={() => onPick(s)}
 						style={delay(620 + i * 60)}
 						// The third chip makes a tall stack on a phone.
-						className={cn("ld glass inline-flex h-10 items-center gap-[7px] rounded-full pr-4 pl-[13px] text-sm font-medium tracking-[-0.01em] shadow-none", i > 1 && "max-sm:hidden")}
+						className={cn("ld glass inline-flex h-10 max-w-full items-center gap-[7px] rounded-full pr-4 pl-[13px] text-sm font-medium tracking-[-0.01em] shadow-none", i > 1 && "max-sm:hidden")}
 					>
-						<Icon className="size-[15px]" strokeWidth={2.2} aria-hidden />
-						{s}
+						<Icon className="size-[15px] shrink-0" strokeWidth={2.2} aria-hidden />
+						<span className="truncate">{s}</span>
 					</button>
 				);
 			})}
