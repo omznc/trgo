@@ -33,6 +33,12 @@ const SORT = { newest: 1, price_asc: 3, price_desc: 4 } as const;
 // The ids of the "Neu" and "Gebraucht" categories in the tree.
 const CONDITION = { new: "22", used: "23" } as const;
 
+// An ad lists its category pairs, for example "[2718;2719, 21;23]". The pair 21;x is the condition.
+function conditionOf(tree: string | undefined): Listing["condition"] {
+	const id = /[[ ]21;(\d+)/.exec(tree ?? "")?.[1];
+	return id === CONDITION.new ? "new" : id === CONDITION.used ? "used" : undefined;
+}
+
 export function willhabenSearchParams(query: SearchQuery): URLSearchParams {
 	const params = new URLSearchParams({ keyword: query.q, rows: String(WILLHABEN_PAGE_SIZE) });
 	if (query.minPrice !== undefined) params.set("PRICE_FROM", String(query.minPrice));
@@ -56,6 +62,7 @@ export function mapWillhabenAdvert(advert: WillhabenAdvert): Listing {
 		price,
 		priceText: attr("PRICE_FOR_DISPLAY") || "Preis auf Anfrage",
 		currency: PROVIDERS.willhaben.currency,
+		condition: conditionOf(attr("categorytreeattributeids")),
 		city: attr("LOCATION"),
 		imageUrl: advert.advertImageList?.advertImage?.[0]?.mainImageUrl ?? (mmo ? `https://cache.willhaben.at/mmo/${mmo}` : undefined),
 		url: seoUrl ? `${SITE}/iad/${seoUrl}` : `${SITE}/iad/object?adId=${advert.id}`,

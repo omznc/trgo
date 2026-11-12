@@ -36,6 +36,20 @@ describe("willhaben parser", () => {
 		expect(result.hasMore).toBe(true);
 	});
 
+	test("reads the condition from the category pairs", () => {
+		const page = (tree?: string) => {
+			const attribute = tree ? [{ name: "categorytreeattributeids", values: [tree] }] : [];
+			const data = { props: { pageProps: { searchResult: { advertSummaryList: { advertSummary: [{ id: "1", description: "x", attributes: { attribute } }] } } } } };
+			return `<script id="__NEXT_DATA__" type="application/json">${JSON.stringify(data)}</script>`;
+		};
+		const condition = (tree?: string) => parseWillhabenSearch(page(tree)).listings[0]?.condition;
+		expect(condition("[2718;2719, 7215;7216, 2535;2536, 21;22]")).toBe("new");
+		expect(condition("[2535;2537, 21;23, 2535;2536]")).toBe("used");
+		expect(condition("[2718;2719, 121;22]")).toBeUndefined();
+		expect(condition("[2718;2719, 2535;2536]")).toBeUndefined();
+		expect(condition()).toBeUndefined();
+	});
+
 	test("throws on a page without data", () => {
 		expect(() => parseWillhabenSearch("<html>captcha</html>")).toThrow("no data");
 		expect(() => parseWillhabenSearch('<script id="__NEXT_DATA__" type="application/json">{bad</script>')).toThrow("no data");
