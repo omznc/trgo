@@ -1,4 +1,5 @@
 import { Copy, ImageOff, RefreshCw } from "lucide-react";
+import { memo } from "react";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { EditApprovalPart } from "@/components/EditApproval";
 import { ListingApprovalPart } from "@/components/ListingApproval";
@@ -94,20 +95,27 @@ function PartView({ part, caret, onRespond, searchOpen, expired }: { part: Part;
 	}
 }
 
-export function AssistantMessage({
-	message,
-	streaming,
-	actions,
-	onRespond,
-	expired,
-}: {
+type MessageProps = {
 	message: LaganoMessage;
 	streaming: boolean;
-	actions?: React.ReactNode;
+	// Show copy and retry under the answer.
+	canAct: boolean;
+	onCopy: (text: string) => void;
+	onRetry: () => void;
 	onRespond: Respond;
 	// The SDK reads approvals only in the last message, so an answer here would never be sent.
 	expired: boolean;
-}) {
+};
+
+function AssistantMessage({
+	message,
+	streaming,
+	canAct,
+	onCopy,
+	onRetry,
+	onRespond,
+	expired,
+}: MessageProps) {
 	const last = message.parts.length - 1;
 	// Only the last search starts open. A price card is the main result, so it closes all of them.
 	const isSearch = (p: Part) => p.type === "tool-search_listings" || p.type === "tool-list_my_listings";
@@ -122,15 +130,17 @@ export function AssistantMessage({
 				{message.parts.map((part, i) => (
 					<PartView key={i} part={part} caret={streaming && i === last} onRespond={onRespond} searchOpen={!hasPriceCard && i === lastSearch} expired={expired} />
 				))}
-				{actions}
+				{canAct && <AnswerActions onCopy={() => onCopy(textOf(message))} onRetry={onRetry} />}
 			</div>
 		</div>
 	);
 }
 
-export function Message({ message, ...rest }: { message: LaganoMessage; streaming: boolean; actions?: React.ReactNode; onRespond: Respond; expired: boolean }) {
+// The SDK keeps the object of each finished message and replaces only the streaming one,
+// so the shallow compare skips every message except the one that changes.
+export const Message = memo(function Message({ message, ...rest }: MessageProps) {
 	return message.role === "user" ? <UserMessage message={message} /> : <AssistantMessage message={message} {...rest} />;
-}
+});
 
 export function AnswerActions({ onCopy, onRetry }: { onCopy: () => void; onRetry: () => void }) {
 	const btn = "grid size-8 place-items-center rounded-full text-fg-3";

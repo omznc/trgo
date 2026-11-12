@@ -11,7 +11,7 @@ import { ConnectBanner, delay, Footer, Hero, Suggestions } from "@/components/sh
 import { ErrorCard } from "@/components/shell/ErrorCard";
 import { Header } from "@/components/shell/Header";
 import { Horizon } from "@/components/shell/Horizon";
-import { AnswerActions, Message, stripNotes, textOf, Thinking } from "@/components/shell/Messages";
+import { Message, stripNotes, textOf, Thinking } from "@/components/shell/Messages";
 import { clearTaggedListing, getTaggedListings, taggedNote } from "@/components/shell/tagged-listing";
 import { usePendingSend } from "@/components/shell/use-pending-send";
 import { HistoryPanel } from "@/components/shell/HistoryPanel";
@@ -121,7 +121,9 @@ function MessageList({
 						streaming={status === "streaming" && m === last}
 						onRespond={onRespond}
 						expired={m !== last}
-						actions={canAct(m) ? <AnswerActions onCopy={() => onCopy(textOf(m))} onRetry={onRetry} /> : undefined}
+						canAct={canAct(m)}
+						onCopy={onCopy}
+						onRetry={onRetry}
 					/>
 				))}
 				{status === "submitted" && <Thinking />}
@@ -219,8 +221,12 @@ export function Chat() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[chat.ready, sources, started],
 	);
-	const respond = (id: string, approved: boolean) => chat.addToolApprovalResponse({ id, approved });
-	const copy = (text: string) => navigator.clipboard.writeText(stripNotes(text)).then(() => setToast({ text: strings.copied }), () => {});
+	// The handlers read the chat through a ref, so they stay stable and the memoized messages skip a render.
+	const chatRef = useRef(chat);
+	chatRef.current = chat;
+	const respond = useCallback((id: string, approved: boolean) => chatRef.current.addToolApprovalResponse({ id, approved }), []);
+	const retry = useCallback(() => chatRef.current.regenerate(), []);
+	const copy = useCallback((text: string) => navigator.clipboard.writeText(stripNotes(text)).then(() => setToast({ text: strings.copied }), () => {}), []);
 	const dismissToast = useCallback(() => setToast(null), []);
 
 	const kind = errorKind(chat.error);
@@ -265,7 +271,7 @@ onRetry={chat.error ? () => chat.regenerate() : undefined} />
 									status={status}
 									onRespond={respond}
 									onCopy={copy}
-									onRetry={() => chat.regenerate()}
+									onRetry={retry}
 									footer={errorCard}
 								/>
 							) : (
