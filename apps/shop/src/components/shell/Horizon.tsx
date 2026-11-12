@@ -148,7 +148,8 @@ function useRise(main: boolean, ready: boolean, draw: (rise: number) => void) {
 export function Horizon({ variant }: { variant: "main" | "chat" }) {
 	const main = variant === "main";
 	// The phone sheet covers the screen: pause the clock so a repaint cannot cost a sheet frame.
-	const sheetOpen = !!useSidePanel().view && typeof window !== "undefined" && window.innerWidth < 640;
+	const panel = useSidePanel();
+	const sheetOpen = (!!panel.view || panel.history) && typeof window !== "undefined" && window.innerWidth < 640;
 	const { t, clockStart } = useClock(main && !sheetOpen);
 	const canvas = useRef<HTMLCanvasElement>(null);
 	const [size, setSize] = useState({ w: 0, h: 0 });

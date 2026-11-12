@@ -407,7 +407,9 @@ input::placeholder {
 
 /* Phone sheet: the header and grabber take the drag, the body keeps its own scroll. */
 @media (max-width: 639px) {
-	.side-panel { touch-action: none; }
+	/* Own layers, so the JS-driven y and scrim opacity only composite and do not repaint. */
+	.side-panel { touch-action: none; will-change: transform; }
+	.scrim { will-change: opacity; }
 	.side-panel .scroll { touch-action: pan-y; }
 }
 .scrim:hover, .scrim:active { transform: none; filter: none; }
