@@ -127,6 +127,27 @@ describe("svex flows", () => {
 		expect(seen).toEqual([KNOWN_ACTIONS.createListingAction, "2222"]);
 	});
 
+	test("a sell rediscovery keeps the my-listings ids", async () => {
+		const page = '<script src="/_next/static/chunks/a.js"></script>';
+		const names = ["loginAction", "createListingAction", "publishListingAction", "pauseListingAction", "renewListingAction", "markSoldListingAction", "deleteListingPermanentlyAction", "bulkListingsAction"];
+		const chunk = names.map((n, i) => `x.createServerReference)("${i + 1}000",c.callServer,void 0,c.findSourceMapURL,"${n}")`).join("");
+		const seen: string[] = [];
+		const { f } = mockFetch(({ url, init }) => {
+			const action = (init?.headers as Record<string, string> | undefined)?.["next-action"];
+			if (!action) return new Response(url.endsWith("a.js") ? chunk : page);
+			seen.push(action);
+			const fresh = action.endsWith("000");
+			if (!fresh) return new Response("Server action not found.", { status: 404 });
+			return new Response('1:{"ok":true,"data":{"id":"n","slug":"s","status":"DRAFT"}}');
+		});
+		const svex = createSvexProvider({ proxyUrl: "https://p.test", fetch: f });
+		await svex.hide({ cookies: {} }, "1");
+		await svex.createListing({ cookies: {} }, input, { publish: false });
+		seen.length = 0;
+		await svex.hide({ cookies: {} }, "1");
+		expect(seen).toEqual(["4000"]);
+	});
+
 	test("upload retries through the proxy after a network error", async () => {
 		const { f, calls } = mockFetch(({ url, init }) => {
 			if (url.includes("/api/listings/media")) {

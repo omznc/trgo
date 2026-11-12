@@ -62,7 +62,8 @@ export function createSvexAccount(options: ProviderOptions) {
 			if (!res.ok) throw new Error(`${path} failed with HTTP ${res.status}`);
 			return res.text();
 		});
-		ids = result.ids;
+		// Merge: a sell discovery does not carry the my-listings ids.
+		ids = { ...ids, ...result.ids };
 		return result;
 	};
 
