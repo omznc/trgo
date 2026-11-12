@@ -28,6 +28,7 @@ Your data stays in your browser:
 - The OpenRouter key stays in `localStorage` and goes only to OpenRouter.
 - The OLX and SVEX logins keep only a session. The app does not keep your password.
 - The proxy sends the marketplace requests. It does not write logs and does not keep request content.
+- KupujemProdajem blocks Cloudflare. Its requests go through a small relay on the owner's home server. The relay also writes no logs.
 
 The code is open source, so you can check this.
 

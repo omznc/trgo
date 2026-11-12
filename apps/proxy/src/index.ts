@@ -30,6 +30,9 @@ interface Env {
 	// Secrets. Set them with "cf workers secrets update".
 	FREE_MODEL?: string;
 	OPENROUTER_KEY?: string;
+	// The relay for KupujemProdajem. The URL is a build variable. The secret is a Worker secret.
+	KP_RELAY_URL?: string;
+	KP_RELAY_SECRET?: string;
 	// Set to "1" in .dev.vars only. It turns the rate limit off.
 	DEV_NO_RATE_LIMIT?: string;
 }
@@ -193,6 +196,43 @@ async function proxy(request: Request, key: string, target: URL, cors: Headers):
 	return new Response(upstream.body, { status: upstream.status, headers });
 }
 
+// KupujemProdajem blocks Cloudflare Workers. A relay on the owner's server makes the request instead.
+// Its URL comes from the build, so it is not in UPSTREAMS. It must use https. Only GET passes.
+// The relay gets the shared secret and the path. It gets no cookie and no authorization header.
+function kpRelayUrl(env: Env): URL | null {
+	if (!env.KP_RELAY_SECRET) return null;
+	try {
+		const relay = new URL(env.KP_RELAY_URL ?? "");
+		return relay.protocol === "https:" && !relay.username ? relay : null;
+	} catch {
+		return null;
+	}
+}
+
+async function kpRoute(request: Request, env: Env, url: URL, cors: Headers): Promise<Response> {
+	if (request.method !== "GET") return jsonError(405, "use GET", cors);
+	const relay = kpRelayUrl(env);
+	if (!relay) return jsonError(503, "kp-unavailable", cors);
+	const path = url.pathname.slice("/kp".length) || "/";
+	if (!isSafePath(path)) return text(400, "bad route", cors);
+	const target = new URL(relay.origin + path);
+	if (target.origin !== relay.origin) return text(400, "bad route", cors);
+	target.search = url.search;
+	const headers = new Headers({ "x-relay-secret": env.KP_RELAY_SECRET! });
+	const accept = request.headers.get("accept");
+	if (accept) headers.set("accept", accept);
+	let upstream: Response;
+	try {
+		upstream = await fetch(target, { method: "GET", headers, redirect: "manual" });
+	} catch {
+		return text(502, "upstream unreachable", cors);
+	}
+	const out = new Headers(cors);
+	const type = upstream.headers.get("content-type");
+	if (type) out.set("content-type", type);
+	return new Response(upstream.body, { status: upstream.status, headers: out });
+}
+
 const FREE_DAILY_CAP = 150;
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
@@ -333,6 +373,7 @@ export default {
 		if (url.pathname === "/version") return versionResponse(env, cors);
 		if (url.pathname === "/geo") return geoResponse(request, cors);
 		if (url.pathname === "/upload") return upload(request, url, cors);
+		if (url.pathname === "/kp" || url.pathname.startsWith("/kp/")) return kpRoute(request, env, url, cors);
 		const route = resolveTarget(url);
 		if (!route) return text(400, "bad route", cors);
 		return proxy(request, route.key, route.target, cors);

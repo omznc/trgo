@@ -53,6 +53,20 @@ The path has the form `/<upstream-key>/<path>`. The allowlist is the `UPSTREAMS`
 - The upstream `set-cookie` headers return in the response header `x-lagano-set-cookie`, as a JSON array of strings.
 - For the `svex` key, the Worker sets `origin` and `referer` to `https://svex.ba`.
 
+## KupujemProdajem relay
+
+KupujemProdajem blocks all Cloudflare Worker traffic with a 403. The Worker cannot reach it. So `/kp/*` goes to a small relay (`apps/kp-relay`). The relay runs on the owner's home server, behind a Cloudflare Tunnel. Its requests leave from the home IP.
+
+- `GET /kp/<path>` becomes `GET <KP_RELAY_URL>/<path>`. Other methods get 405.
+- `KP_RELAY_URL` is a build variable (text binding). It must be an `https:` URL. The relay URL is used only for the `kp` key. It is not in `UPSTREAMS`.
+- `KP_RELAY_SECRET` is a Worker secret. The Worker sends it in the header `x-relay-secret`. Set it with `cf workers secrets update`.
+- If one of them is missing, or the URL is not https, the route returns 503 `{"error":"kp-unavailable"}`.
+- The path rules are the same as for the other routes (400 for `//`, `..` and a backslash).
+- The Worker forwards only the `accept` header. It does not forward cookies, `authorization` or `x-lagano-cookie`.
+- The response has only the status, the `content-type` and the body.
+- The relay allows only GET, checks the secret, blocks `/api/` paths and allows 30 upstream requests per 10 seconds. See `apps/kp-relay/README.md`.
+- Privacy: the relay writes no request logs and keeps nothing. It is a pass-through, like the Worker.
+
 ## Free AI route
 
 `POST /ai/chat/completions` is a chat route for the free mode of the shop. It needs an allowed `Origin`.
@@ -89,7 +103,7 @@ bun run dev      # http://localhost:8787
 ```
 
 - For local variables, edit `.dev.vars` (`ALLOWED_ORIGINS=...`).
-- To deploy, run `bun run deploy:proxy` in the repository root. The script `scripts/deploy.sh` sets `GIT_COMMIT` and `ALLOWED_ORIGINS`, then runs `cf deploy --profile personal`.
+- To deploy, run `bun run deploy:proxy` in the repository root. The script `scripts/deploy.sh` sets `GIT_COMMIT`, `ALLOWED_ORIGINS` and `KP_RELAY_URL`, then runs `cf deploy --profile personal`.
 - Live URL: https://trgo-proxy.omznc.workers.dev
 
 ## Warning

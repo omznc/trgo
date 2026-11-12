@@ -391,3 +391,64 @@ describe("free route", () => {
 		expect(keys).toEqual(["all", "all"]);
 	});
 });
+
+describe("kp relay", () => {
+	const kpEnv = { ...env, KP_RELAY_URL: "https://relay.test", KP_RELAY_SECRET: "s3" } as typeof env;
+	let seen: { url: string; headers: Headers; method?: string }[] = [];
+
+	beforeEach(() => {
+		seen = [];
+		globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+			seen.push({ url: String(input), headers: new Headers(init?.headers), method: init?.method });
+			return new Response("page", { status: 200, headers: { "content-type": "text/html", "set-cookie": "a=b" } });
+		}) as typeof fetch;
+	});
+
+	test("returns 503 without config", async () => {
+		for (const e of [env, { ...env, KP_RELAY_URL: "https://relay.test" }, { ...env, KP_RELAY_SECRET: "s3" }]) {
+			const res = await call("/kp/oglasi", {}, e as typeof env);
+			expect(res.status).toBe(503);
+			expect(await res.json()).toEqual({ error: "kp-unavailable" });
+		}
+		expect(seen).toEqual([]);
+	});
+
+	test("returns 503 for a relay URL without https", async () => {
+		const e = { ...kpEnv, KP_RELAY_URL: "http://relay.test" } as typeof env;
+		expect((await call("/kp/oglasi", {}, e)).status).toBe(503);
+		expect(seen).toEqual([]);
+	});
+
+	test("forwards with the secret and without cookies", async () => {
+		const res = await call("/kp/pretraga?keywords=bike", { headers: { cookie: "c=1", authorization: "Bearer x", "x-lagano-cookie": "d=2" } }, kpEnv);
+		expect(res.status).toBe(200);
+		expect(await res.text()).toBe("page");
+		expect(res.headers.get("content-type")).toBe("text/html");
+		expect(res.headers.get("x-lagano-set-cookie")).toBeNull();
+		expect(seen).toHaveLength(1);
+		expect(seen[0].url).toBe("https://relay.test/pretraga?keywords=bike");
+		expect(seen[0].method).toBe("GET");
+		expect(seen[0].headers.get("x-relay-secret")).toBe("s3");
+		for (const name of ["cookie", "authorization", "origin"]) expect(seen[0].headers.get(name)).toBeNull();
+	});
+
+	test("allows only GET", async () => {
+		for (const method of ["POST", "PUT", "DELETE"]) {
+			expect((await call("/kp/oglasi", { method, body: "x" }, kpEnv)).status).toBe(405);
+		}
+		expect(seen).toEqual([]);
+	});
+
+	test("rejects an unsafe path", async () => {
+		expect((await call("/kp/a%2f..%2fb", {}, kpEnv)).status).toBe(400);
+		expect((await call("/kp//evil.test", {}, kpEnv)).status).toBe(400);
+		expect(seen).toEqual([]);
+	});
+
+	test("keeps the existing routes", async () => {
+		const res = await call("/olx/search?q=1", {}, kpEnv);
+		expect(res.status).toBe(200);
+		expect(seen.map((s) => s.url)).toEqual(["https://api.olx.ba/search?q=1"]);
+		expect((await call("/nope/x", {}, kpEnv)).status).toBe(400);
+	});
+});

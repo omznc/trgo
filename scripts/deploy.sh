@@ -8,6 +8,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 export GIT_COMMIT="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo dev)"
 export ALLOWED_ORIGINS="$SHOP_URL,https://trgo.omznc.workers.dev"
+export KP_RELAY_URL="https://kp-relay.omarzunic.com"
 export VITE_PROXY_URL="$PROXY_URL"
 
 case "${1:-}" in
