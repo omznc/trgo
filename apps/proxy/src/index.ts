@@ -303,7 +303,19 @@ const versionResponse = (env: Env, headers: Headers) => Response.json({ commit: 
 
 // The country that Cloudflare detects for the request. Nothing is stored or logged.
 const geoResponse = (request: Request, cors: Headers) =>
-	Response.json({ country: (request as Request & { cf?: { country?: string } }).cf?.country ?? null }, { headers: cors });
+	request.method === "GET"
+		? Response.json({ country: (request as Request & { cf?: { country?: string } }).cf?.country ?? null }, { headers: cors })
+		: jsonError(405, "use GET", cors);
+
+function preflight(request: Request, url: URL, cors: Headers): Response {
+	cors.set("access-control-allow-methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+	cors.set("access-control-allow-headers", [...FORWARD_HEADERS, "x-lagano-cookie"].join(","));
+	// The AI SDK adds its own headers on the free route.
+	const asked = request.headers.get("access-control-request-headers");
+	if (url.pathname.startsWith("/ai/") && asked) cors.set("access-control-allow-headers", asked);
+	cors.set("access-control-max-age", "600");
+	return new Response(null, { status: 204, headers: cors });
+}
 
 export default {
 	async fetch(request: Request, env: Env): Promise<Response> {
@@ -317,20 +329,9 @@ export default {
 		if (url.pathname === "/ai/chat/completions" && request.method !== "OPTIONS") return freeChat(request, env, cors);
 		const blocked = await limitResponse(request, env, url.pathname, cors);
 		if (blocked) return blocked;
-		if (request.method === "OPTIONS") {
-			cors.set("access-control-allow-methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-			cors.set(
-				"access-control-allow-headers",
-				[...FORWARD_HEADERS, "x-lagano-cookie"].join(","),
-			);
-			// The AI SDK adds its own headers on the free route.
-			const asked = request.headers.get("access-control-request-headers");
-			if (url.pathname.startsWith("/ai/") && asked) cors.set("access-control-allow-headers", asked);
-			cors.set("access-control-max-age", "600");
-			return new Response(null, { status: 204, headers: cors });
-		}
+		if (request.method === "OPTIONS") return preflight(request, url, cors);
 		if (url.pathname === "/version") return versionResponse(env, cors);
-		if (url.pathname === "/geo") return request.method === "GET" ? geoResponse(request, cors) : jsonError(405, "use GET", cors);
+		if (url.pathname === "/geo") return geoResponse(request, cors);
 		if (url.pathname === "/upload") return upload(request, url, cors);
 		const route = resolveTarget(url);
 		if (!route) return text(400, "bad route", cors);
