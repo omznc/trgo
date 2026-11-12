@@ -19,7 +19,7 @@ trgo is an AI chat for two Bosnian marketplaces: OLX.ba and SVEX.ba. Tell Trgo, 
 - **Sell**: send photos and a few facts. Trgo writes the listing, and you approve it before it goes live.
 - **My listings**: see and edit your own OLX listings in the chat.
 - **Free mode**: use the app with no account, with a daily limit. Connect OpenRouter for no limit and a choice of model.
-- **Bosnian and English**: the app uses the language of your system. You can change it in Settings.
+- **Seven languages**: Bosnian, Croatian, Serbian, Slovenian, German, Bulgarian and English. The app uses the language of your system. You can change it in Settings.
 
 ## Privacy
 

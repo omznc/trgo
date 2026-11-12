@@ -1,4 +1,5 @@
 import { lang } from "./lang";
+import { LOCALES } from "@/locales";
 
 // Copy of the sell flow. The Bosnian text is exact from the design artboards.
 const bs = {
@@ -213,4 +214,5 @@ const en: typeof bs = {
 	errorAria: "Error",
 };
 
-export const sell = lang === "en" ? en : bs;
+export type Sell = typeof bs;
+export const sell = lang === "bs" ? bs : lang === "en" ? en : LOCALES[lang].sell;

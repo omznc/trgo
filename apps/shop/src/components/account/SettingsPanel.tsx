@@ -4,7 +4,7 @@ import { chooseMarket, countryName, useSelection } from "@/lib/market";
 import { Check, ChevronRight, ChevronsUpDown, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { type Lang, lang, setLang } from "@/lib/lang";
+import { LANG_INFO, LANGS, type Lang, lang, setLang } from "@/lib/lang";
 import { useSidePanel } from "@/components/shell/side-panel";
 import { FREE_MODEL_ID, isFreeModel, MODELS, modelLabel } from "@/lib/agent";
 import { getModel, setModel } from "@/lib/openrouter-auth";
@@ -17,9 +17,6 @@ import { Group, notifySettings, PanelBody, PanelHeader, PROXY_SOURCE, Section, u
 
 const ROW = "flex min-h-12 items-center justify-between gap-3.5 px-4 py-2.5 text-[15px] text-fg no-underline";
 const FOCUS = "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus";
-// Each name is in its own language, so it reads the same in both UIs.
-const LANGS: Record<Lang, string> = { bs: "Bosanski", en: "English" };
-
 const MODEL_ROW =
 	"flex min-h-14 items-center gap-3 px-4 py-2.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-focus";
 
@@ -134,14 +131,14 @@ export default function SettingsPanel() {
 							<span id="lang-label">{ta.language}</span>
 							<DropdownMenu>
 								<DropdownMenuTrigger aria-labelledby="lang-label" className={`${FOCUS} inline-flex cursor-pointer items-center gap-1.5 rounded-lg border-0 bg-transparent text-fg-3`}>
-									{LANGS[lang]}
+									{LANG_INFO[lang].name}
 									<ChevronsUpDown size={14} aria-hidden />
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align="end" className="solid min-w-44 rounded-2xl p-1.5">
 									<DropdownMenuRadioGroup value={lang} onValueChange={(v) => v !== lang && setLang(v as Lang)}>
-										{(Object.keys(LANGS) as Lang[]).map((l) => (
+										{LANGS.map((l) => (
 											<DropdownMenuRadioItem key={l} value={l} className="min-h-10 rounded-xl text-sm">
-												{LANGS[l]}
+												{LANG_INFO[l].name}
 											</DropdownMenuRadioItem>
 										))}
 									</DropdownMenuRadioGroup>

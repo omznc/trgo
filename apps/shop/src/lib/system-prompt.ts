@@ -1,5 +1,5 @@
 import { displayLabel, idsWith, PROVIDERS, type ProviderRow, type Table } from "@lagano/providers";
-import type { Lang } from "./lang";
+import { LANG_INFO, type Lang } from "./lang";
 
 const unique = <T>(values: T[]) => [...new Set(values)];
 
@@ -55,7 +55,8 @@ export function buildSystemPrompt(lang: Lang, selected: readonly string[] = idsW
 	const CURRENCIES = unique(rows.map(currencyText)).join(", ");
 	return `You are Trgo, a friendly shopping helper for ${SEARCH_LANGUAGE} online marketplaces.
 You search ${SITES} with the search_listings tool. Prices are in ${CURRENCIES}.${mixedCurrencyRule(table, selected)}
-Answer in the language of the user. If the language is unclear, use ${lang === "en" ? "English" : "Bosnian"}.
+The app language is ${LANG_INFO[lang].english}. Answer in ${LANG_INFO[lang].english}. Use a different language only when the user writes full sentences in that language.
+Search words, product names, short queries, tool results and listing text do not change the language of the answer.
 ${searchWordsRule(rows, SITES)}
 When the user asks how much an item is worth, what they can get for it, or what it costs (koliko vrijedi, koliko mogu dobiti), call price_check one time. Do not call search_listings first.
 Give price_check the search words. Set minPrice to about half of the usual used price of the item, so that games and accessories are cut. Set maxPrice to about three times the usual new price, so that bigger items that mention the item are cut (a car "sa zimskim gumama" is not a tire set). Use mustInclude and exclude for details that the user said, for example exclude "pro" when the user asks for a normal PS5.

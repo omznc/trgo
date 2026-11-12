@@ -209,7 +209,7 @@ export const MODELS = [
 ] as const;
 
 const MODEL_LABELS: Record<string, string> = {
-	[FREE_MODEL_ID]: lang === "en" ? "Free" : "Besplatno",
+	[FREE_MODEL_ID]: strings.freeModel,
 	"deepseek/deepseek-v4.1-flash-1017": "DeepSeek V4.1 Flash",
 };
 export const modelLabel = (id: string) => MODEL_LABELS[id] ?? knownModelName(id) ?? id.split("/").pop() ?? id;

@@ -1,5 +1,7 @@
 import { convert, type Currency } from "@lagano/providers";
 import { useMemo, useSyncExternalStore } from "react";
+import { LOCALES } from "@/locales";
+import type { Locale } from "@/locales/types";
 import { lang } from "./lang";
 import { currencyOf, labelOf, useSelection } from "./market";
 
@@ -126,13 +128,17 @@ function priced(text: string, max: number | undefined, unit: Unit) {
 	return text.replace(`${max} KM`, `${niceAmount(convert(max, "BAM", unit.currency))} ${unit.label}`);
 }
 
-const textOf = (p: Suggestion, unit: Unit) => priced(lang === "en" ? p.en : p.text, p.max, unit);
+const BUILT_IN: Record<"bs" | "en", Pick<Locale["suggestions"], "eg" | "find">> = {
+	bs: { eg: "Npr.", find: /^Nađi / },
+	en: { eg: "E.g.", find: /^Find (an? )?/ },
+};
+const lead = lang === "bs" || lang === "en" ? BUILT_IN[lang] : LOCALES[lang].suggestions;
+
+const localText = (p: Suggestion) => (lang === "bs" ? p.text : lang === "en" ? p.en : (LOCALES[lang].suggestions.items[p.en] ?? p.en));
+const textOf = (p: Suggestion, unit: Unit) => priced(localText(p), p.max, unit);
 
 /** Text for the composer placeholder, for example "Npr. 3D printer do 500 KM". */
-export const placeholderOf = (p: Suggestion, unit: Unit = BA_UNIT) => {
-	const t = textOf(p, unit);
-	return lang === "en" ? `E.g. ${t.replace(/^Find (an? )?/, "")}` : `Npr. ${t.replace(/^Nađi /, "")}`;
-};
+export const placeholderOf = (p: Suggestion, unit: Unit = BA_UNIT) => `${lead.eg} ${textOf(p, unit).replace(lead.find, "")}`;
 
 type Picks = { chips: string[]; placeholder: string };
 type Raw = { list: Suggestion[]; source: Suggestion };

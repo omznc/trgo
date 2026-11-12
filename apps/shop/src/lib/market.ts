@@ -1,7 +1,8 @@
 import { availableTable, displayCurrency, displayLabel, marketSelection, parseSelection, PROVIDERS, type ProviderId } from "@lagano/providers";
 import { useSyncExternalStore } from "react";
 import { extensionVersion } from "./extension";
-import { lang } from "./lang";
+import { langTag } from "./lang";
+import { strings } from "./strings";
 import { proxyUrl } from "./publish";
 
 // The saved market choice: a JSON list of provider ids.
@@ -30,14 +31,11 @@ export const useSelection = () =>
 		getSelection,
 	);
 
-// Chrome has no Bosnian region names in Intl, so the market countries have their own.
-const BS_COUNTRIES: Record<string, string> = { BA: "Bosna i Hercegovina", HR: "Hrvatska", RS: "Srbija", SI: "Slovenija", AT: "Austrija", BG: "Bugarska" };
-
 // "Croatia" or "Hrvatska", in the language of the app.
 export function countryName(code: string) {
-	if (lang === "bs" && BS_COUNTRIES[code]) return BS_COUNTRIES[code];
+	if (strings.countries[code]) return strings.countries[code];
 	try {
-		return new Intl.DisplayNames([lang], { type: "region" }).of(code) ?? code;
+		return new Intl.DisplayNames([langTag], { type: "region" }).of(code) ?? code;
 	} catch {
 		return code;
 	}

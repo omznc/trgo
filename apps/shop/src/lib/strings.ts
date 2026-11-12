@@ -1,4 +1,5 @@
 import type { ProviderId } from "@lagano/providers";
+import { LOCALES } from "@/locales";
 import { lang } from "./lang";
 
 const bs = {
@@ -205,6 +206,9 @@ const bs = {
 	marketsNone: "Ništa ne odgovara.",
 	extensionSoon: "Uskoro",
 	extensionSoonHint: "Treba trgo ekstenzija za preglednik. Uskoro stiže za Chrome i Firefox.",
+	freeModel: "Besplatno",
+	// Chrome has no region names in Intl for some UI languages, so the market countries have their own.
+	countries: { BA: "Bosna i Hercegovina", HR: "Hrvatska", RS: "Srbija", SI: "Slovenija", AT: "Austrija", BG: "Bugarska" } as Record<string, string>,
 };
 
 const en: typeof bs = {
@@ -410,8 +414,11 @@ const en: typeof bs = {
 	marketsNone: "Nothing matches.",
 	extensionSoon: "Soon",
 	extensionSoonHint: "Needs the trgo browser extension. It is coming soon to Chrome and Firefox.",
+	freeModel: "Free",
+	countries: { BA: "Bosnia and Herzegovina", HR: "Croatia", RS: "Serbia", SI: "Slovenia", AT: "Austria", BG: "Bulgaria" },
 };
 
-export const strings = lang === "en" ? en : bs;
+export type Strings = typeof bs;
+export const strings = lang === "bs" ? bs : lang === "en" ? en : LOCALES[lang].strings;
 // The page head renders on the server, so it must not use the browser language.
 export const stringsBs = bs;

@@ -1,4 +1,5 @@
 import { lang, plural } from "@/lib/lang";
+import { LOCALES } from "@/locales";
 
 const bs = {
 	prevImage: "Prethodna slika",
@@ -70,4 +71,5 @@ const en: typeof bs = {
 	dateLocale: "en",
 };
 
-export const details = lang === "en" ? en : bs;
+export type Details = typeof bs;
+export const details = lang === "bs" ? bs : lang === "en" ? en : LOCALES[lang].detail;

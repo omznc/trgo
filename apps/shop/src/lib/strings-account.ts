@@ -1,4 +1,5 @@
 import { lang } from "./lang";
+import { LOCALES } from "@/locales";
 
 // Copy of the account panels (Settings, Connect, My listings).
 const bs = {
@@ -357,4 +358,5 @@ const en: typeof bs = {
 	expired: (name: string) => `The ${name} session expired. Connect ${name} again.`,
 };
 
-export const ta = lang === "en" ? en : bs;
+export type Account = typeof bs;
+export const ta = lang === "bs" ? bs : lang === "en" ? en : LOCALES[lang].account;

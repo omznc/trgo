@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { lang } from "./lang";
+import { langTag } from "./lang";
 
 export type Credits = {
 	balance: number;
@@ -27,7 +27,7 @@ export async function fetchCredits(key: string): Promise<Credits> {
 	};
 }
 
-const usd = new Intl.NumberFormat(lang === "en" ? "en-US" : "bs-BA", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
+const usd = new Intl.NumberFormat(langTag, { style: "currency", currency: "USD", maximumFractionDigits: 2 });
 export const formatUsd = (v: number) => usd.format(Math.max(0, v));
 
 // Re-fetches each time a panel that shows it mounts.
