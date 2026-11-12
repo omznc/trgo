@@ -1,7 +1,8 @@
-import type { Provider, SearchAllResult, SearchQuery } from "./types";
+import type { Provider, ProviderId, SearchAllResult, SearchQuery } from "./types";
 
-export async function searchAll(providers: Provider[], query: SearchQuery): Promise<SearchAllResult> {
-	const settled = await Promise.allSettled(providers.map((p) => p.search(query)));
+// `adapt` changes the query for one provider, for example to convert a price to its currency.
+export async function searchAll(providers: Provider[], query: SearchQuery, adapt: (id: ProviderId, query: SearchQuery) => SearchQuery = (_, q) => q): Promise<SearchAllResult> {
+	const settled = await Promise.allSettled(providers.map((p) => p.search(adapt(p.id, query))));
 	const out: SearchAllResult = { listings: [], total: 0, errors: [] };
 	settled.forEach((result, i) => {
 		const provider = providers[i]!;

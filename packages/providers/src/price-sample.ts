@@ -1,5 +1,5 @@
 import { type FilterOptions, normalizeTitle, rejectTitle } from "./price-filter";
-import type { Listing, Provider, ProviderId, SearchResult } from "./types";
+import type { Listing, Provider, ProviderId, SearchQuery, SearchResult } from "./types";
 
 // The largest page that each API accepts.
 const PAGE_SIZE: Record<ProviderId, number> = { olx: 200, svex: 100 };
@@ -17,6 +17,8 @@ export type FetchOptions = {
 	now?: number;
 	onProgress?: (fetched: number) => void;
 	signal?: AbortSignal;
+	// Changes the query for one provider, for example to convert a price to its currency.
+	adapt?: (id: ProviderId, query: SearchQuery) => SearchQuery;
 };
 
 const ageDays = (l: Listing, now: number) => (l.postedAt ? (now - Date.parse(l.postedAt)) / DAY_MS : Number.POSITIVE_INFINITY);
@@ -26,13 +28,13 @@ const isLastPage = (r: SearchResult, limit: number) => (r.hasMore === undefined 
 
 // Pages of one provider, newest first. A batch of pages runs in parallel.
 async function fetchProvider(provider: Provider, q: string, options: FetchOptions, onBatch: (n: number) => void) {
-	const { perProvider = 600, concurrency = 2, now = Date.now() } = options;
+	const { perProvider = 600, concurrency = 2, now = Date.now(), adapt = (_: ProviderId, query: SearchQuery) => query } = options;
 	const limit = PAGE_SIZE[provider.id];
 	const pages = Math.ceil(perProvider / limit);
 	const out: Listing[] = [];
 	for (let first = 1; first <= pages; first += concurrency) {
 		const numbers = Array.from({ length: Math.min(concurrency, pages - first + 1) }, (_, i) => first + i);
-		const settled = await Promise.allSettled(numbers.map((page) => provider.search({ q, sort: "newest", limit, page, minPrice: options.minPrice, maxPrice: options.maxPrice, signal: options.signal })));
+		const settled = await Promise.allSettled(numbers.map((page) => provider.search(adapt(provider.id, { q, sort: "newest", limit, page, minPrice: options.minPrice, maxPrice: options.maxPrice, signal: options.signal }))));
 		const results = settled.flatMap((s) => (s.status === "fulfilled" ? [s.value] : []));
 		const batch = results.flatMap((r) => r.listings);
 		out.push(...batch);

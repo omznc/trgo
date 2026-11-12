@@ -26,7 +26,7 @@ export function mapSvexItem(item: SvexItem): Listing {
 		id: item.id,
 		title: item.title,
 		price: hasPrice ? price : null,
-		priceText: hasPrice ? `${item.price} KM` : "Po dogovoru",
+		priceText: hasPrice ? `${item.price} ${PROVIDERS.svex.currencyLabel}` : "Po dogovoru",
 		currency: PROVIDERS.svex.currency,
 		condition: item.condition?.startsWith("new") ? "new" : item.condition?.startsWith("used") ? "used" : undefined,
 		city: item.city || undefined,

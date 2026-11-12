@@ -4,6 +4,8 @@
 //    the allowlist is the security boundary);
 // 3. the entries that the typecheck then asks for (strings, sessions, publish steps).
 // See docs/adding-a-provider.md.
+import type { Currency } from "./rates";
+
 export const PROVIDER_IDS = ["olx", "svex"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
@@ -19,8 +21,8 @@ export type ProviderInfo = {
 	site: string;
 	// ISO 3166-1 alpha-2.
 	country: string;
-	// ISO 4217.
-	currency: string;
+	// ISO 4217. It needs a rate in rates.ts.
+	currency: Currency;
 	// What the UI shows after a price.
 	currencyLabel: string;
 	// Language of the search words, and its English name for the model prompt.
@@ -56,7 +58,7 @@ export const PROVIDERS = {
 	},
 } as const satisfies Record<ProviderId, ProviderInfo>;
 
-export type Currency = (typeof PROVIDERS)[ProviderId]["currency"];
+export type { Currency };
 
 export const isProviderId = (value: unknown): value is ProviderId => (PROVIDER_IDS as readonly unknown[]).includes(value);
 

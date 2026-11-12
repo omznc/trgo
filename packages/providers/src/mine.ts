@@ -71,7 +71,7 @@ export function mapSvexMine(item: SvexMineItem): MyListing | null {
 		id: item.id,
 		title: item.title,
 		price: hasPrice ? price : null,
-		priceText: hasPrice ? `${price} KM` : "Po dogovoru",
+		priceText: hasPrice ? `${price} ${PROVIDERS.svex.currencyLabel}` : "Po dogovoru",
 		currency: PROVIDERS.svex.currency,
 		imageUrl: item.thumbnailUrl ?? undefined,
 		url: svexListingUrl(item.id, item.slug),

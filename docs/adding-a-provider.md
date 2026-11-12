@@ -8,6 +8,10 @@ missing after step 1.
    - Add one entry to `PROVIDERS`: name, site, country, currency,
      currency label, search language and capabilities.
    - Set a capability to `true` only when the adapter supports it.
+   - The currency needs a rate in `packages/providers/src/rates.ts`.
+   - A search-only provider (no `mine` and no `publish`) gets no connect
+     chip and no account tools. A country with a provider is a market in
+     the shop. Add the provider to `PAGE_SIZE` in `price-sample.ts`.
 2. Adapter. Add a module in `packages/providers/src/` for the site.
    - Export a factory like `createOlxProvider`.
    - Add the factory to `FACTORIES` in `adapters.ts`.
