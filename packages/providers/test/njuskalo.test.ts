@@ -111,11 +111,11 @@ describe("njuskalo url", () => {
 			keywords: "x",
 			"price[min]": "100",
 			"price[max]": "500",
-			"condition[used]": "used",
+			"condition[used]": "1",
 			sort: "cheap",
 			page: "3",
 		});
-		expect(njuskaloSearchParams({ q: "x", condition: "new" }).get("condition[new]")).toBe("new");
+		expect(njuskaloSearchParams({ q: "x", condition: "new" }).get("condition[new]")).toBe("1");
 		expect(njuskaloSearchParams({ q: "x", sort: "newest" }).get("sort")).toBe("new");
 		expect(njuskaloSearchParams({ q: "x", sort: "price_desc" }).get("sort")).toBe("expensive");
 		const plain = njuskaloSearchParams({ q: "x", sort: "relevance", page: 1 });

@@ -31,6 +31,9 @@ const DELIVERY: Record<ProviderId, (input: ListingArgs) => string> = {
 	svex: (input) => (input.freeShipping ? sell.approve.deliverySvexFree : sell.approve.deliverySvex),
 	kp: () => sell.approve.deliveryOlx,
 	njuskalo: () => sell.approve.deliveryOlx,
+	bolha: () => sell.approve.deliveryOlx,
+	olxbg: () => sell.approve.deliveryOlx,
+	willhaben: () => sell.approve.deliveryOlx,
 };
 
 function rowsFor(input: ListingArgs, provider: ProviderId): [string, string][] {

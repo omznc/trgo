@@ -24,6 +24,16 @@ const LOGIN: Record<ProviderId, (username: string, password: string) => Promise<
 	njuskalo: async () => {
 		throw new Error("Njuškalo has no account.");
 	},
+	// Bolha, OLX.bg and willhaben are search-only too.
+	bolha: async () => {
+		throw new Error("Bolha has no account.");
+	},
+	olxbg: async () => {
+		throw new Error("OLX.bg has no account.");
+	},
+	willhaben: async () => {
+		throw new Error("willhaben has no account.");
+	},
 };
 const SPIN = "animate-spin";
 const CARD = "rounded-[24px] p-5";

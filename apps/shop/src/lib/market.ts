@@ -31,7 +31,7 @@ export const useSelection = () =>
 	);
 
 // Chrome has no Bosnian region names in Intl, so the market countries have their own.
-const BS_COUNTRIES: Record<string, string> = { BA: "Bosna i Hercegovina", HR: "Hrvatska", RS: "Srbija" };
+const BS_COUNTRIES: Record<string, string> = { BA: "Bosna i Hercegovina", HR: "Hrvatska", RS: "Srbija", SI: "Slovenija", AT: "Austrija", BG: "Bugarska" };
 
 // "Croatia" or "Hrvatska", in the language of the app.
 export function countryName(code: string) {

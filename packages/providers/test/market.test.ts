@@ -10,9 +10,9 @@ const FAKE: Table = {
 
 describe("market helpers", () => {
 	test("countries and providers by country", () => {
-		expect(marketCountries(PROVIDERS)).toEqual(["BA", "RS", "HR"]);
+		expect(marketCountries(PROVIDERS)).toEqual(["BA", "RS", "HR", "SI", "BG", "AT"]);
 		expect(countryProviders(PROVIDERS, "RS")).toEqual(["kp"]);
-		expect(marketCountries(FAKE)).toEqual(["BA", "RS", "HR"]);
+		expect(marketCountries(FAKE)).toEqual(["BA", "RS", "SI", "BG", "AT", "HR"]);
 		expect(countryProviders(FAKE, "HR")).toEqual(["fakehr"]);
 		expect(countryProviders(FAKE, "BA")).toEqual(["olx", "svex"]);
 	});
@@ -23,7 +23,7 @@ describe("market helpers", () => {
 	});
 
 	test("a provider that needs the extension is a market only with it", () => {
-		expect(marketCountries(availableTable(PROVIDERS, false))).toEqual(["BA", "RS"]);
+		expect(marketCountries(availableTable(PROVIDERS, false))).toEqual(["BA", "RS", "SI", "BG", "AT"]);
 		// HR then falls back like an unknown country.
 		expect(marketSelection(availableTable(PROVIDERS, false), "HR")).toEqual(["olx", "svex"]);
 		expect(marketSelection(availableTable(PROVIDERS, true), "HR")).toEqual(["njuskalo"]);

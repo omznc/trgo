@@ -1,0 +1,46 @@
+{
+	"data": [
+		{
+			"id": 149773178,
+			"url": "https://www.olx.bg/d/ad/iphone-15-256gb-CID632-IDa8qQq.html",
+			"title": "Iphone 15 256gb",
+			"created_time": "2026-11-12T10:40:01+02:00",
+			"params": [
+				{ "key": "price", "value": { "value": 300, "currency": "EUR", "label": "300 €" } },
+				{ "key": "state", "value": { "key": "used", "label": "използвано" } }
+			],
+			"location": { "city": { "id": 8771, "name": "гр. София" } },
+			"photos": [{ "link": "https://frankfurt.apollo.olxcdn.com:443/v1/files/48yadgeocp4q-BG/image;s={width}x{height}" }]
+		},
+		{
+			"id": 149766011,
+			"url": "https://www.olx.bg/d/ad/iphone-13-CID632-IDa8pPp.html",
+			"title": "iPhone 13",
+			"created_time": "2026-11-11T09:00:00+02:00",
+			"params": [
+				{ "key": "price", "value": { "value": 600, "currency": "BGN", "label": "600 лв." } },
+				{ "key": "state", "value": { "key": "new", "label": "ново" } }
+			],
+			"location": { "city": { "id": 8772, "name": "гр. Пловдив" } },
+			"photos": []
+		},
+		{
+			"id": 149773178,
+			"url": "https://www.olx.bg/d/ad/iphone-15-256gb-CID632-IDa8qQq.html",
+			"title": "Iphone 15 256gb",
+			"created_time": "2026-11-12T10:40:01+02:00",
+			"params": [{ "key": "price", "value": { "value": 300, "currency": "EUR", "label": "300 €" } }],
+			"photos": []
+		},
+		{
+			"id": 149700001,
+			"url": "https://www.olx.bg/d/ad/iphone-swap-CID632-IDa8aaa.html",
+			"title": "iPhone за смяна",
+			"created_time": "2026-11-10T12:00:00+02:00",
+			"params": [],
+			"photos": []
+		}
+	],
+	"metadata": { "total_elements": 1000, "visible_total_count": 11672 },
+	"links": { "next": { "href": "https://www.olx.bg/api/v1/offers?query=iphone&limit=2&offset=2" } }
+}

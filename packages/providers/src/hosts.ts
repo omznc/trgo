@@ -6,6 +6,9 @@ export const UPSTREAMS: Record<string, string> = {
 	svex: "https://svex.ba",
 	"svex-listing": "https://listing.api.svex.ba",
 	"svex-search": "https://search.api.svex.ba",
+	bolha: "https://www.bolha.com",
+	olxbg: "https://www.olx.bg",
+	willhaben: "https://www.willhaben.at",
 };
 
 // The header that marks a reply as an error of the extension itself.
@@ -16,8 +19,11 @@ export type ExtensionHost = { origin: string; credentials: "include" | "omit"; p
 
 // Only njuskalo needs the user's own session. The other hosts never get the browser cookies.
 // With the session, njuskalo could show the user's account pages, so it gets the search pages only.
+// These keys are proxy-only: the extension is in store review, so its host list must not grow.
+const PROXY_ONLY = ["bolha", "olxbg", "willhaben"];
+
 export const EXTENSION_HOSTS: Record<string, ExtensionHost> = {
-	...Object.fromEntries(Object.entries(UPSTREAMS).map(([key, origin]) => [key, { origin, credentials: "omit" as const }])),
+	...Object.fromEntries(Object.entries(UPSTREAMS).filter(([key]) => !PROXY_ONLY.includes(key)).map(([key, origin]) => [key, { origin, credentials: "omit" as const }])),
 	kp: { origin: "https://www.kupujemprodajem.com", credentials: "omit" },
 	njuskalo: { origin: "https://www.njuskalo.hr", credentials: "include", paths: ["/search/"], extensionOnly: true },
 };

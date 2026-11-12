@@ -35,6 +35,10 @@ missing after step 1.
      goes only in `EXTENSION_HOSTS` with `extensionOnly: true`. Set
      `needsExtension: true` in its registry entry, so the shop offers it
      only when the extension is installed (see `njuskalo`).
+   - `EXTENSION_HOSTS` takes every `UPSTREAMS` key, except the keys in
+     `PROXY_ONLY` in `hosts.ts`. A new proxy key that the extension does
+     not need goes in `PROXY_ONLY`. Then the extension permissions stay
+     the same and no store review is needed.
    - Send the user's cookies (`credentials: "include"`) only when the site
      needs them, and then limit the host to the paths it needs with `paths`.
    - The extension build takes its `host_permissions` from

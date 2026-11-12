@@ -15,7 +15,7 @@ const METHODS = {
 describe("provider registry", () => {
 	test("PROVIDER_IDS matches the keys of PROVIDERS", () => {
 		expect([...PROVIDER_IDS].sort() as string[]).toEqual(Object.keys(PROVIDERS).sort());
-		expect([...PROVIDER_IDS]).toEqual(["olx", "svex", "kp", "njuskalo"]);
+		expect([...PROVIDER_IDS]).toEqual(["olx", "svex", "kp", "njuskalo", "bolha", "olxbg", "willhaben"]);
 	});
 
 	test("each entry has its own id and the facts of its country", () => {
@@ -52,7 +52,7 @@ describe("provider registry", () => {
 
 	test("providersWith lists the ids with a capability", () => {
 		expect(providersWith("publish")).toEqual(["olx", "svex"]);
-		expect(providersWith("search")).toEqual(["olx", "svex", "kp", "njuskalo"]);
+		expect(providersWith("search")).toEqual(["olx", "svex", "kp", "njuskalo", "bolha", "olxbg", "willhaben"]);
 	});
 
 	test("kp can search and check prices only", () => {

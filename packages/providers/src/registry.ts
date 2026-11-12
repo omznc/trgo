@@ -6,7 +6,7 @@
 // See docs/adding-a-provider.md.
 import type { Currency } from "./rates";
 
-export const PROVIDER_IDS = ["olx", "svex", "kp", "njuskalo"] as const;
+export const PROVIDER_IDS = ["olx", "svex", "kp", "njuskalo", "bolha", "olxbg", "willhaben"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
 // `detail` is true when getListing works. Without it the UI shows the card data and a link.
@@ -89,6 +89,48 @@ export const PROVIDERS = {
 		// 6 pages of 25. Each page is one request from the browser of the user.
 		priceSampleMax: 150,
 		needsExtension: true,
+	},
+	bolha: {
+		id: "bolha",
+		name: "Bolha",
+		siteName: "Bolha.com",
+		site: "https://www.bolha.com",
+		country: "SI",
+		currency: "EUR",
+		currencyLabel: "EUR",
+		searchLanguage: "sl",
+		searchLanguageName: "Slovenian",
+		capabilities: { search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false },
+		// 6 pages of 25. Each page is one request through the proxy.
+		priceSampleMax: 150,
+	},
+	olxbg: {
+		id: "olxbg",
+		name: "OLX.bg",
+		siteName: "OLX.bg",
+		site: "https://www.olx.bg",
+		country: "BG",
+		currency: "EUR",
+		currencyLabel: "EUR",
+		searchLanguage: "bg",
+		searchLanguageName: "Bulgarian",
+		capabilities: { search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false },
+		// 4 pages of 40.
+		priceSampleMax: 150,
+	},
+	willhaben: {
+		id: "willhaben",
+		name: "willhaben",
+		siteName: "willhaben.at",
+		site: "https://www.willhaben.at",
+		country: "AT",
+		currency: "EUR",
+		currencyLabel: "EUR",
+		searchLanguage: "de",
+		searchLanguageName: "German",
+		capabilities: { search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false },
+		// 5 pages of 30.
+		priceSampleMax: 150,
 	},
 } as const satisfies Record<ProviderId, ProviderInfo>;
 

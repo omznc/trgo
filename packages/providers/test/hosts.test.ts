@@ -55,6 +55,13 @@ describe("extension table", () => {
 		expect(Object.keys(EXTENSION_HOSTS)).toContain("kp");
 	});
 
+	test("the proxy-only keys are not in the extension table", () => {
+		for (const key of ["bolha", "olxbg", "willhaben"]) {
+			expect(Object.keys(UPSTREAMS)).toContain(key);
+			expect(Object.keys(EXTENSION_HOSTS)).not.toContain(key);
+		}
+	});
+
 	test("sends cookies only to njuskalo", () => {
 		for (const [key, host] of Object.entries(EXTENSION_HOSTS)) {
 			expect(host.credentials).toBe(key === "njuskalo" ? "include" : "omit");

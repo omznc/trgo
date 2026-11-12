@@ -24,6 +24,9 @@ The path has the form `/<upstream-key>/<path>`. The allowlist is the `UPSTREAMS`
 | `svex` | `https://svex.ba` |
 | `svex-listing` | `https://listing.api.svex.ba` |
 | `svex-search` | `https://search.api.svex.ba` |
+| `bolha` | `https://www.bolha.com` |
+| `olxbg` | `https://www.olx.bg` |
+| `willhaben` | `https://www.willhaben.at` |
 
 - Any other key returns 400.
 - The URL parser resolves a raw `..`, `.` and backslash (`\`) before the Worker sees the path. For example `/olx/a/../b` becomes `/olx/b`. These cannot change the upstream host, because the host comes from the `UPSTREAMS` key.

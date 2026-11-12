@@ -2,13 +2,23 @@ import { createRequest } from "./http";
 import { KP_RATE_LIMITED } from "./kp";
 import type { Listing, ListingDetail, Provider, ProviderOptions, SearchQuery, SearchResult } from "./types";
 
-const SITE = "https://www.njuskalo.hr";
 const STATE_MARKER = "window.__INITIAL_STATE__=";
 
-const PROVIDER = "njuskalo";
 // Njuskalo wants a check that only the user can do: open the site once, or allow the extension access.
 export const NJUSKALO_CHECK = "njuskalo-check";
-const EUR = "EUR";
+
+// Njuskalo and Bolha run on one platform. A site differs in its id, its host and its error for a page with no data.
+export type ClassifiedsSite = {
+	id: "njuskalo" | "bolha";
+	name: string;
+	site: string;
+	// The error for a page with no data (a bot check page).
+	noData: string;
+	// The error for a HTTP 403 or a HTTP 5xx. Missing means a plain error with the status.
+	blocked?: string;
+};
+
+const NJUSKALO: ClassifiedsSite = { id: "njuskalo", name: "Njuškalo", site: "https://www.njuskalo.hr", noData: NJUSKALO_CHECK, blocked: NJUSKALO_CHECK };
 
 type NjuskaloAd = {
 	id: number;
@@ -50,20 +60,20 @@ function mapCondition(ad: NjuskaloAd): Listing["condition"] {
 	return text === "rabljeno" ? "used" : undefined;
 }
 
-function mapAd(ad: NjuskaloAd): Listing {
+function mapAd(ad: NjuskaloAd, { id, site }: ClassifiedsSite): Listing {
 	const hidden = ad.isPriceOnRequest || ad.hidePrice;
 	const price = hidden ? null : parseNjuskaloPrice(ad.priceFormatted);
 	return {
-		provider: PROVIDER,
+		provider: id,
 		id: String(ad.id),
 		title: ad.title,
 		price,
 		priceText: price === null ? "Po dogovoru" : (ad.priceFormatted ?? ""),
-		currency: EUR,
+		currency: "EUR",
 		condition: mapCondition(ad),
 		city: ad.location || undefined,
 		imageUrl: ad.image && !ad.image.includes("nema-slika") ? ad.image : undefined,
-		url: new URL(ad.url, SITE).href,
+		url: new URL(ad.url, site).href,
 		postedAt: ad.createdAt || undefined,
 	};
 }
@@ -82,11 +92,10 @@ function readState(html: string): NjuskaloState | undefined {
 }
 
 // Ads that the seller paid to promote also show in the regular list. Regular ads go first, so a sort keeps its order.
-export function parseNjuskaloSearch(html: string): SearchResult {
+export function parseClassifiedsSearch(html: string, site: ClassifiedsSite): SearchResult {
 	const data = readState(html)?.searchPage?.pageData;
-	// A page with no data is a bot check page.
-	if (!data) throw new Error(NJUSKALO_CHECK);
-	const listings = dedupe([...(data.regularListings ?? []), ...(data.promotedListings ?? [])].map(mapAd));
+	if (!data) throw new Error(site.noData);
+	const listings = dedupe([...(data.regularListings ?? []), ...(data.promotedListings ?? [])].map((ad) => mapAd(ad, site)));
 	const { totalPageCount, fields } = data;
 	return {
 		listings,
@@ -95,12 +104,14 @@ export function parseNjuskaloSearch(html: string): SearchResult {
 	};
 }
 
+export const parseNjuskaloSearch = (html: string) => parseClassifiedsSearch(html, NJUSKALO);
+
 const dedupe = (listings: Listing[]) => listings.filter((l, i) => listings.findIndex((o) => o.id === l.id) === i);
 
 // Listing URLs end in "-oglas-<id>".
 export function njuskaloIdFromUrl(idOrUrl: string): string {
 	if (!idOrUrl.includes("/")) return idOrUrl;
-	const id = /-oglas-(\d+)\/?$/.exec(new URL(idOrUrl, SITE).pathname)?.[1];
+	const id = /-oglas-(\d+)\/?$/.exec(new URL(idOrUrl, NJUSKALO.site).pathname)?.[1];
 	if (!id) throw new Error(`Not a njuskalo listing URL: ${idOrUrl}`);
 	return id;
 }
@@ -108,35 +119,38 @@ export function njuskaloIdFromUrl(idOrUrl: string): string {
 const SORT = { newest: "new", price_asc: "cheap", price_desc: "expensive" } as const;
 
 // The site fixes the page size, so `limit` only cuts the page.
+// A condition filter takes the value "1", not the name of the condition.
 export function njuskaloSearchParams(query: SearchQuery): URLSearchParams {
 	const params = new URLSearchParams({ keywords: query.q });
 	if (query.minPrice !== undefined) params.set("price[min]", String(query.minPrice));
 	if (query.maxPrice !== undefined) params.set("price[max]", String(query.maxPrice));
-	if (query.condition) params.set(`condition[${query.condition}]`, query.condition);
+	if (query.condition) params.set(`condition[${query.condition}]`, "1");
 	const sort = query.sort && query.sort !== "relevance" ? SORT[query.sort] : undefined;
 	if (sort) params.set("sort", sort);
 	if (query.page && query.page > 1) params.set("page", String(query.page));
 	return params;
 }
 
-export function createNjuskaloProvider(options: ProviderOptions): Provider {
+export function createClassifiedsProvider(options: ProviderOptions, site: ClassifiedsSite): Provider {
 	const request = createRequest(options);
 	return {
-		id: PROVIDER,
-		name: "Njuškalo",
+		id: site.id,
+		name: site.name,
 		async search(query): Promise<SearchResult> {
-			const path = `/njuskalo/search/?${njuskaloSearchParams(query)}`;
+			const path = `/${site.id}/search/?${njuskaloSearchParams(query)}`;
 			const res = await request(path, query.signal ? { signal: query.signal } : undefined);
 			if (res.status === 429) throw new Error(KP_RATE_LIMITED);
-			// A block, a redirect to a check page, or no site access in the extension. The user can fix each one.
-			if (res.status === 403 || res.status >= 500) throw new Error(NJUSKALO_CHECK);
+			// A block, a redirect to a check page, or no site access in the extension.
+			if (site.blocked && (res.status === 403 || res.status >= 500)) throw new Error(site.blocked);
 			if (!res.ok) throw new Error(`${path} failed with HTTP ${res.status}`);
-			const result = parseNjuskaloSearch(await res.text());
+			const result = parseClassifiedsSearch(await res.text(), site);
 			return query.limit ? { ...result, listings: result.listings.slice(0, query.limit) } : result;
 		},
 		async getListing(): Promise<ListingDetail> {
 			// No detail page could be captured (the bot check blocked it), so there is no parser yet.
-			throw new Error("Njuskalo listing details are not supported yet");
+			throw new Error(`${site.name} listing details are not supported yet`);
 		},
 	};
 }
+
+export const createNjuskaloProvider = (options: ProviderOptions): Provider => createClassifiedsProvider(options, NJUSKALO);

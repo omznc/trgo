@@ -1,8 +1,11 @@
 import {
+	createBolhaProvider,
 	createKpProvider,
 	createNjuskaloProvider,
+	createOlxBgProvider,
 	createOlxProvider,
 	createSvexProvider,
+	createWillhabenProvider,
 	OLX_SHIPPING_NOTE,
 	olxListingUrl,
 	providersWith,
@@ -78,6 +81,9 @@ const ACCOUNTS: Record<ProviderId, Provider> = {
 	svex: svexAccount,
 	kp: createKpProvider({ proxyUrl, fetch: transportFetch }),
 	njuskalo: createNjuskaloProvider({ proxyUrl, fetch: transportFetch }),
+	bolha: createBolhaProvider({ proxyUrl, fetch: transportFetch }),
+	olxbg: createOlxBgProvider({ proxyUrl, fetch: transportFetch }),
+	willhaben: createWillhabenProvider({ proxyUrl, fetch: transportFetch }),
 };
 export const accountsWith = (capability: Capability): Provider[] => providersWith(capability).map((id) => ACCOUNTS[id]);
 export const clientsOf = (ids: readonly ProviderId[]): Provider[] => ids.map((id) => ACCOUNTS[id]);
@@ -253,7 +259,20 @@ async function* publishNjuskalo(): Step {
 	throw new Error("Njuškalo does not support publishing.");
 }
 
-const STEPS: Record<ProviderId, (args: ListingArgs, track: Track) => Step> = { olx: publishOlx, svex: publishSvex, kp: publishKp, njuskalo: publishNjuskalo };
+// Bolha, OLX.bg and willhaben are search-only too.
+async function* publishSearchOnly(): Step {
+	throw new Error("This marketplace does not support publishing.");
+}
+
+const STEPS: Record<ProviderId, (args: ListingArgs, track: Track) => Step> = {
+	olx: publishOlx,
+	svex: publishSvex,
+	kp: publishKp,
+	njuskalo: publishNjuskalo,
+	bolha: publishSearchOnly,
+	olxbg: publishSearchOnly,
+	willhaben: publishSearchOnly,
+};
 
 // Runs after the user approved. Providers run one after the other, so progress is easy to show.
 // `previous` holds failed results of an earlier run. A provider with a saved id goes on from it and never makes a second listing.
