@@ -27,7 +27,7 @@ const targets = {
 		...manifest,
 		background: { scripts: ["background.js"] },
 		browser_specific_settings: {
-			gecko: { id: "trgo@omarzunic.com", strict_min_version: "128.0", data_collection_permissions: { required: ["none"] } },
+			gecko: { id: "trgo@omarzunic.com", strict_min_version: "140.0", data_collection_permissions: { required: ["none"] } },
 		},
 	},
 };

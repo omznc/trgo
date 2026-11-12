@@ -1,11 +1,14 @@
 // The page that asks for the host permissions. Firefox does not grant them at install.
 import { api } from "./api";
 
-const origins = api.runtime.getManifest().host_permissions ?? [];
+const manifest = api.runtime.getManifest();
+const sites = manifest.host_permissions ?? [];
+// Firefox also needs access to the trgo pages, or it does not run the content script there.
+const origins = [...sites, ...(manifest.content_scripts?.flatMap((script) => script.matches ?? []) ?? [])];
 const button = document.getElementById("allow") as HTMLButtonElement;
 const status = document.getElementById("status") as HTMLElement;
 
-for (const origin of origins) {
+for (const origin of sites) {
 	const item = document.createElement("li");
 	item.textContent = new URL(origin.replace("/*", "")).hostname;
 	document.getElementById("sites")?.append(item);
