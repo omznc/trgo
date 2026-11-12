@@ -33,12 +33,18 @@ export function useHistory(chat: ChatLike, setDocked: (v: boolean) => void, with
 		if (key) persistChat(live.current.chatId, chat.messages);
 	}, [chat.messages]);
 
-	// Save when a stream ends, not on each token.
+	// Save when a stream ends, not on each token. The chat that started the stream owns the save:
+	// after a chat change the stop ends the stream, and the new chat must not be saved with its restored messages.
+	const streamed = useRef<string | null>(null);
 	useEffect(() => {
 		const was = prev.current;
 		prev.current = chat.status;
 		const wasBusy = was === "submitted" || was === "streaming";
-		if (wasBusy && (chat.status === "ready" || chat.status === "error")) persistChat(live.current.chatId, live.current.messages);
+		const nowBusy = chat.status === "submitted" || chat.status === "streaming";
+		if (!wasBusy && nowBusy) streamed.current = live.current.chatId;
+		const ended = wasBusy && (chat.status === "ready" || chat.status === "error");
+		if (ended && streamed.current === live.current.chatId) persistChat(live.current.chatId, live.current.messages);
+		if (ended) streamed.current = null;
 	}, [chat.status]);
 
 	// The list ends empty when the user deletes the last chat.
