@@ -41,6 +41,15 @@ test("no saved choice and an unknown country give BA", async () => {
 	expect(store.has("trgo-market")).toBe(false);
 });
 
+test("no saved choice and RS give the RS providers", async () => {
+	answer({ country: "RS" });
+	const m = await fresh("rs");
+	await m.initMarket();
+	expect(calls).toBe(1);
+	expect(m.getSelection()).toEqual(["kp"]);
+	expect(store.has("trgo-market")).toBe(false);
+});
+
 test("a failed /geo gives BA", async () => {
 	globalThis.fetch = (async () => {
 		throw new Error("offline");
