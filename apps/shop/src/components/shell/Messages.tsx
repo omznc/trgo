@@ -98,7 +98,6 @@ function PartView({ part, caret, onRespond, searchOpen, expired }: { part: Part;
 type MessageProps = {
 	message: LaganoMessage;
 	streaming: boolean;
-	// Show copy and retry under the answer.
 	canAct: boolean;
 	onCopy: (text: string) => void;
 	onRetry: () => void;

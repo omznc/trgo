@@ -176,7 +176,7 @@ function unfinishedListing(p: AnyPart, unknown: string): AnyPart | null {
 export function restoreMessages(messages: LaganoMessage[], interrupted: string, unknown: string): LaganoMessage[] {
 	const fix = (p: AnyPart): AnyPart => {
 		if (!p.type.startsWith("tool-")) return p;
-		if (isDenied(p) && p.approval) return { ...p, state: "output-denied", approval: { ...p.approval, approved: false } as never };
+		if (isDenied(p) && p.approval) return { ...p, state: "output-denied", approval: { ...p.approval, approved: false } };
 		const listing = p.type === "tool-create_listing" ? unfinishedListing(p, unknown) : null;
 		if (listing) return listing;
 		if (p.state === "input-streaming" || p.state === "input-available" || p.state === "approval-responded") return { ...p, state: "output-error", errorText: interrupted };
