@@ -1,31 +1,60 @@
-import { PROVIDER_IDS, PROVIDERS, type ProviderInfo } from "@lagano/providers";
+import { displayLabel, idsWith, PROVIDERS, type ProviderRow, type Table } from "@lagano/providers";
 import type { Lang } from "./lang";
 
-const all = PROVIDER_IDS.map((id): ProviderInfo => PROVIDERS[id]);
-const unique = (values: string[]) => [...new Set(values)];
+const unique = <T>(values: T[]) => [...new Set(values)];
 
 // "A", "A and B", "A, B and C".
 const list = (items: string[], word = "and") => (items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} ${word} ${items.at(-1)}`);
 
-// "OLX.ba and SVEX.ba": the site names for the model.
-export const SITES = list(all.map((p) => p.siteName));
-// "OLX.ba or SVEX.ba".
-export const SITES_OR = list(all.map((p) => p.siteName), "or");
-// "OLX and SVEX": the short names for the model.
-export const SHORT_NAMES = list(all.map((p) => p.name));
-// "KM": the unit of a price in a tool description.
-export const PRICE_UNIT = unique(all.map((p) => p.currencyLabel)).join("/");
-// "KM (BAM)".
-const CURRENCIES = unique(all.map((p) => `${p.currencyLabel} (${p.currency})`)).join(", ");
-// "Bosnian": the language of the marketplaces and of the search words.
-const SEARCH_LANGUAGE = list(unique(all.map((p) => p.searchLanguageName)), "or");
+// The names of the model prompt and the tool descriptions for a set of providers.
+export function promptFacts(ids: readonly string[], table: Table = PROVIDERS) {
+	const rows: ProviderRow[] = ids.map((id) => table[id]!);
+	return {
+		// "OLX.ba and SVEX.ba": the site names.
+		sites: list(rows.map((p) => p.siteName)),
+		// "OLX.ba or SVEX.ba".
+		sitesOr: list(rows.map((p) => p.siteName), "or"),
+		// "OLX and SVEX": the short names.
+		shortNames: list(rows.map((p) => p.name)),
+		// "KM": the unit of a price in a tool description.
+		priceUnit: displayLabel(table, ids),
+	};
+}
 
-// The model prompt. The sites, the currency and the search language come from the registry.
-export function buildSystemPrompt(lang: Lang): string {
+// "KM (BAM)", or "EUR" when the label is the code.
+const currencyText = (p: ProviderRow) => (p.currencyLabel === p.currency ? p.currency : `${p.currencyLabel} (${p.currency})`);
+
+const EXAMPLES: Record<string, string> = { bs: ' (for example "veš mašina", not "washing machine")' };
+
+// The rule for the language of the search words.
+function searchWordsRule(rows: ProviderRow[], sites: string) {
+	const names = unique(rows.map((p) => p.searchLanguageName));
+	if (names.length === 1) {
+		const example = EXAMPLES[rows[0]!.searchLanguage] ?? "";
+		return `${sites} are ${names[0]} sites. The search words for search_listings and price_check must always be local ${names[0]} terms${example}, even when the user writes in English.`;
+	}
+	const each = list(rows.map((p) => `${p.siteName} is a ${p.searchLanguageName} site`));
+	return `${each}. The search words for search_listings and price_check must be local terms in the language of the site, for example Croatian terms for a Croatian site, even when the user writes in English. Search each language in its own call: set the providers input to the sites of that language and write the search words in that language.`;
+}
+
+// The line about money when the sites use different currencies.
+function mixedCurrencyRule(table: Table, ids: readonly string[]) {
+	if (unique(ids.map((id) => table[id]!.currency)).length === 1) return "";
+	const unit = displayLabel(table, ids);
+	return `\nThe sites use different currencies. The minPrice and maxPrice inputs of search_listings and price_check are in ${unit}. The app converts them to the currency of each site. Each listing shows the price in the currency of its own site.`;
+}
+
+// The model prompt for the selected providers. The sites, the currency and the search language come from the registry.
+export function buildSystemPrompt(lang: Lang, selected: readonly string[] = idsWith(PROVIDERS, "search"), table: Table = PROVIDERS): string {
+	const rows: ProviderRow[] = selected.map((id) => table[id]!);
+	const { sites: SITES } = promptFacts(selected, table);
+	const { shortNames: SHORT_NAMES } = promptFacts(idsWith(table, "mine"), table);
+	const SEARCH_LANGUAGE = list(unique(rows.map((p) => p.searchLanguageName)), "or");
+	const CURRENCIES = unique(rows.map(currencyText)).join(", ");
 	return `You are Trgo, a friendly shopping helper for ${SEARCH_LANGUAGE} online marketplaces.
-You search ${SITES} with the search_listings tool. Prices are in ${CURRENCIES}.
+You search ${SITES} with the search_listings tool. Prices are in ${CURRENCIES}.${mixedCurrencyRule(table, selected)}
 Answer in the language of the user. If the language is unclear, use ${lang === "en" ? "English" : "Bosnian"}.
-${SITES} are ${SEARCH_LANGUAGE} sites. The search words for search_listings and price_check must always be local ${SEARCH_LANGUAGE} terms (for example "veš mašina", not "washing machine"), even when the user writes in English.
+${searchWordsRule(rows, SITES)}
 When the user asks how much an item is worth, what they can get for it, or what it costs (koliko vrijedi, koliko mogu dobiti), call price_check one time. Do not call search_listings first.
 Give price_check the search words. Set minPrice to about half of the usual used price of the item, so that games and accessories are cut. Set maxPrice to about three times the usual new price, so that bigger items that mention the item are cut (a car "sa zimskim gumama" is not a tire set). Use mustInclude and exclude for details that the user said, for example exclude "pro" when the user asks for a normal PS5.
 The app finds many listings, removes accessories and bad prices, and shows a price card. The card is the whole answer: the turn ends after price_check, so do any other work first and call price_check last.
