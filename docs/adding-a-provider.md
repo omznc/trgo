@@ -27,9 +27,20 @@ missing after step 1.
      (SVG if the site has one), and read the SVG first: it must have no script.
    - A search-only provider gets a stub in each of these maps (see `kp`).
      The capability gating hides it, so no code runs the stub.
-4. Proxy. Add the hosts of the site to `UPSTREAMS` in
-   `apps/proxy/src/index.ts`. The proxy does not read the registry. The
-   allowlist is the security boundary, so edit it by hand.
+4. Hosts. Add the hosts of the site to `UPSTREAMS` in
+   `packages/providers/src/hosts.ts`. The proxy and the browser extension
+   both use this file. They do not read the registry. The allowlist is the
+   security boundary, so edit it by hand.
+   - A site that blocks the proxy, but works from the user's own browser,
+     goes only in `EXTENSION_HOSTS` with `extensionOnly: true`. Set
+     `needsExtension: true` in its registry entry, so the shop offers it
+     only when the extension is installed (see `njuskalo`).
+   - Send the user's cookies (`credentials: "include"`) only when the site
+     needs them, and then limit the host to the paths it needs with `paths`.
+   - The extension build takes its `host_permissions` from
+     `EXTENSION_HOSTS`. Add each new host to the permission list in
+     `docs/extension-store.md`, and publish a new extension version: the
+     stores review each new host.
 5. Tests.
    - Add fixtures and adapter tests in `packages/providers/test/`.
    - `registry.test.ts` checks each capability flag against the adapter.
