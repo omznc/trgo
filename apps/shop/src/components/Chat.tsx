@@ -1,5 +1,5 @@
 import type { FileUIPart } from "ai";
-import { Check, WifiOff } from "lucide-react";
+import { Check, TriangleAlert, WifiOff } from "lucide-react";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { flushSync } from "react-dom";
@@ -77,7 +77,9 @@ function errorKind(error: Error | undefined): ChatErrorKind {
 	return known.find((k) => k === m) ?? "generic";
 }
 
-function Toast({ text, onDone }: { text: string; onDone: () => void }) {
+type ToastState = { text: string; warn?: boolean };
+
+function Toast({ text, warn, onDone }: ToastState & { onDone: () => void }) {
 	useEffect(() => {
 		const id = setTimeout(onDone, 2400);
 		return () => clearTimeout(id);
@@ -91,7 +93,7 @@ function Toast({ text, onDone }: { text: string; onDone: () => void }) {
 			transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
 			className="solid fixed bottom-28 left-1/2 z-[30] flex w-[min(340px,calc(100vw-24px))] -translate-x-1/2 items-center gap-2.5 rounded-2xl px-3.5 py-2.5 text-sm"
 		>
-			<Check className="size-4 shrink-0 text-ok" strokeWidth={2.4} aria-hidden />
+			{warn ? <TriangleAlert className="size-4 shrink-0 text-warn" strokeWidth={2.4} aria-hidden /> : <Check className="size-4 shrink-0 text-ok" strokeWidth={2.4} aria-hidden />}
 			<span className="flex-1">{text}</span>
 		</motion.div>
 	);
@@ -144,7 +146,7 @@ export function Chat() {
 	const online = useOnline();
 	const [sources, setSources] = useState<Sources>({ olx: true, svex: true });
 	const [docked, setDocked] = useState(false);
-	const [toast, setToast] = useState<string | null>(null);
+	const [toast, setToast] = useState<ToastState | null>(null);
 	const textarea = useRef<HTMLTextAreaElement>(null);
 	const box = useRef<HTMLDivElement>(null);
 	const clearAttachments = useRef<(() => void) | null>(null);
@@ -159,8 +161,8 @@ export function Chat() {
 		return () => ro.disconnect();
 	}, [started]);
 	const busy = status === "submitted" || status === "streaming";
-	useEffect(() => onSaveFailure(() => setToast(strings.historySaveFailed)), []);
-	const history = useHistory(chat, setDocked, withTransition, () => setToast(strings.publishWait));
+	useEffect(() => onSaveFailure(() => setToast({ text: strings.historySaveFailed, warn: true })), []);
+	const history = useHistory(chat, setDocked, withTransition, () => setToast({ text: strings.publishWait, warn: true }));
 	// A stop in the middle of a post would leave a draft, so the stop button waits.
 	const publishing = busy && isPublishing(messages);
 	// The first-load reveal (.boot) ends for good once the chat starts.
@@ -223,7 +225,7 @@ export function Chat() {
 		[chat.ready, sources, started],
 	);
 	const respond = (id: string, approved: boolean) => chat.addToolApprovalResponse({ id, approved });
-	const copy = (text: string) => navigator.clipboard.writeText(stripNotes(text)).then(() => setToast(strings.copied), () => {});
+	const copy = (text: string) => navigator.clipboard.writeText(stripNotes(text)).then(() => setToast({ text: strings.copied }), () => {});
 	const dismissToast = useCallback(() => setToast(null), []);
 
 	const kind = errorKind(chat.error);
@@ -307,7 +309,7 @@ onRetry={chat.error ? () => chat.regenerate() : undefined} />
 					<SidePanelRegion />
 				</div>
 				<DropOverlay />
-				<AnimatePresence>{toast && <Toast key="toast" text={toast} onDone={dismissToast} />}</AnimatePresence>
+				<AnimatePresence>{toast && <Toast key="toast" {...toast} onDone={dismissToast} />}</AnimatePresence>
 			</div>
 		</ChatActionsProvider>
 	);
