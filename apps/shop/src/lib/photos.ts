@@ -1,3 +1,5 @@
+import type { LaganoMessage } from "./agent";
+
 // Photos live in browser memory for the page session. The model sees only ids.
 export type Photo = { id: string; blob: Blob; url: string };
 
@@ -5,6 +7,10 @@ const MAX_SIDE = 2400;
 const QUALITY = 0.85;
 const photos = new Map<string, Photo>();
 let counter = 0;
+// A saved chat keeps old ids. The prefix changes on each page load, so a new photo never reuses one.
+const prefix = crypto.randomUUID().slice(0, 6);
+
+export const photoId = (pre: string, n: number) => `photo-${pre}-${n}`;
 
 export const getPhoto = (id: string) => photos.get(id);
 
@@ -23,11 +29,30 @@ export async function shrinkImage(file: Blob): Promise<Blob> {
 
 export async function addPhoto(file: Blob): Promise<Photo> {
 	// The id is taken before the await, so ids keep the attach order.
-	const id = `photo-${++counter}`;
+	const id = photoId(prefix, ++counter);
 	const blob = await shrinkImage(file);
 	const photo = { id, blob, url: URL.createObjectURL(blob) };
 	photos.set(photo.id, photo);
 	return photo;
+}
+
+// Ids that a message or a create_listing card still shows.
+export function usedPhotoIds(messages: LaganoMessage[]): Set<string> {
+	const used = new Set<string>();
+	for (const m of messages) {
+		m.metadata?.photoIds?.forEach((id) => used.add(id));
+		for (const p of m.parts) if (p.type === "tool-create_listing") p.input?.photoIds?.forEach((id) => id && used.add(id));
+	}
+	return used;
+}
+
+// Frees the photos that the open chat does not use.
+export function releasePhotos(keep: Set<string>) {
+	for (const [id, photo] of photos) {
+		if (keep.has(id)) continue;
+		URL.revokeObjectURL(photo.url);
+		photos.delete(id);
+	}
 }
 
 export const photoNote = (ids: string[]) =>

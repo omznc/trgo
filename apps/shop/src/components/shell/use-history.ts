@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { LaganoMessage } from "@/lib/agent";
 import { clearHistory, getChat, persistChat, removeChat, restoreMessages, useChatHistory } from "@/lib/chat-history";
+import { releasePhotos, usedPhotoIds } from "@/lib/photos";
 import { strings } from "@/lib/strings";
 import { useSidePanel } from "./side-panel";
 
@@ -16,6 +17,9 @@ export function useHistory(chat: ChatLike, setDocked: (v: boolean) => void, with
 	const live = useRef({ chatId, messages: chat.messages });
 	live.current = { chatId, messages: chat.messages };
 	const prev = useRef(chat.status);
+
+	// A chat change or a clear frees the photos that the open chat does not show.
+	useEffect(() => releasePhotos(usedPhotoIds(live.current.messages)), [chatId]);
 
 	// Save when a stream ends, not on each token.
 	useEffect(() => {
