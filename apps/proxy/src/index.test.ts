@@ -277,6 +277,25 @@ describe("free route", () => {
 		expect(state.gets.length + state.puts.length).toBe(0);
 	});
 
+	test("returns free-too-long for a chat over the message cap", async () => {
+		const body = { messages: Array(121).fill({ role: "user", content: "x" }) };
+		const res = await chat(body);
+		expect(res.status).toBe(413);
+		expect(await res.json()).toEqual({ error: "free-too-long" });
+		expect(fetched).toEqual([]);
+	});
+
+	test("returns free-too-long for a large content-length", async () => {
+		const res = await chat(good, env, { "content-length": String(10 * 1024 * 1024) });
+		expect(await res.json()).toEqual({ error: "free-too-long" });
+	});
+
+	test("keeps 400 bad body for other input errors", async () => {
+		const res = await chat({ messages: [1] });
+		expect(res.status).toBe(400);
+		expect(await res.json()).toEqual({ error: "bad body" });
+	});
+
 	test("rejects an image part before the KV quota is spent", async () => {
 		const { state, e } = kvSpy();
 		const body = { messages: [{ role: "user", content: [{ type: "image_url", image_url: { url: "data:x" } }] }] };

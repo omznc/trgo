@@ -53,17 +53,19 @@ function messageChars(message: unknown): number | null {
 	return chars === null ? null : chars + callChars(calls);
 }
 
+// True when the chat passes the message or character cap. The shop shows "chat too long" for it.
+export function isChatTooLong(input: unknown): boolean {
+	const messages = (input as { messages?: unknown } | null)?.messages;
+	if (!Array.isArray(messages)) return false;
+	if (messages.length > MAX_MESSAGES) return true;
+	return messages.reduce((sum: number, m) => sum + (messageChars(m) ?? 0), 0) > MAX_CHARS;
+}
+
 // Runs before any quota is spent.
 function withinLimits(source: Record<string, unknown>, messages: unknown[]): boolean {
-	if (messages.length > MAX_MESSAGES) return false;
+	if (isChatTooLong(source)) return false;
 	if (source.tools !== undefined && (!Array.isArray(source.tools) || source.tools.length > MAX_TOOLS)) return false;
-	let total = 0;
-	for (const message of messages) {
-		const chars = messageChars(message);
-		if (chars === null) return false;
-		total += chars;
-	}
-	return total <= MAX_CHARS;
+	return messages.every((message) => messageChars(message) !== null);
 }
 
 export function sanitizeBody(input: unknown, model: string): Record<string, unknown> | null {

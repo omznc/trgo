@@ -1,8 +1,7 @@
 import { ExternalLink, KeyRound, RefreshCw } from "lucide-react";
 import { Mascot } from "@/components/Mascot";
+import { CHAT_ERRORS, type ChatErrorKind } from "@/lib/chat-errors";
 import { strings } from "@/lib/strings";
-
-export type ChatErrorKind = "401" | "402" | "404" | "free-day" | "free-minute" | "free-down" | "generic";
 
 const isFree = (kind: ChatErrorKind) => kind.startsWith("free-");
 
@@ -22,15 +21,7 @@ export function ErrorCard({
 	onPickModel: () => void;
 	onRetry?: () => void;
 }) {
-	const title = {
-		"401": strings.error401Title,
-		"402": strings.error402Title,
-		"404": strings.errorModelTitle,
-		"free-day": strings.errorFreeDayTitle,
-		"free-minute": strings.errorFreeMinuteTitle,
-		"free-down": strings.errorFreeDownTitle,
-		generic: strings.errorGenericTitle,
-	}[kind];
+	const title = kind === "generic" ? strings.errorGenericTitle : CHAT_ERRORS[kind].title;
 	return (
 		<section role="alert" className="glass flex max-w-[560px] items-start gap-3.5 rounded-panel p-5 shadow-none">
 			<Mascot mood="error" width={44} />

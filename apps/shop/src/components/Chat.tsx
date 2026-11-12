@@ -8,7 +8,7 @@ import { Composer, type Sources } from "@/components/shell/Composer";
 import { DropOverlay } from "@/components/shell/DropOverlay";
 import { ChatActionsProvider } from "@/components/shell/chat-actions";
 import { ConnectBanner, delay, Footer, Hero, Suggestions } from "@/components/shell/EmptyState";
-import { ErrorCard, type ChatErrorKind } from "@/components/shell/ErrorCard";
+import { ErrorCard } from "@/components/shell/ErrorCard";
 import { Header } from "@/components/shell/Header";
 import { Horizon } from "@/components/shell/Horizon";
 import { AnswerActions, Message, stripNotes, textOf, Thinking } from "@/components/shell/Messages";
@@ -18,6 +18,7 @@ import { HistoryPanel } from "@/components/shell/HistoryPanel";
 import { HistoryRegion, SidePanelRegion, useSidePanel } from "@/components/shell/side-panel";
 import { useHistory } from "@/components/shell/use-history";
 import type { LaganoMessage } from "@/lib/agent";
+import { CHAT_ERRORS, errorKind } from "@/lib/chat-errors";
 import { onSaveFailure } from "@/lib/chat-history";
 import { applyPageLang } from "@/lib/page-lang";
 import { addPhoto, photoNote } from "@/lib/photos";
@@ -69,12 +70,6 @@ function useSingleFlight() {
 function sourceNote(s: Sources) {
 	if (s.olx && s.svex) return "";
 	return `\n\n[Search only on: ${s.olx ? "olx" : "svex"}]`;
-}
-
-function errorKind(error: Error | undefined): ChatErrorKind {
-	const m = error?.message;
-	const known: ChatErrorKind[] = ["401", "402", "404", "free-day", "free-minute", "free-down"];
-	return known.find((k) => k === m) ?? "generic";
 }
 
 type ToastState = { text: string; warn?: boolean };
@@ -229,15 +224,7 @@ export function Chat() {
 	const dismissToast = useCallback(() => setToast(null), []);
 
 	const kind = errorKind(chat.error);
-	const errorText = {
-		"401": strings.error401Body,
-		"402": strings.error402Body,
-		"404": strings.errorModelBody,
-		"free-day": strings.errorFreeDay,
-		"free-minute": strings.errorFreeMinute,
-		"free-down": strings.errorFreeDown,
-		generic: chat.errorText ?? "",
-	}[kind];
+	const errorText = kind === "generic" ? (chat.errorText ?? "") : CHAT_ERRORS[kind].body;
 	const errorCard = chat.errorText ? (
 		<ErrorCard
 			kind={kind}

@@ -61,8 +61,9 @@ The path has the form `/<upstream-key>/<path>`. The allowlist is the `UPSTREAMS`
 - Global limit: 60 requests per 60 seconds for the whole route (`RL_FREE_ALL`, one fixed key). It protects the owner's money when many addresses attack at once. A missing `RL_FREE`, `RL_FREE_ALL` or `FREE_KV` binding returns 500.
 - A request over a limit gets 429 `{"error":"free-limit","scope":"minute"|"day"}` and a `Retry-After` header.
 - Input checks run before the daily quota is spent:
-  - The request needs a `content-length` header of at most 512 KB. Otherwise it gets 413.
-  - Maximum 120 messages, 120000 text characters in total (message text and tool call arguments) and 8 tools. Otherwise it gets 400.
+  - The request needs a `content-length` header. Without it the request gets 413 `{"error":"body too large"}`.
+  - A body over 512 KB, more than 120 messages, or more than 120000 text characters (message text and tool call arguments) gets 413 `{"error":"free-too-long"}`. The shop shows "chat too long".
+  - More than 8 tools gets 400.
   - Only text content is allowed. A part of type `image_url`, `file` or `input_audio` gets 400.
 - The daily counter fails open. If `FREE_KV` throws (for example a write limit), the request continues and the per-minute limits still apply.
 

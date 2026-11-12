@@ -6,16 +6,8 @@ import { clearKey, finishLogin, getKey, getModel, setKey, setModel as saveModel 
 import { strings } from "./strings";
 import { KEY_CHANGED } from "@/components/shell/key-event";
 
-function describeError(error: Error | undefined) {
-	if (!error) return null;
-	if (error.message === "401") return strings.errorBadKey;
-	if (error.message === "402") return strings.errorNoCredits;
-	if (error.message === "404") return strings.errorModelBody;
-	if (error.message === "free-day") return strings.errorFreeDay;
-	if (error.message === "free-minute") return strings.errorFreeMinute;
-	if (error.message === "free-down") return strings.errorFreeDown;
-	return strings.errorGeneric;
-}
+// The known codes get their text from CHAT_ERRORS in the chat view.
+const describeError = (error: Error | undefined) => (error ? strings.errorGeneric : null);
 
 export function useLaganoChat() {
 	const [apiKey, setApiKey] = useState<string | null>(null);

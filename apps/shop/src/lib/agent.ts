@@ -206,6 +206,7 @@ export const modelLabel = (id: string) => MODEL_LABELS[id] ?? knownModelName(id)
 function freeCode(error: APICallError) {
 	const body = error.responseBody ?? "";
 	if (error.statusCode === 503 && body.includes("free-unavailable")) return "free-down";
+	if (error.statusCode === 413 && body.includes("free-too-long")) return "free-too-long";
 	if (error.statusCode === 429 && body.includes("free-limit")) return body.includes('"day"') ? "free-day" : "free-minute";
 	return null;
 }

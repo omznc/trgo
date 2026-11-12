@@ -1,7 +1,7 @@
 // Pass-through proxy. It never stores or logs bodies, headers or URLs.
 // The only state is a per-day request counter for the free AI route (see free.ts).
 // Read the whole file in a few minutes.
-import { hmacIp, ipKey, MAX_BODY_BYTES, sanitizeBody, scrub, scrubStream, secondsUntilNextUtcDay } from "./free";
+import { hmacIp, ipKey, isChatTooLong, MAX_BODY_BYTES, sanitizeBody, scrub, scrubStream, secondsUntilNextUtcDay } from "./free";
 
 // SSRF guard: the only hosts this Worker can reach. Keep this list short.
 const UPSTREAMS: Record<string, string> = {
@@ -261,16 +261,19 @@ async function freeChat(request: Request, env: Env, cors: Headers): Promise<Resp
 async function readFreeBody(request: Request, model: string, cors: Headers): Promise<Record<string, unknown> | Response> {
 	// Check the declared size first, so a large body is never read.
 	const length = Number(request.headers.get("content-length"));
-	if (!Number.isInteger(length) || length <= 0 || length > MAX_BODY_BYTES) return jsonError(413, "body too large", cors);
+	if (!Number.isInteger(length) || length <= 0) return jsonError(413, "body too large", cors);
+	if (length > MAX_BODY_BYTES) return jsonError(413, "free-too-long", cors);
 	const raw = await request.text();
-	if (raw.length > MAX_BODY_BYTES) return jsonError(413, "body too large", cors);
+	if (raw.length > MAX_BODY_BYTES) return jsonError(413, "free-too-long", cors);
 	let parsed: unknown;
 	try {
 		parsed = JSON.parse(raw);
 	} catch {
 		return jsonError(400, "bad json", cors);
 	}
-	return sanitizeBody(parsed, model) ?? jsonError(400, "bad body", cors);
+	const body = sanitizeBody(parsed, model);
+	if (body) return body;
+	return isChatTooLong(parsed) ? jsonError(413, "free-too-long", cors) : jsonError(400, "bad body", cors);
 }
 
 // Sends the upstream answer back with the model name and the provider removed.
