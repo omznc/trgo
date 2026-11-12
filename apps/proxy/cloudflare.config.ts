@@ -2,7 +2,6 @@ import { bindings, defineConfig } from "cf/config";
 
 // Build-time inputs. Local work reads .dev.vars instead.
 //   ALLOWED_ORIGINS  comma list of browser origins. Default http://localhost:3000.
-//   KP_RELAY_URL     https URL of the KupujemProdajem relay. Default empty.
 //   GIT_COMMIT      commit id that GET /version returns. Default "dev".
 export default defineConfig({
 	worker: {
@@ -13,8 +12,6 @@ export default defineConfig({
 		env: {
 			ALLOWED_ORIGINS: bindings.text(process.env.ALLOWED_ORIGINS ?? "http://localhost:3000"),
 			GIT_COMMIT: bindings.text(process.env.GIT_COMMIT ?? "dev"),
-			// Empty means the /kp route returns 503.
-			KP_RELAY_URL: bindings.text(process.env.KP_RELAY_URL ?? ""),
 			// Per client IP. Namespace ids are unique per account.
 			RL_API: bindings.rateLimit({ namespace: "2001", simple: { limit: 60, period: 60 } }),
 			RL_LOGIN: bindings.rateLimit({ namespace: "2002", simple: { limit: 5, period: 60 } }),
@@ -26,6 +23,8 @@ export default defineConfig({
 			// The KP relay is a home connection: a stricter limit per client, and a ceiling over all clients.
 			RL_KP: bindings.rateLimit({ namespace: "2006", simple: { limit: 30, period: 60 } }),
 			RL_KP_ALL: bindings.rateLimit({ namespace: "2007", simple: { limit: 60, period: 60 } }),
+			// The KupujemProdajem relay on srv, through the trgo-kp-relay tunnel. It has no public hostname.
+			KP_RELAY: bindings.vpcService({ id: "01a1d080-bff3-7833-9209-ebb1ec4b5674" }),
 			FREE_KV: bindings.kv({ id: "9ce40f97b1684d3eabb9ab846ccdd97f" }),
 			// Set with "cf workers secrets update". Declared here so a deploy keeps them.
 			FREE_MODEL: bindings.secret(),

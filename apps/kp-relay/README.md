@@ -39,4 +39,4 @@ docker build -t kp-relay apps/kp-relay
 docker run -d --name kp-relay --restart unless-stopped -p 127.0.0.1:8788:8788 -e RELAY_SECRET kp-relay
 ```
 
-Point the Cloudflare Tunnel hostname `kp-relay.omarzunic.com` at `http://localhost:8788`. Set the same secret on the proxy Worker as `KP_RELAY_SECRET`.
+Run `cloudflared` with the tunnel token on the same host. Give the tunnel no public hostname. A Workers VPC service (`trgo-kp-relay`, type `http`, port 8788, host `kp-relay`) points at the relay through the tunnel, and the proxy binds it as `KP_RELAY`. The host name must resolve from the `cloudflared` container. Set the same secret on the proxy Worker as `KP_RELAY_SECRET`.

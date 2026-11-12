@@ -25,8 +25,8 @@ interface Env {
 	// Secrets. Set them with "cf workers secrets update".
 	FREE_MODEL?: string;
 	OPENROUTER_KEY?: string;
-	// The relay for KupujemProdajem. The URL is a build variable. The secret is a Worker secret.
-	KP_RELAY_URL?: string;
+	// The relay for KupujemProdajem: a Workers VPC binding to the relay tunnel. The secret is a Worker secret.
+	KP_RELAY?: Fetcher;
 	KP_RELAY_SECRET?: string;
 	// Set to "1" in .dev.vars only. It turns the rate limit off.
 	DEV_NO_RATE_LIMIT?: string;
@@ -181,31 +181,24 @@ async function proxy(request: Request, key: string, target: URL, cors: Headers):
 // KupujemProdajem blocks Cloudflare Workers. A relay on the owner's server makes the request instead.
 // Its URL comes from the build, so it is not in UPSTREAMS. It must use https. Only GET passes.
 // The relay gets the shared secret and the path. It gets no cookie and no authorization header.
-function kpRelayUrl(env: Env): URL | null {
-	if (!env.KP_RELAY_SECRET) return null;
-	try {
-		const relay = new URL(env.KP_RELAY_URL ?? "");
-		return relay.protocol === "https:" && !relay.username ? relay : null;
-	} catch {
-		return null;
-	}
-}
+// The VPC service sends each request to the relay container, whatever host the URL has.
+// The relay has no public hostname, so the zone's bot check cannot challenge the proxy on the way.
+const KP_RELAY_ORIGIN = "http://kp-relay:8788";
 
 async function kpRoute(request: Request, env: Env, url: URL, cors: Headers): Promise<Response> {
 	if (request.method !== "GET") return jsonError(405, "use GET", cors);
-	const relay = kpRelayUrl(env);
-	if (!relay) return jsonError(503, "kp-unavailable", cors);
+	if (!env.KP_RELAY || !env.KP_RELAY_SECRET) return jsonError(503, "kp-unavailable", cors);
 	const path = url.pathname.slice("/kp".length) || "/";
 	if (!isSafePath(path)) return text(400, "bad route", cors);
-	const target = new URL(relay.origin + path);
-	if (target.origin !== relay.origin) return text(400, "bad route", cors);
+	const target = new URL(KP_RELAY_ORIGIN + path);
+	if (target.origin !== KP_RELAY_ORIGIN) return text(400, "bad route", cors);
 	target.search = url.search;
 	const headers = new Headers({ "x-relay-secret": env.KP_RELAY_SECRET! });
 	const accept = request.headers.get("accept");
 	if (accept) headers.set("accept", accept);
 	let upstream: Response;
 	try {
-		upstream = await fetch(target, { method: "GET", headers, redirect: "manual" });
+		upstream = await env.KP_RELAY.fetch(target, { method: "GET", headers, redirect: "manual" });
 	} catch {
 		return text(502, "upstream unreachable", cors);
 	}

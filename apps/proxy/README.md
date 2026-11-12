@@ -61,10 +61,10 @@ The path has the form `/<upstream-key>/<path>`. The allowlist is the `UPSTREAMS`
 
 KupujemProdajem blocks all Cloudflare Worker traffic with a 403. The Worker cannot reach it. So `/kp/*` goes to a small relay (`apps/kp-relay`). The relay runs on the owner's home server, behind a Cloudflare Tunnel. Its requests leave from the home IP.
 
-- `GET /kp/<path>` becomes `GET <KP_RELAY_URL>/<path>`. Other methods get 405.
-- `KP_RELAY_URL` is a build variable (text binding). It must be an `https:` URL. The relay URL is used only for the `kp` key. It is not in `UPSTREAMS`.
+- `GET /kp/<path>` becomes `GET http://kp-relay:8788/<path>` through the `KP_RELAY` binding. Other methods get 405.
+- `KP_RELAY` is a Workers VPC service binding (`trgo-kp-relay`). The service sends each request through the tunnel to the relay container. The relay has no public hostname. Before, a public hostname let the zone's Bot Fight Mode challenge the Worker in some locations.
 - `KP_RELAY_SECRET` is a Worker secret. The Worker sends it in the header `x-relay-secret`. Set it with `cf workers secrets update`.
-- If one of them is missing, or the URL is not https, the route returns 503 `{"error":"kp-unavailable"}`.
+- If one of them is missing, the route returns 503 `{"error":"kp-unavailable"}`. Local dev has no binding, so `/kp` returns 503 there.
 - The path rules are the same as for the other routes (400 for `//`, `..` and a backslash).
 - The Worker forwards only the `accept` header. It does not forward cookies, `authorization` or `x-lagano-cookie`.
 - The response has only the status, the `content-type` and the body.
@@ -108,7 +108,7 @@ bun run dev      # http://localhost:8787
 ```
 
 - For local variables, edit `.dev.vars` (`ALLOWED_ORIGINS=...`).
-- To deploy, run `bun run deploy:proxy` in the repository root. The script `scripts/deploy.sh` sets `GIT_COMMIT`, `ALLOWED_ORIGINS` and `KP_RELAY_URL`, then runs `cf deploy --profile personal`.
+- To deploy, run `bun run deploy:proxy` in the repository root. The script `scripts/deploy.sh` sets `GIT_COMMIT` and `ALLOWED_ORIGINS`, then runs `cf deploy --profile personal`.
 - Live URL: https://trgo-proxy.omznc.workers.dev
 
 ## Warning
