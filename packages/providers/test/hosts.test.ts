@@ -30,8 +30,16 @@ describe("proxy table", () => {
 
 describe("extension table", () => {
 	test("resolves a valid path for each host", () => {
-		for (const [key, { origin }] of Object.entries(EXTENSION_HOSTS)) {
-			expect(resolveExtensionTarget(key, "/a/b", "?x=1")?.target.href).toBe(`${origin}/a/b?x=1`);
+		for (const [key, { origin, paths }] of Object.entries(EXTENSION_HOSTS)) {
+			const path = `${paths?.[0] ?? "/"}a/b`;
+			expect(resolveExtensionTarget(key, path, "?x=1")?.target.href).toBe(`${origin}${path}?x=1`);
+		}
+	});
+
+	test("gives njuskalo the search pages only", () => {
+		expect(resolveExtensionTarget("njuskalo", "/search/", "?keywords=x")).not.toBeNull();
+		for (const path of ["/", "/moj-kutak", "/search", "/searchx/", "/search/../moj-kutak", "/search/%2e%2e/moj-kutak"]) {
+			expect(resolveExtensionTarget("njuskalo", path, "")).toBeNull();
 		}
 	});
 

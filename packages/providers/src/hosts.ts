@@ -8,13 +8,15 @@ export const UPSTREAMS: Record<string, string> = {
 	"svex-search": "https://search.api.svex.ba",
 };
 
-export type ExtensionHost = { origin: string; credentials: "include" | "omit" };
+// "paths" limits a host to some path prefixes.
+export type ExtensionHost = { origin: string; credentials: "include" | "omit"; paths?: string[] };
 
 // Only njuskalo needs the user's own session. The other hosts never get the browser cookies.
+// With the session, njuskalo could show the user's account pages, so it gets the search pages only.
 export const EXTENSION_HOSTS: Record<string, ExtensionHost> = {
 	...Object.fromEntries(Object.entries(UPSTREAMS).map(([key, origin]) => [key, { origin, credentials: "omit" as const }])),
 	kp: { origin: "https://www.kupujemprodajem.com", credentials: "omit" },
-	njuskalo: { origin: "https://www.njuskalo.hr", credentials: "include" },
+	njuskalo: { origin: "https://www.njuskalo.hr", credentials: "include", paths: ["/search/"] },
 };
 
 // Checks the path before and after percent-decoding.
@@ -55,6 +57,7 @@ export function resolveTarget(url: URL): { key: string; target: URL } | null {
 // Same checks for the extension table. "path" starts with "/".
 export function resolveExtensionTarget(key: string, path: string, search: string): { target: URL; credentials: ExtensionHost["credentials"] } | null {
 	const host = Object.hasOwn(EXTENSION_HOSTS, key) ? EXTENSION_HOSTS[key] : undefined;
+	if (host?.paths && !host.paths.some((prefix) => path.startsWith(prefix))) return null;
 	const target = resolveIn(host?.origin, path, search);
 	return target && host ? { target, credentials: host.credentials } : null;
 }
