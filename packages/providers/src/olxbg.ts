@@ -16,11 +16,13 @@ type OlxBgItem = {
 
 type OlxBgReply = {
 	data?: OlxBgItem[];
-	metadata?: { total_elements?: number; visible_total_count?: number };
+	// "promoted" holds the indices in "data" of promoted ads that the API adds to the page.
+	metadata?: { total_elements?: number; visible_total_count?: number; promoted?: number[] };
 };
 
-// The API stops at offset 1000, even when more ads match.
+// The API gives HTTP 400 for an offset over 1000, and for a limit over 50.
 const MAX_OFFSET = 1000;
+const MAX_LIMIT = 50;
 const DEFAULT_LIMIT = 40;
 const PHOTO_SIZE = "640x480";
 
@@ -31,7 +33,7 @@ const SORT: Partial<Record<NonNullable<SearchQuery["sort"]>, string>> = {
 };
 
 export function olxBgSearchParams(query: SearchQuery) {
-	const limit = query.limit ?? DEFAULT_LIMIT;
+	const limit = Math.min(query.limit ?? DEFAULT_LIMIT, MAX_LIMIT);
 	return {
 		query: query.q,
 		limit,
@@ -73,13 +75,17 @@ export function mapOlxBgItem(item: OlxBgItem): Listing {
 	};
 }
 
-// Promoted ads can repeat an ad and add items past the limit. The first copy stays.
+// The API mixes promoted ads into the page, so a page can hold more items than the limit.
+// The promoted ads can also repeat a regular ad. Drop them, then drop a repeated id.
 export function parseOlxBgSearch(reply: OlxBgReply, query: SearchQuery): SearchResult {
 	const { offset, limit } = olxBgSearchParams(query);
-	const items = reply.data ?? [];
+	const promoted = new Set(reply.metadata?.promoted);
+	const items = (reply.data ?? []).filter((_, i) => !promoted.has(i));
 	const listings = items.map(mapOlxBgItem).filter((l, i, all) => all.findIndex((o) => o.id === l.id) === i).slice(0, limit);
 	const total = reply.metadata?.visible_total_count ?? reply.metadata?.total_elements ?? listings.length;
-	return { listings, total, hasMore: offset + limit < Math.min(reply.metadata?.total_elements ?? total, MAX_OFFSET) };
+	// The next offset must stay within the cap.
+	const next = offset + limit;
+	return { listings, total, hasMore: next <= MAX_OFFSET && next < (reply.metadata?.total_elements ?? total) };
 }
 
 export function createOlxBgProvider(options: ProviderOptions): Provider {
@@ -89,7 +95,7 @@ export function createOlxBgProvider(options: ProviderOptions): Provider {
 		name: PROVIDERS.olxbg.name,
 		async search(query): Promise<SearchResult> {
 			const params = olxBgSearchParams(query);
-			if (params.offset >= MAX_OFFSET) return { listings: [], total: 0, hasMore: false };
+			if (params.offset > MAX_OFFSET) return { listings: [], total: 0, hasMore: false };
 			return parseOlxBgSearch(await getJson<OlxBgReply>("/olxbg/api/v1/offers/", params, query.signal), query);
 		},
 		getListing() {

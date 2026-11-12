@@ -26,6 +26,12 @@ describe("olx.bg parser", () => {
 		expect(result.listings.map((l) => l.id)).toEqual(["149773178", "149766011", "149700001"]);
 	});
 
+	test("drops the promoted ads and keeps all regular ads", () => {
+		expect(result.listings.map((l) => l.id)).not.toContain("149000001");
+		const regular = { ...reply, data: [...reply.data!, ...reply.data!.slice(0, 1)], metadata: { ...reply.metadata, promoted: [0, 4] } };
+		expect(parseOlxBgSearch(regular, { q: "x", limit: 40 }).listings.map((l) => l.id)).toEqual(["149766011", "149773178", "149700001"]);
+	});
+
 	test("cuts the list to the limit", () => {
 		expect(parseOlxBgSearch(reply, { q: "x", limit: 2 }).listings.map((l) => l.id)).toEqual(["149773178", "149766011"]);
 	});
@@ -42,6 +48,10 @@ describe("olx.bg parser", () => {
 		expect(result.total).toBe(11672);
 		expect(result.hasMore).toBe(true);
 		expect(parseOlxBgSearch(reply, { q: "x", limit: 50, page: 20 }).hasMore).toBe(false);
+	});
+
+	test("clamps the limit to 50", () => {
+		expect(olxBgSearchParams({ q: "x", limit: 100, page: 2 })).toMatchObject({ limit: 50, offset: 50 });
 	});
 });
 
@@ -74,7 +84,7 @@ describe("olx.bg provider", () => {
 
 	test("returns an empty page past the offset cap without a request", async () => {
 		const calls: string[] = [];
-		expect(await make(reply, calls).search({ q: "x", limit: 50, page: 21 })).toEqual({ listings: [], total: 0, hasMore: false });
+		expect(await make(reply, calls).search({ q: "x", limit: 50, page: 22 })).toEqual({ listings: [], total: 0, hasMore: false });
 		expect(calls).toHaveLength(0);
 	});
 

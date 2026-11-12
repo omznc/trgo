@@ -3,7 +3,7 @@ import { PROVIDERS, type ProviderInfo } from "./registry";
 import type { Listing, Provider, ProviderId, SearchQuery, SearchResult } from "./types";
 
 // The largest page that each API accepts.
-const PAGE_SIZE: Record<ProviderId, number> = { olx: 200, svex: 100, kp: 30, njuskalo: 25, bolha: 25, olxbg: 40, willhaben: 30 };
+const PAGE_SIZE: Record<ProviderId, number> = { olx: 200, svex: 100, kp: 30, njuskalo: 25, bolha: 25, olxbg: 50, willhaben: 30 };
 const DAY_MS = 86_400_000;
 export const WINDOWS = [90, 180, 365] as const;
 const MIN_LISTINGS = 15;

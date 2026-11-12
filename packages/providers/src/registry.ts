@@ -115,7 +115,7 @@ export const PROVIDERS = {
 		searchLanguage: "bg",
 		searchLanguageName: "Bulgarian",
 		capabilities: { search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false },
-		// 4 pages of 40.
+		// 3 pages of 50.
 		priceSampleMax: 150,
 	},
 	willhaben: {
