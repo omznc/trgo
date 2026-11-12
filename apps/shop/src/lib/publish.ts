@@ -120,12 +120,12 @@ function fillAttributes(attrs: OlxAttribute[], args: ListingArgs): NonNullable<O
 		});
 }
 
-const blobsOf = (ids: string[]) =>
-	ids.map((id) => {
-		const photo = getPhoto(id);
-		if (!photo) throw new AskUser(`Photo ${id} is not in the browser. Ask the user to attach it again.`);
-		return photo.blob;
-	});
+// Photos are read one by one, only when a step uploads them. A resume that sends nothing needs none.
+function blobOf(id: string): Blob {
+	const photo = getPhoto(id);
+	if (!photo) throw new AskUser(`Photo ${id} is not in the browser. Ask the user to attach it again.`);
+	return photo.blob;
+}
 
 async function createOlxDraft(session: OlxSession, args: ListingArgs): Promise<number> {
 	const [cities, suggestions] = await Promise.all([olx.cities(), olx.suggestCategory(args.categoryHint)]);
@@ -146,19 +146,21 @@ async function createOlxDraft(session: OlxSession, args: ListingArgs): Promise<n
 }
 
 // Without a saved id this makes a draft. With one, it goes on with the photos that are still missing.
-async function* publishOlx(args: ListingArgs, blobs: Blob[], track: Track): Step {
+export async function* publishOlx(args: ListingArgs, track: Track): Step {
 	const session = getSession("olx");
 	if (!session) throw new Error(strings.notConnected);
+	// Check the photos that are still to send, before a draft exists.
+	args.photoIds.slice(track.uploaded).forEach(blobOf);
 	if (!track.id) {
 		yield strings.progressPrepare;
 		track.id = String(await createOlxDraft(session, args));
 		track.stage = "photos";
 	}
 	const id = Number(track.id);
-	for (const [i, blob] of blobs.entries()) {
+	for (const [i, photoId] of args.photoIds.entries()) {
 		if (i < track.uploaded) continue;
-		yield strings.progressPhotos(i + 1, blobs.length);
-		await olx.uploadImages(session, id, [blob]);
+		yield strings.progressPhotos(i + 1, args.photoIds.length);
+		await olx.uploadImages(session, id, [blobOf(photoId)]);
 		track.uploaded = i + 1;
 	}
 	yield strings.progressPublish;
@@ -169,15 +171,15 @@ async function* publishOlx(args: ListingArgs, blobs: Blob[], track: Track): Step
 
 type SvexCreated = { id: string; slug: string };
 
-async function* createSvexListing(session: SvexSession, args: ListingArgs, blobs: Blob[]): AsyncGenerator<string, SvexCreated> {
+async function* createSvexListing(session: SvexSession, args: ListingArgs): AsyncGenerator<string, SvexCreated> {
 	yield strings.progressPrepare;
 	const [categories, cities] = await Promise.all([svex.categories() as Promise<SvexCategory[]>, svex.cities()]);
 	const category = pickByName(categories.filter((c) => c.isLeaf), args.categoryHint, "SVEX category");
 	const city = pickCity(cities, args.city);
 	const media = [];
-	for (const [i, blob] of blobs.entries()) {
-		yield strings.progressPhotos(i + 1, blobs.length);
-		media.push(await svex.uploadPhoto(session, blob, `photo-${i + 1}.jpg`));
+	for (const [i, photoId] of args.photoIds.entries()) {
+		yield strings.progressPhotos(i + 1, args.photoIds.length);
+		media.push(await svex.uploadPhoto(session, blobOf(photoId), `photo-${i + 1}.jpg`));
 	}
 	yield strings.progressPublish;
 	const free = args.freeShipping ?? false;
@@ -199,11 +201,11 @@ async function* createSvexListing(session: SvexSession, args: ListingArgs, blobs
 }
 
 // Without a saved id this uploads the photos and makes an unpublished listing. With one, it only publishes.
-async function* publishSvex(args: ListingArgs, blobs: Blob[], track: Track): Step {
+export async function* publishSvex(args: ListingArgs, track: Track): Step {
 	const session = getSession("svex");
 	if (!session) throw new Error(strings.notConnected);
 	if (!track.id) {
-		const created = yield* createSvexListing(session, args, blobs);
+		const created = yield* createSvexListing(session, args);
 		[track.id, track.slug] = [created.id, created.slug];
 	}
 	yield strings.progressPublish;
@@ -232,7 +234,7 @@ export async function* publishListing(args: ListingArgs, previous: ProviderResul
 	for (const provider of args.providers) {
 		const track = trackOf(previous.find((r) => r.provider === provider));
 		try {
-			const step = STEPS[provider](args, blobsOf(args.photoIds), track);
+			const step = STEPS[provider](args, track);
 			for (let next = await step.next(); ; next = await step.next()) {
 				if (next.done) {
 					results.push(next.value);
