@@ -1,6 +1,7 @@
 import { createProvider } from "./adapters";
 import type { ListingDetail, ProviderId, ProviderOptions } from "./types";
 
+// The olxbg pattern gives the token at the end of the URL, not the numeric card id. Use the id from the search result.
 // Takes a plain id or a listing URL. SVEX URLs are /oglas/{uuid}-{slug}; the uuid has 36 characters.
 export function listingIdFromUrl(provider: ProviderId, idOrUrl: string): string {
 	if (!idOrUrl.includes("/")) return idOrUrl;

@@ -254,12 +254,7 @@ async function* publishKp(): Step {
 	throw new Error("KupujemProdajem does not support publishing.");
 }
 
-// Njuškalo is search-only too.
-async function* publishNjuskalo(): Step {
-	throw new Error("Njuškalo does not support publishing.");
-}
-
-// Bolha, OLX.bg and willhaben are search-only too.
+// Njuškalo, Bolha, OLX.bg and willhaben are search-only too.
 async function* publishSearchOnly(): Step {
 	throw new Error("This marketplace does not support publishing.");
 }
@@ -268,7 +263,7 @@ const STEPS: Record<ProviderId, (args: ListingArgs, track: Track) => Step> = {
 	olx: publishOlx,
 	svex: publishSvex,
 	kp: publishKp,
-	njuskalo: publishNjuskalo,
+	njuskalo: publishSearchOnly,
 	bolha: publishSearchOnly,
 	olxbg: publishSearchOnly,
 	willhaben: publishSearchOnly,
