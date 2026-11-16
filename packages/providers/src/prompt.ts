@@ -51,7 +51,7 @@ function mixedCurrencyRule(table: Table, ids: readonly string[]) {
 function adviceRule(table: Table, ids: readonly string[]) {
 	const sites = idsWith(table, "detail", ids);
 	const read = sites.length ? ` Titles often hide the specs, so read the 3 to 5 best candidates with get_listings (${promptFacts(sites, table).sitesOr}) before you choose.` : "";
-	return `\nWhen the user asks for the best item for a need (a PC for a game, a laptop for school, a phone for photos), make a plan first. Decide the minimum and the good specs from what you know, and tell the user in one line. Search 1 to 3 times with different words, for example the complete item and the key part ("gaming pc", "rtx 3060").${read} Recommend 2 or 3 listings with one reason each: the specs against the need, and the price against the other listings. Say when a listing does not state a spec. Never guess a spec. If the user gave no budget, ask for it at the end.`;
+	return `\nWhen the user asks for the best item for a need (a PC for a game, a laptop for school, a phone for photos), make a plan first. Decide the minimum and the good specs from what you know, and tell the user in one line. Search 1 to 3 times with different words, for example the complete item and the key part ("gaming pc", "rtx 3060").${read} Recommend 2 or 3 listings with one reason each, and name each one by its short title and price, never by its provider:id: the specs against the need, and the price against the other listings. Say when a listing does not state a spec. Never guess a spec. If the user gave no budget, ask for it at the end.`;
 }
 
 // The model prompt for the selected providers. The sites, the currency and the search language come from the registry.
