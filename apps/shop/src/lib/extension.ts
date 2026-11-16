@@ -9,6 +9,13 @@ const TIMEOUT_MS = 25_000;
 export const extensionVersion = (): string | null => (typeof document === "undefined" ? null : (document.documentElement.dataset.trgoExtension ?? null));
 
 // The server render has no extension, so the first client render must match it.
+const CHROME_STORE = "https://chromewebstore.google.com/detail/trgo/meaaajicfebfijjgjlbmmmpmghgdanfg";
+const FIREFOX_STORE = "https://addons.mozilla.org/firefox/addon/trgo/";
+const ua = () => (typeof navigator === "undefined" ? "" : navigator.userAgent);
+export const storeUrl = () => (/firefox/i.test(ua()) ? FIREFOX_STORE : CHROME_STORE);
+// Mobile Chrome and every iOS browser have no extensions. Firefox for Android installs from AMO.
+export const canInstall = () => !/android|iphone|ipad|ipod/i.test(ua()) || (/firefox/i.test(ua()) && /android/i.test(ua()));
+
 export const useExtensionVersion = () =>
 	useSyncExternalStore(
 		() => () => {},

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { createCall } from "./extension";
+import { canInstall, createCall, storeUrl } from "./extension";
 
 const ORIGIN = "https://trgo.test";
 const REQUEST = { key: "njuskalo", path: "/njuskalo/search/", search: "?keywords=x", accept: "" };
@@ -54,4 +54,23 @@ test("the ids differ and a timeout or an abort removes the listener", async () =
 	await expect(first).rejects.toThrow("did not answer");
 	expect(listeners.size).toBe(0);
 	await expect(call(REQUEST, control.signal)).rejects.toThrow("stopped");
+});
+
+test("canInstall and storeUrl follow the browser", () => {
+	const real = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+	const as = (userAgent: string) => Object.defineProperty(globalThis, "navigator", { value: { userAgent }, configurable: true });
+	try {
+		as("Mozilla/5.0 (X11; Linux x86_64) Chrome/140.0");
+		expect([canInstall(), storeUrl()]).toEqual([true, expect.stringContaining("chromewebstore")]);
+		as("Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0");
+		expect([canInstall(), storeUrl()]).toEqual([true, expect.stringContaining("addons.mozilla.org")]);
+		as("Mozilla/5.0 (Linux; Android 14) Chrome/140.0 Mobile");
+		expect(canInstall()).toBe(false);
+		as("Mozilla/5.0 (Android 14; Mobile; rv:140.0) Gecko/140.0 Firefox/140.0");
+		expect(canInstall()).toBe(true);
+		as("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) FxiOS/140.0");
+		expect(canInstall()).toBe(false);
+	} finally {
+		if (real) Object.defineProperty(globalThis, "navigator", real);
+	}
 });

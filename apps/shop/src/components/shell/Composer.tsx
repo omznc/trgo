@@ -2,7 +2,7 @@ import { countryProviders, marketCountries, PROVIDERS, type ProviderId } from "@
 import { ArrowUp, ChevronDown, ImagePlus } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useExtensionVersion } from "@/lib/extension";
+import { canInstall, storeUrl, useExtensionVersion } from "@/lib/extension";
 import { countryName } from "@/lib/market";
 import { type KeyboardEvent, type MutableRefObject, type Ref, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { FileUIPart } from "ai";
@@ -155,21 +155,22 @@ function filterMarkets(filter: string) {
 }
 
 function MarketItem({ market, checked, locked, onToggle }: { market: Market; checked: boolean; locked: boolean; onToggle: (key: ProviderId) => void }) {
+	const installable = locked && canInstall();
 	const item = (
 		<DropdownMenuCheckboxItem
 			checked={checked}
-			disabled={locked}
-			onCheckedChange={() => onToggle(market.key)}
+			disabled={locked && !installable}
+			onCheckedChange={() => (locked ? window.open(storeUrl(), "_blank", "noopener") : onToggle(market.key))}
 			onSelect={(event) => event.preventDefault()}
 			className="min-h-10 gap-2 rounded-xl text-sm"
 		>
 			<Logo src={market.logo} />
 			{market.name}
-			{locked && <span className="ml-auto rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-fg-3">{strings.extensionSoon}</span>}
+			{locked && <span className="ml-auto rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-fg-3">{installable ? strings.extensionGet : strings.extensionDesktop}</span>}
 		</DropdownMenuCheckboxItem>
 	);
-	if (!locked) return item;
-	// A disabled item gets no pointer events, so the wrapper holds the hover.
+	// A touch screen shows no tooltip, so a phone gets only the badge.
+	if (!installable) return item;
 	return (
 		<TooltipProvider delayDuration={150}>
 			<Tooltip>
@@ -177,7 +178,7 @@ function MarketItem({ market, checked, locked, onToggle }: { market: Market; che
 					<div>{item}</div>
 				</TooltipTrigger>
 				<TooltipContent side="right" className="max-w-56">
-					{strings.extensionSoonHint}
+					{strings.extensionGetHint}
 				</TooltipContent>
 			</Tooltip>
 		</TooltipProvider>

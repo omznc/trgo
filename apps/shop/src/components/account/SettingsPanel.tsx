@@ -1,5 +1,5 @@
 import { availableTable, countryProviders, marketCountries, PROVIDERS, selectionCountry } from "@lagano/providers";
-import { useExtensionVersion } from "@/lib/extension";
+import { canInstall, storeUrl, useExtensionVersion } from "@/lib/extension";
 import { chooseMarket, countryName, useSelection } from "@/lib/market";
 import { Check, ChevronRight, ChevronsUpDown, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -176,10 +176,20 @@ export default function SettingsPanel() {
 							<span>{ta.whatWeStore}</span>
 							<ChevronRight size={16} aria-hidden className="text-fg-3" />
 						</button>
-						<div className={ROW}>
-							<span>{ta.extension}</span>
-							<span className="text-fg-3">{extension ? ta.extensionOn(extension) : ta.extensionOff}</span>
-						</div>
+						{extension || !canInstall() ? (
+							<div className={ROW}>
+								<span>{ta.extension}</span>
+								<span className="text-fg-3">{extension ? ta.extensionOn(extension) : ta.extensionOff}</span>
+							</div>
+						) : (
+							<a href={storeUrl()} target="_blank" rel="noopener noreferrer" className={`${ROW} ${FOCUS}`}>
+								<span>{ta.extension}</span>
+								<span className="inline-flex items-center gap-1.5 text-fg-3">
+									{ta.extensionOff}
+									<ExternalLink size={14} aria-hidden />
+								</span>
+							</a>
+						)}
 					</Group>
 				</Section>
 			</PanelBody>

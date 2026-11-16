@@ -204,8 +204,10 @@ const strings: Locale["strings"] = {
 	marketsAria: "Izbira trgov za iskanje",
 	marketsFilter: "Poišči državo ali spletno mesto",
 	marketsNone: "Nič ne ustreza.",
-	extensionSoon: "Kmalu",
-	extensionSoonHint: "Potrebuje razširitev trgo za brskalnik. Kmalu pride za Chrome in Firefox.",
+	extensionGet: "Namesti",
+	extensionGetHint: "Potrebuje razširitev trgo za brskalnik. Kliknite, da jo namestite.",
+	extensionDesktop: "Računalnik",
+	footerExtension: "Dodaj razširitev trgo",
 	freeModel: "Brezplačno",
 	countries: { BA: "Bosna in Hercegovina", HR: "Hrvaška", RS: "Srbija", SI: "Slovenija", AT: "Avstrija", BG: "Bolgarija" },
 };

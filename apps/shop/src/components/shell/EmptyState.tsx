@@ -1,4 +1,5 @@
-import { ExternalLink, KeyRound, Plus, Search, Tag } from "lucide-react";
+import { ExternalLink, KeyRound, Plus, Puzzle, Search, Tag } from "lucide-react";
+import { canInstall, storeUrl, useExtensionVersion } from "@/lib/extension";
 import { type CSSProperties, useEffect, useRef } from "react";
 import { Mascot } from "@/components/Mascot";
 import { startLogin } from "@/lib/openrouter-auth";
@@ -80,15 +81,19 @@ export function Suggestions({ onPick }: { onPick: (text: string) => void }) {
 }
 
 
+const footerPill = "glass inline-flex items-center gap-1.5 rounded-full px-3.5 py-[7px] text-xs font-medium text-fg no-underline shadow-none";
+
 export function Footer() {
+	const promote = useExtensionVersion() === null && canInstall();
 	return (
-		<footer style={delay(780)} className="ld relative flex max-sm:hidden shrink-0 justify-center px-6 pb-[max(18px,env(safe-area-inset-bottom))]">
-			<a
-				href={strings.sourceUrl}
-				target="_blank"
-				rel="noopener noreferrer"
-				className="glass inline-flex items-center gap-1.5 rounded-full px-3.5 py-[7px] text-xs font-medium text-fg no-underline shadow-none"
-			>
+		<footer style={delay(780)} className="ld relative flex max-sm:hidden shrink-0 justify-center gap-2 px-6 pb-[max(18px,env(safe-area-inset-bottom))]">
+			{promote && (
+				<a href={storeUrl()} target="_blank" rel="noopener noreferrer" className={footerPill}>
+					<Puzzle className="size-[11px]" aria-hidden />
+					{strings.footerExtension}
+				</a>
+			)}
+			<a href={strings.sourceUrl} target="_blank" rel="noopener noreferrer" className={footerPill}>
 				{strings.footerSource}
 				<ExternalLink className="size-[11px]" aria-hidden />
 			</a>

@@ -27,5 +27,8 @@ Do not publish a `--dev` build.
 
 ## Store
 
+- Chrome: https://chromewebstore.google.com/detail/trgo/meaaajicfebfijjgjlbmmmpmghgdanfg
+- Firefox: https://addons.mozilla.org/firefox/addon/trgo/
+
 See `docs/extension-store.md` for the listing text and the steps, and
 `docs/extension-privacy.md` for the privacy policy.

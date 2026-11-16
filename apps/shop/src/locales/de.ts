@@ -202,8 +202,10 @@ const strings: Locale["strings"] = {
 	marketsAria: "Märkte für die Suche wählen",
 	marketsFilter: "Land oder Seite suchen",
 	marketsNone: "Nichts passt.",
-	extensionSoon: "Bald",
-	extensionSoonHint: "Braucht die trgo-Browsererweiterung. Sie kommt bald für Chrome und Firefox.",
+	extensionGet: "Installieren",
+	extensionGetHint: "Braucht die trgo-Browsererweiterung. Klicke, um sie zu installieren.",
+	extensionDesktop: "Desktop",
+	footerExtension: "trgo-Erweiterung hinzufügen",
 	freeModel: "Gratis",
 	countries: { BA: "Bosnien und Herzegowina", HR: "Kroatien", RS: "Serbien", SI: "Slowenien", AT: "Österreich", BG: "Bulgarien" },
 };
