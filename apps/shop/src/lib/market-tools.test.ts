@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { PROVIDERS, type Listing, type Provider, type SearchQuery, type Table } from "@lagano/providers";
-import { buildTools } from "./agent";
+import { buildTools, cardEnds } from "./agent";
 import { runPriceCheck } from "./price-check";
 import { toolProviders } from "./tool-gate";
 
@@ -82,4 +82,14 @@ describe("price check currency", () => {
 		for await (const out of runPriceCheck({ item: "PS5", query: "ps5" }, [flaky], { currency: "BAM", label: "KM" }, undefined, table)) last = out;
 		expect((last as { partial: string[] }).partial).toEqual(["olx"]);
 	});
+});
+
+test("cardEnds stops after a price card unless the model asked to answer", () => {
+	const step = (...calls: { toolName: string; input: unknown }[]) => ({ toolCalls: calls });
+	const check = (answer?: boolean) => ({ toolName: "price_check", input: { item: "x", query: "x", answer } });
+	expect(cardEnds({ steps: [step(check())] })).toBe(true);
+	expect(cardEnds({ steps: [step(check(true))] })).toBe(false);
+	expect(cardEnds({ steps: [step(check(), check(true))] })).toBe(false);
+	expect(cardEnds({ steps: [step(check()), step()] })).toBe(false);
+	expect(cardEnds({ steps: [step({ toolName: "search_listings", input: {} })] })).toBe(false);
 });

@@ -1,6 +1,6 @@
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { displayCurrency, displayLabel, inCurrency, PROVIDERS, queryFor, searchAll, type Currency, type Listing, type ProviderId, type SearchAllResult, type SearchQuery, type Table } from "@lagano/providers";
-import { APICallError, DirectChatTransport, hasToolCall, isStepCount, type InferUITools, type UIMessage, ToolLoopAgent, tool } from "ai";
+import { APICallError, DirectChatTransport, isStepCount, type InferUITools, type UIMessage, ToolLoopAgent, tool } from "ai";
 import { z } from "zod";
 import type { TaggedListing } from "@/components/shell/tagged-listing";
 import { loadMine, mineCall } from "./mine-api";
@@ -233,6 +233,12 @@ function errorCode(error: unknown) {
 	return String(error.statusCode ?? "error");
 }
 
+// The turn ends after a step with price_check, unless one of its calls set answer.
+export const cardEnds = ({ steps }: { steps: { toolCalls: { toolName: string; input: unknown }[] }[] }) => {
+	const checks = (steps.at(-1)?.toolCalls ?? []).filter((c) => c.toolName === "price_check");
+	return checks.length > 0 && !checks.some((c) => (c.input as { answer?: boolean }).answer);
+};
+
 // Built per send, so the latest key and model are used. Runs only in the browser.
 export function createTransport(apiKey: string | null, model: string) {
 	const selected = getSelection();
@@ -249,8 +255,8 @@ export function createTransport(apiKey: string | null, model: string) {
 		model: openrouter(model),
 		instructions: isFreeModel(model) ? undefined : buildSystemPrompt(lang, selected),
 		tools,
-		// The price card is the whole answer, so no text follows it.
-		stopWhen: [isStepCount(8), hasToolCall("price_check")],
+		// A price card is the whole answer, unless the model asked to answer a question after it.
+		stopWhen: [isStepCount(8), cardEnds],
 		// A retry would spend more of the free limit. Our own limit answers 429.
 		...(isFreeModel(model) && { maxRetries: 0 }),
 		toolApproval: { create_listing: "user-approval", edit_my_listing: "user-approval" },

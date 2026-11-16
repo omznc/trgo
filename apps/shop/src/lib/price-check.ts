@@ -17,6 +17,10 @@ export const priceCheckSchema = (ids: [ProviderId, ...ProviderId[]], unit: strin
 		minPrice: z.number().positive().optional().describe(`Lowest price in ${unit} that a real offer of this item can have. About half of the usual used price. It cuts games, cases and accessories.`),
 		maxPrice: z.number().positive().optional().describe(`Highest price in ${unit} for a real offer. Use it only when the user gave a limit.`),
 		days: z.number().int().min(7).max(365).optional().describe("Use only the listings of the last N days, for example 90 for 3 months. Set it only when the user asks for a period."),
+		answer: z
+			.boolean()
+			.optional()
+			.describe("Set true when the card alone does not answer the user, for example 'should I lower my price?' or 'is this a good deal?'. Then you write a short answer after the card."),
 	});
 export type PriceCheckInput = z.infer<ReturnType<typeof priceCheckSchema>>;
 
@@ -31,7 +35,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // Yields the live count while the pages load, then the final result.
 // Every listing is converted to the display currency before the stats, so a median never mixes currencies.
 export async function* runPriceCheck(input: PriceCheckInput, providers: Provider[], unit: PriceUnit, signal?: AbortSignal, table: Table = PROVIDERS): AsyncGenerator<PriceCheckOutput> {
-	const { item, query, providers: only, ...filters } = input;
+	const { item, query, providers: only, answer: _answer, ...filters } = input;
 	const used = only ? providers.filter((p) => only.includes(p.id)) : providers;
 	let fetched = 0;
 	const { minPrice, maxPrice } = filters;
