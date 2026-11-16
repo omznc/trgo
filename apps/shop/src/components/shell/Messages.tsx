@@ -1,4 +1,5 @@
-import { Copy, ImageOff, RefreshCw } from "lucide-react";
+import { Copy, FileText, ImageOff, RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { memo } from "react";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { EditApprovalPart } from "@/components/EditApproval";
@@ -73,6 +74,16 @@ function moodOf(parts: Part[], streaming: boolean): MascotMood {
 	return streaming ? "thinking" : "calm";
 }
 
+// The model reads the listings. The user already sees them as cards, so one quiet row is enough.
+function ReadPart({ done }: { done: boolean }) {
+	return (
+		<div className={cn("flex items-center gap-2 text-[15px] text-fg-3", !done && "animate-pulse")}>
+			<FileText className="size-4" aria-hidden />
+			{strings.readListings}
+		</div>
+	);
+}
+
 function PartView({ part, caret, onRespond, searchOpen, expired }: { part: Part; caret: boolean; onRespond: Respond; searchOpen: boolean; expired: boolean }) {
 	switch (part.type) {
 		case "text":
@@ -90,6 +101,8 @@ function PartView({ part, caret, onRespond, searchOpen, expired }: { part: Part;
 			return <ListingApprovalPart part={part} onRespond={onRespond} expired={expired} />;
 		case "tool-edit_my_listing":
 			return <EditApprovalPart part={part} onRespond={onRespond} expired={expired} />;
+		case "tool-get_listings":
+			return <ReadPart done={part.state === "output-available" || part.state === "output-error"} />;
 		default:
 			return null;
 	}

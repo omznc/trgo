@@ -205,6 +205,7 @@ const strings: Locale["strings"] = {
 	extensionGet: "Instaliraj",
 	extensionGetHint: "Treba trgo ekstenzija za pregledač. Klikni da je instaliraš.",
 	extensionDesktop: "Računar",
+	readListings: "Opisi oglasa",
 	footerExtension: "Dodaj trgo ekstenziju",
 	freeModel: "Besplatno",
 	countries: { BA: "Bosna i Hercegovina", HR: "Hrvatska", RS: "Srbija", SI: "Slovenija", AT: "Austrija", BG: "Bugarska" },

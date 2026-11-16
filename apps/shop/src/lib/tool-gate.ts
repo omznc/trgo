@@ -6,6 +6,7 @@ export function toolProviders(selected: readonly string[], table: Table = PROVID
 	return {
 		search: idsWith(table, "search", selected),
 		priceCheck: idsWith(table, "priceCheck", selected),
+		detail: idsWith(table, "detail", selected),
 		publish: idsWith(table, "publish"),
 		edit: idsWith(table, "edit"),
 		mine: idsWith(table, "mine"),
@@ -21,6 +22,7 @@ export function toolNames(plan: ToolProviders) {
 	return [
 		plan.search.length && "search_listings",
 		plan.priceCheck.length && "price_check",
+		plan.detail.length && "get_listings",
 		plan.publish.length && "create_listing",
 		plan.edit.length && "edit_my_listing",
 		plan.mine.length && "list_my_listings",

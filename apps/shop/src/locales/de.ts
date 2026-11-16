@@ -205,6 +205,7 @@ const strings: Locale["strings"] = {
 	extensionGet: "Installieren",
 	extensionGetHint: "Braucht die trgo-Browsererweiterung. Klicke, um sie zu installieren.",
 	extensionDesktop: "Desktop",
+	readListings: "Anzeigentexte",
 	footerExtension: "trgo-Erweiterung hinzufügen",
 	freeModel: "Gratis",
 	countries: { BA: "Bosnien und Herzegowina", HR: "Kroatien", RS: "Serbien", SI: "Slowenien", AT: "Österreich", BG: "Bulgarien" },

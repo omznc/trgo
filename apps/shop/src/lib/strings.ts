@@ -207,6 +207,7 @@ const bs = {
 	extensionGet: "Instaliraj",
 	extensionGetHint: "Treba trgo ekstenzija za preglednik. Klikni da je instaliraš.",
 	extensionDesktop: "Računar",
+	readListings: "Opisi oglasa",
 	footerExtension: "Dodaj trgo ekstenziju",
 	freeModel: "Besplatno",
 	// Chrome has no region names in Intl for some UI languages, so the market countries have their own.
@@ -417,6 +418,7 @@ const en: typeof bs = {
 	extensionGet: "Install",
 	extensionGetHint: "Needs the trgo browser extension. Click to install it.",
 	extensionDesktop: "Desktop",
+	readListings: "Listing details",
 	footerExtension: "Add the trgo extension",
 	freeModel: "Free",
 	countries: { BA: "Bosnia and Herzegovina", HR: "Croatia", RS: "Serbia", SI: "Slovenia", AT: "Austria", BG: "Bulgaria" },

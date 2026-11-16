@@ -12,6 +12,7 @@ import { expireSession, getSession, isAuthError } from "./sessions";
 import { lang } from "./lang";
 import { getSelection } from "./market";
 import { buildSystemPrompt, promptFacts } from "@lagano/providers/prompt";
+import { MAX_READ, readListings, summarizeRead } from "./listing-read";
 import { nonEmpty, toolNames, toolProviders, type ToolProviders } from "./tool-gate";
 import { strings } from "./strings";
 import { knownModelName } from "./openrouter-models";
@@ -148,6 +149,17 @@ const makers = {
 				yield* runPriceCheck(input, clientsOf(c.plan.priceCheck as ProviderId[]), { currency: c.currency, label: c.unit }, abortSignal, c.table);
 			},
 			toModelOutput: ({ output }) => ({ type: "text", value: summarize(output) }),
+		}),
+	get_listings: (c: Ctx) =>
+		tool({
+			description:
+				`Read the full text of up to ${MAX_READ} listings on ${promptFacts(c.plan.detail, c.table).sites}: the description, the attributes and the seller type. ` +
+				"Use the provider and id from a search result. Use it to compare specs before you recommend a listing.",
+			inputSchema: z.object({
+				listings: z.array(z.object({ provider: z.enum(idsOf(c.plan.detail)), id: z.string().min(1).max(64) })).min(1).max(MAX_READ),
+			}),
+			execute: ({ listings }) => readListings(listings),
+			toModelOutput: ({ output }) => ({ type: "text", value: summarizeRead(output) }),
 		}),
 	create_listing: (c: Ctx) => {
 		const unit = displayLabel(c.table, c.plan.publish);

@@ -204,6 +204,7 @@ const strings: Locale["strings"] = {
 	extensionGet: "Инсталирай",
 	extensionGetHint: "Трябва разширението на trgo за браузър. Кликнете, за да го инсталирате.",
 	extensionDesktop: "Компютър",
+	readListings: "Описания на обявите",
 	footerExtension: "Добави разширението trgo",
 	freeModel: "Безплатно",
 	countries: { BA: "Босна и Херцеговина", HR: "Хърватия", RS: "Сърбия", SI: "Словения", AT: "Австрия", BG: "България" },

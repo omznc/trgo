@@ -15,7 +15,7 @@ const accepts = (schema: unknown, value: unknown) => (schema as { safeParse: (v:
 describe("capability gating", () => {
 	test("a search-only provider gets no publish, edit or list tool", () => {
 		expect(Object.keys(buildTools(["fakehr"], ONLY_FAKE))).toEqual(["search_listings", "price_check"]);
-		expect(toolProviders(["fakehr"], ONLY_FAKE)).toEqual({ search: ["fakehr"], priceCheck: ["fakehr"], publish: [], edit: [], mine: [] });
+		expect(toolProviders(["fakehr"], ONLY_FAKE)).toEqual({ search: ["fakehr"], priceCheck: ["fakehr"], detail: [], publish: [], edit: [], mine: [] });
 	});
 
 	test("the account tools never list the search-only provider", () => {

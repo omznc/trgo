@@ -23,7 +23,7 @@ const ALLOWED_KEYS = [
 // Limits for one request. They count the client messages. The proxy adds its own system prompt (about 3k chars) after the check.
 // A tool result is about 2k chars (a search summary), but list_my_listings is about 12k.
 // 120k chars is about 30k tokens: a long chat of 30 turns fits, a pasted book does not.
-// The shop has 5 tools; 8 leaves room. A tool loop adds 2 messages per step (8 steps per turn).
+// The shop has 6 tools; 8 leaves room. A tool loop adds 2 messages per step (8 steps per turn).
 export const MAX_BODY_BYTES = 512 * 1024;
 export const MAX_MESSAGES = 120;
 export const MAX_CHARS = 120_000;

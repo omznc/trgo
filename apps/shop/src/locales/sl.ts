@@ -207,6 +207,7 @@ const strings: Locale["strings"] = {
 	extensionGet: "Namesti",
 	extensionGetHint: "Potrebuje razširitev trgo za brskalnik. Kliknite, da jo namestite.",
 	extensionDesktop: "Računalnik",
+	readListings: "Opisi oglasov",
 	footerExtension: "Dodaj razširitev trgo",
 	freeModel: "Brezplačno",
 	countries: { BA: "Bosna in Hercegovina", HR: "Hrvaška", RS: "Srbija", SI: "Slovenija", AT: "Avstrija", BG: "Bolgarija" },

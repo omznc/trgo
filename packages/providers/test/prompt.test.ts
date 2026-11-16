@@ -10,6 +10,13 @@ test("the prompt is the same as before the registry", async () => {
 	expect(buildSystemPrompt("en", ["olx", "svex"])).toBe(await fixed("system-prompt.en.txt"));
 });
 
+test("the advice plan names get_listings only for a site that can load a listing", () => {
+	expect(buildSystemPrompt("en", ["olx", "svex"])).toContain("with get_listings (OLX.ba or SVEX.ba)");
+	const kp = buildSystemPrompt("en", ["kp"]);
+	expect(kp).toContain("make a plan first");
+	expect(kp).not.toContain("get_listings");
+});
+
 test("a Serbian selection tells the model to use Latin ekavian terms", () => {
 	const prompt = buildSystemPrompt("en", ["kp"]);
 	expect(prompt).toContain("KupujemProdajem.com are Serbian sites");
