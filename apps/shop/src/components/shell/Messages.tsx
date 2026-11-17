@@ -1,6 +1,7 @@
 import { Copy, FileText, ImageOff, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { memo } from "react";
+import type { RenderRef } from "@/components/ai-elements/markdown";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { EditApprovalPart } from "@/components/EditApproval";
 import { ListingApprovalPart } from "@/components/ListingApproval";
@@ -18,6 +19,9 @@ export type Respond = (id: string, approved: boolean) => void;
 
 import { stripNotes } from "@/lib/model-notes";
 export { stripNotes };
+
+// A listing ref such as " [olx:123]": a chip in the chat, noise in the copied text.
+const REF = / ?\[[a-z]+:[\w-]+\](?!\()/g;
 
 export function textOf(message: LaganoMessage) {
 	return message.parts.flatMap((p) => (p.type === "text" ? [p.text] : [])).join("\n\n");
@@ -84,12 +88,16 @@ function ReadPart({ done }: { done: boolean }) {
 	);
 }
 
-function PartView({ part, caret, onRespond, searchOpen, expired }: { part: Part; caret: boolean; onRespond: Respond; searchOpen: boolean; expired: boolean }) {
+type PartProps = { part: Part; caret: boolean; onRespond: Respond; searchOpen: boolean; expired: boolean; renderRef?: RenderRef };
+
+function PartView({ part, caret, onRespond, searchOpen, expired, renderRef }: PartProps) {
 	switch (part.type) {
 		case "text":
 			return part.text ? (
 				<div className="max-w-[680px] text-[17px] leading-[1.55] tracking-[-0.01em] max-sm:text-base max-sm:leading-normal">
-					<MessageResponse caret={caret}>{part.text}</MessageResponse>
+					<MessageResponse caret={caret} renderRef={renderRef}>
+						{part.text}
+					</MessageResponse>
 				</div>
 			) : null;
 		case "tool-search_listings":
@@ -117,6 +125,8 @@ type MessageProps = {
 	onRespond: Respond;
 	// The SDK reads approvals only in the last message, so an answer here would never be sent.
 	expired: boolean;
+	// Keep it stable: the memo of each message compares it.
+	renderRef?: RenderRef;
 };
 
 function AssistantMessage({
@@ -127,6 +137,7 @@ function AssistantMessage({
 	onRetry,
 	onRespond,
 	expired,
+	renderRef,
 }: MessageProps) {
 	const last = message.parts.length - 1;
 	// Only the last search starts open. A price card is the main result, so it closes all of them.
@@ -140,9 +151,9 @@ function AssistantMessage({
 			</div>
 			<div className="flex min-w-0 flex-1 flex-col gap-3.5">
 				{message.parts.map((part, i) => (
-					<PartView key={i} part={part} caret={streaming && i === last} onRespond={onRespond} searchOpen={!hasPriceCard && i === lastSearch} expired={expired} />
+					<PartView key={i} part={part} caret={streaming && i === last} onRespond={onRespond} searchOpen={!hasPriceCard && i === lastSearch} expired={expired} renderRef={renderRef} />
 				))}
-				{canAct && <AnswerActions onCopy={() => onCopy(textOf(message))} onRetry={onRetry} />}
+				{canAct && <AnswerActions onCopy={() => onCopy(textOf(message).replace(REF, ""))} onRetry={onRetry} />}
 			</div>
 		</div>
 	);

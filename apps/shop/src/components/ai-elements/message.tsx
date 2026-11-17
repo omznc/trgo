@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
-import { Markdown } from "./markdown";
+import { Markdown, type RenderRef } from "./markdown";
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];
@@ -303,13 +303,15 @@ export const MessageBranchPage = ({
   );
 };
 
-export type MessageResponseProps = { children: string; className?: string; caret?: boolean };
+export type MessageResponseProps = { children: string; className?: string; caret?: boolean; renderRef?: RenderRef };
 
+// renderRef is left out of the compare: its caller keeps it stable.
 export const MessageResponse = memo(
-  ({ className, children, caret }: MessageResponseProps) => (
+  ({ className, children, caret, renderRef }: MessageResponseProps) => (
     <Markdown
       text={children}
       caret={caret}
+      renderRef={renderRef}
       className={cn("flex flex-col gap-2.5", className)}
     />
   ),

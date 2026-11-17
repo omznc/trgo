@@ -1,7 +1,9 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
-// Small chat markdown: paragraphs, lists, bold, italic, code, links. No raw HTML.
-const INLINE = /\*\*(.+?)\*\*|\*(.+?)\*|`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+// Small chat markdown: paragraphs, lists, bold, italic, code, links, listing refs ([olx:123]). No raw HTML.
+const INLINE = /\*\*(.+?)\*\*|\*(.+?)\*|`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\[([a-z]+:[\w-]+)\]/g;
+
+export type RenderRef = (ref: string) => ReactNode;
 
 function hostOf(href: string) {
   try {
@@ -11,15 +13,16 @@ function hostOf(href: string) {
   }
 }
 
-function renderInline(text: string): ReactNode[] {
+function renderInline(text: string, ref?: RenderRef): ReactNode[] {
   const out: ReactNode[] = [];
   let last = 0;
   for (const m of text.matchAll(INLINE)) {
     if (m.index > last) out.push(text.slice(last, m.index));
     const key = m.index;
-    if (m[1] !== undefined) out.push(<strong key={key}>{renderInline(m[1])}</strong>);
-    else if (m[2] !== undefined) out.push(<em key={key}>{renderInline(m[2])}</em>);
+    if (m[1] !== undefined) out.push(<strong key={key}>{renderInline(m[1], ref)}</strong>);
+    else if (m[2] !== undefined) out.push(<em key={key}>{renderInline(m[2], ref)}</em>);
     else if (m[3] !== undefined) out.push(<code key={key}>{m[3]}</code>);
+    else if (m[6] !== undefined) out.push(ref ? <Fragment key={key}>{ref(m[6])}</Fragment> : m[0]);
     else
       out.push(
         <span key={key}>
@@ -44,14 +47,14 @@ const Caret = () => (
   <span aria-hidden className="caret ml-[3px] inline-block h-[18px] w-[9px] rounded-[2px] bg-accent align-[-3px]" />
 );
 
-function renderBlock(block: string, key: number, caret: boolean): ReactNode {
+function renderBlock(block: string, key: number, caret: boolean, ref?: RenderRef): ReactNode {
   const lines = block.split("\n");
   const ordered = NUMBER.test(lines[0] ?? "");
   const re = ordered ? NUMBER : BULLET;
   if (lines.every((l) => re.test(l))) {
     const items = lines.map((l, i) => (
       <li key={i}>
-        {renderInline(l.replace(re, "$1"))}
+        {renderInline(l.replace(re, "$1"), ref)}
         {caret && i === lines.length - 1 && <Caret />}
       </li>
     ));
@@ -61,7 +64,7 @@ function renderBlock(block: string, key: number, caret: boolean): ReactNode {
       <ul key={key} className="m-0 flex list-disc flex-col gap-1 pl-5">{items}</ul>
     );
   }
-  const parts = lines.flatMap((l, i) => (i ? [<br key={`b${i}`} />, ...renderInline(l)] : renderInline(l)));
+  const parts = lines.flatMap((l, i) => (i ? [<br key={`b${i}`} />, ...renderInline(l, ref)] : renderInline(l, ref)));
   return (
     <p key={key} className="m-0">
       {parts}
@@ -70,11 +73,11 @@ function renderBlock(block: string, key: number, caret: boolean): ReactNode {
   );
 }
 
-export function Markdown({ text, className, caret }: { text: string; className?: string; caret?: boolean }) {
+export function Markdown({ text, className, caret, renderRef }: { text: string; className?: string; caret?: boolean; renderRef?: RenderRef }) {
   const blocks = text.trim().split(/\n{2,}/).filter(Boolean);
   return (
     <div data-selectable className={className}>
-      {blocks.map((b, i) => renderBlock(b, i, !!caret && i === blocks.length - 1))}
+      {blocks.map((b, i) => renderBlock(b, i, !!caret && i === blocks.length - 1, renderRef))}
     </div>
   );
 }

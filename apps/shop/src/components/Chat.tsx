@@ -17,6 +17,7 @@ import { Message, stripNotes, textOf, Thinking } from "@/components/shell/Messag
 import { clearTaggedListing, getTaggedListings, taggedNote } from "@/components/shell/tagged-listing";
 import { usePendingSend } from "@/components/shell/use-pending-send";
 import { HistoryPanel } from "@/components/shell/HistoryPanel";
+import { ListingRef, useListingRefs } from "@/components/shell/ListingRef";
 import { type ConnectTarget, HistoryRegion, SidePanelRegion, useSidePanel } from "@/components/shell/side-panel";
 import { useHistory } from "@/components/shell/use-history";
 import type { LaganoMessage } from "@/lib/agent";
@@ -117,6 +118,12 @@ function MessageList({
 	const canAct = (m: LaganoMessage) => m === last && m.role === "assistant" && status === "ready" && !!textOf(m);
 	// The list remounts for each chat. Messages that it opens with skip the entrance animation.
 	const [restored] = useState(() => new Set(messages.map((m) => m.id)));
+	const refs = useListingRefs(messages);
+	// An unknown ref renders nothing, so an invented id never shows.
+	const renderRef = useCallback((ref: string) => {
+		const listing = refs.get(ref);
+		return listing ? <ListingRef listing={listing} /> : null;
+	}, [refs]);
 	return (
 		<Conversation className="min-h-0 flex-1" aria-label={strings.conversation}>
 			<ConversationContent scrollClassName="scroll chat-fade min-h-0 flex-1" className="mx-auto w-full max-w-[1040px] gap-7 px-6 pt-8 pb-[calc(var(--composer-h,140px)+24px)] max-sm:gap-3.5 max-sm:px-3.5 max-sm:pt-4">
@@ -127,6 +134,7 @@ function MessageList({
 							streaming={status === "streaming" && m === last}
 							onRespond={onRespond}
 							expired={m !== last}
+							renderRef={renderRef}
 							canAct={canAct(m)}
 							onCopy={onCopy}
 							onRetry={onRetry}
