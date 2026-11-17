@@ -168,7 +168,7 @@ export function Header({
 					onClick={onNewChat}
 					aria-label={strings.newChat}
 					title={strings.newChat}
-					className={cn(pill, "chip justify-center px-0 text-fg max-sm:hidden sm:max-[1099px]:w-10 min-[1100px]:pr-4 min-[1100px]:pl-[13px]")}
+					className={cn(pill, "chip justify-center px-0 text-fg max-sm:hidden sm:max-[1099px]:w-10 min-[1100px]:px-[12.5px]")}
 				>
 					<Pencil className="size-[15px]" strokeWidth={2.2} aria-hidden />
 					<span className="max-[1099px]:sr-only">{strings.newChat}</span>
@@ -177,7 +177,7 @@ export function Header({
 			<StatusChip c={connections} onOpen={openProvider} />
 			<div className="col-start-3 flex min-w-0 items-center justify-self-end gap-1 sm:gap-2">
 				<AccountButton c={connections} onOpen={() => panel.open({ kind: "connect" }, { fresh: true })} />
-				<ModelButton model={model} connected={connections.openrouter} onChange={onModel} className="chip h-10 cursor-pointer px-3.5 text-fg max-[899px]:hidden" />
+				<ModelButton model={model} connected={connections.openrouter} onChange={onModel} className="chip h-10 cursor-pointer px-[13px] text-fg max-[899px]:hidden" />
 				{providersWith("mine").length > 0 && (
 					<button
 						type="button"
@@ -185,7 +185,7 @@ export function Header({
 						aria-pressed={panel.view?.kind === "my-listings"}
 						aria-label={strings.myListings}
 						title={strings.myListings}
-						className={cn(pill, "chip cursor-pointer justify-center px-0 text-fg max-sm:size-11 sm:max-[1099px]:w-10 min-[1100px]:pr-4 min-[1100px]:pl-[13px]")}
+						className={cn(pill, "chip cursor-pointer justify-center px-0 text-fg max-sm:size-11 sm:max-[1099px]:w-10 min-[1100px]:px-[12.5px]")}
 					>
 						<Layers className="size-[15px]" strokeWidth={2.2} aria-hidden />
 						<span className="max-[1099px]:sr-only">{strings.myListings}</span>

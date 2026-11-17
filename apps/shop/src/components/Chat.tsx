@@ -306,7 +306,7 @@ onRetry={chat.error ? () => chat.regenerate() : undefined} />
 							)}
 							{!started && !apiKey ? <ConnectBanner free={chat.ready} cue={panel.cue} onPasteKey={() => openConnect("openrouter")} /> : null}
 							{!started && errorCard}
-							<div ref={box} style={delay(550)} className={cn("ld w-full", started && "absolute inset-x-0 bottom-0 z-10 px-3.5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-6 sm:pb-[22px]")}>
+							<div ref={box} style={delay(550)} className={cn("ld w-full", started && "absolute inset-x-0 bottom-0 z-10 px-3.5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:px-6")}>
 								<Composer
 									started={started}
 									busy={busy || sending}
