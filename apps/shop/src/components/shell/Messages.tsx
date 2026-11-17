@@ -1,17 +1,19 @@
-import { Copy, FileText, ImageOff, RefreshCw } from "lucide-react";
+import type { ToolUIPart } from "ai";
+import { ChevronDown, Copy, FileText, ImageOff, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { memo } from "react";
+import { memo, useState } from "react";
 import type { RenderRef } from "@/components/ai-elements/markdown";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { EditApprovalPart } from "@/components/EditApproval";
 import { ListingApprovalPart } from "@/components/ListingApproval";
-import { SearchPart } from "@/components/ListingCards";
+import { Collapsible, SearchPart } from "@/components/ListingCards";
 import { PriceCheckPart } from "@/components/PriceCard";
 import { Mascot, type MascotMood } from "@/components/Mascot";
 import type { LaganoMessage } from "@/lib/agent";
 import { getPhoto } from "@/lib/photos";
 import { strings } from "@/lib/strings";
 import { taggedKey } from "./tagged-listing";
+import { defaultOpenSearch, groupParts, isSearchType, isStepType, readCount, stepCounts } from "./step-groups";
 import { TaggedChip } from "./TaggedChip";
 
 type Part = LaganoMessage["parts"][number];
@@ -66,7 +68,7 @@ function UserMessage({ message }: { message: LaganoMessage }) {
 }
 
 function moodOf(parts: Part[], streaming: boolean): MascotMood {
-	const search = parts.find((p) => p.type === "tool-search_listings" || p.type === "tool-list_my_listings");
+	const search = parts.find((p) => isSearchType(p.type));
 	if (search && "state" in search) {
 		if (search.state === "input-streaming" || search.state === "input-available") return "searching";
 		if (search.state === "output-available") {
@@ -79,18 +81,65 @@ function moodOf(parts: Part[], streaming: boolean): MascotMood {
 }
 
 // The model reads the listings. The user already sees them as cards, so one quiet row is enough.
-function ReadPart({ done }: { done: boolean }) {
+function ReadRow({ part }: { part: Part }) {
+	const done = "state" in part && (part.state === "output-available" || part.state === "output-error");
+	const count = readCount(part);
 	return (
-		<div className={cn("flex items-center gap-2 text-[15px] text-fg-3", !done && "animate-pulse")}>
-			<FileText className="size-4" aria-hidden />
-			{strings.readListings}
+		<div className={cn("flex items-center gap-2 py-1.5 text-[13px] font-medium text-fg-3", !done && "animate-pulse")}>
+			<FileText className="size-3.5 shrink-0" aria-hidden />
+			<span className="min-w-0 truncate">{strings.readListings}</span>
+			<span className="ml-auto tabular-nums">{count}</span>
+			{/* The spacer keeps the count in line with the search rows. */}
+			<span className="w-7 shrink-0" aria-hidden />
 		</div>
 	);
 }
 
-type PartProps = { part: Part; caret: boolean; onRespond: Respond; searchOpen: boolean; expired: boolean; renderRef?: RenderRef };
+type StepGroupProps = { parts: Part[]; indices: number[]; defaultOpen: boolean; lastSearch: number; keepClosed: boolean; renderRef?: RenderRef };
 
-function PartView({ part, caret, onRespond, searchOpen, expired, renderRef }: PartProps) {
+// A run of one step has no header and no border, but it keeps the same tree as a longer run.
+function StepGroup({ parts, indices, defaultOpen, lastSearch, keepClosed, renderRef }: StepGroupProps) {
+	const [clicked, setClicked] = useState<boolean | null>(null);
+	const steps = indices.map((i) => parts[i] as Part).filter((p) => isStepType(p.type));
+	const { searches, reads, listings } = stepCounts(steps);
+	// A run of reads only has no search summary to show, so it shows its rows without a header.
+	const single = steps.length === 1 || searches === 0;
+	const open = single || (clicked ?? defaultOpen);
+	return (
+		<div>
+			{!single && (
+				<button type="button" aria-expanded={open} onClick={() => setClicked(!open)} className="flex max-w-full items-center gap-2 py-1.5 text-left text-[13px] font-medium text-fg-3">
+					<ChevronDown className={cn("size-3.5 shrink-0 transition-transform duration-300", !open && "-rotate-90")} strokeWidth={2.2} aria-hidden />
+					<span className="min-w-0 truncate">{strings.steps(searches, reads)}</span>
+					<span className="shrink-0 whitespace-nowrap text-fg-4">· {strings.listings(listings)}</span>
+				</button>
+			)}
+			<Collapsible open={open} follow padClass={single ? "" : "pt-1"}>
+				<div className={cn("flex flex-col gap-1", !single && "ml-[7px] border-l border-white/8 pl-4 max-sm:[--bleed:82px]")}>
+					{indices.map((i) => (
+						<StepItem key={i} part={parts[i] as Part} defaultOpen={!keepClosed && i === lastSearch} renderRef={renderRef} />
+					))}
+				</div>
+			</Collapsible>
+		</div>
+	);
+}
+
+function StepItem({ part, defaultOpen, renderRef }: { part: Part; defaultOpen: boolean; renderRef?: RenderRef }) {
+	if (part.type === "text") {
+		return (
+			<div className="py-1 text-[13px] leading-snug text-fg-4 italic">
+				<MessageResponse renderRef={renderRef}>{part.text}</MessageResponse>
+			</div>
+		);
+	}
+	if (part.type === "tool-get_listings") return <ReadRow part={part} />;
+	return <SearchPart part={part as ToolUIPart} defaultOpen={defaultOpen} />;
+}
+
+type PartProps = { part: Part; caret: boolean; onRespond: Respond; expired: boolean; renderRef?: RenderRef };
+
+function PartView({ part, caret, onRespond, expired, renderRef }: PartProps) {
 	switch (part.type) {
 		case "text":
 			return part.text ? (
@@ -100,17 +149,12 @@ function PartView({ part, caret, onRespond, searchOpen, expired, renderRef }: Pa
 					</MessageResponse>
 				</div>
 			) : null;
-		case "tool-search_listings":
-		case "tool-list_my_listings":
-			return <SearchPart part={part} defaultOpen={searchOpen} />;
 		case "tool-price_check":
 			return <PriceCheckPart part={part} />;
 		case "tool-create_listing":
 			return <ListingApprovalPart part={part} onRespond={onRespond} expired={expired} />;
 		case "tool-edit_my_listing":
 			return <EditApprovalPart part={part} onRespond={onRespond} expired={expired} />;
-		case "tool-get_listings":
-			return <ReadPart done={part.state === "output-available" || part.state === "output-error"} />;
 		default:
 			return null;
 	}
@@ -140,19 +184,23 @@ function AssistantMessage({
 	renderRef,
 }: MessageProps) {
 	const last = message.parts.length - 1;
-	// Only the last search starts open. A price card is the main result, so it closes all of them.
-	const isSearch = (p: Part) => p.type === "tool-search_listings" || p.type === "tool-list_my_listings";
-	const lastSearch = message.parts.findLastIndex(isSearch);
+	const lastSearch = defaultOpenSearch(message.parts);
+	// A price card is the main result, so it closes all of the searches.
 	const hasPriceCard = message.parts.some((p) => p.type === "tool-price_check");
+	const items = groupParts(message.parts);
 	return (
 		<div className="in flex items-start gap-3">
 			<div className="w-8 shrink-0 pt-0.5">
 				<Mascot mood={moodOf(message.parts, streaming)} width={28} />
 			</div>
 			<div className="flex min-w-0 flex-1 flex-col gap-3.5">
-				{message.parts.map((part, i) => (
-					<PartView key={i} part={part} caret={streaming && i === last} onRespond={onRespond} searchOpen={!hasPriceCard && i === lastSearch} expired={expired} renderRef={renderRef} />
-				))}
+				{items.map((item) =>
+					item.kind === "steps" ? (
+						<StepGroup key={item.start} parts={message.parts} indices={item.indices} defaultOpen={!hasPriceCard && item.indices.includes(lastSearch)} lastSearch={lastSearch} keepClosed={hasPriceCard} renderRef={renderRef} />
+					) : (
+						<PartView key={item.index} part={message.parts[item.index] as Part} caret={streaming && item.index === last} onRespond={onRespond} expired={expired} renderRef={renderRef} />
+					),
+				)}
 				{canAct && <AnswerActions onCopy={() => onCopy(textOf(message).replace(REF, ""))} onRetry={onRetry} />}
 			</div>
 		</div>

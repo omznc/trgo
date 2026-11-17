@@ -1,6 +1,6 @@
 import { PROVIDERS, type ProviderId } from "@lagano/providers";
 import type { ToolUIPart } from "ai";
-import { AlertCircle, ArrowDown, ArrowDownUp, ArrowUp, Check, ChevronDown, LayoutGrid, List, RefreshCw, Search, TriangleAlert } from "lucide-react";
+import { AlertCircle, ArrowDown, ArrowDownUp, ArrowUp, ChevronDown, LayoutGrid, List, RefreshCw, Search, TriangleAlert } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DetailListing } from "@/components/detail/DetailPanel";
@@ -20,15 +20,15 @@ type Condition = "all" | "new" | "used";
 const LIST_ROWS = 3;
 const pill = "inline-flex h-[34px] min-h-[34px] items-center gap-[7px] whitespace-nowrap rounded-full pr-4 pl-[13px] text-[13px] font-medium tracking-[-0.01em]";
 
-type Toggle = { open: boolean; onToggle: () => void };
-
 // On the phone a row bleeds to the screen edges and its padding keeps the text column.
 // The column is 14px page padding + 32px mascot + 12px gap = 58px on the left.
-const BLEED = "max-sm:-mr-3.5 max-sm:-ml-[58px] max-sm:pr-3.5 max-sm:pl-[58px]";
+// A step group sets --bleed to a wider value, because its border and padding move the column.
+const BLEED = "max-sm:-mr-3.5 max-sm:-ml-[var(--bleed,58px)] max-sm:pr-3.5 max-sm:pl-[var(--bleed,58px)]";
 const HIDE_BAR = "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 
 // Height animates to the measured content height, so a change of content also animates.
-function Collapsible({ open, children }: { open: boolean; children: React.ReactNode }) {
+// With `follow`, an open box keeps height auto, so it does not lag behind a Collapsible inside it.
+export function Collapsible({ open, follow = false, children, padClass = "pt-3.5" }: { open: boolean; follow?: boolean; children: React.ReactNode; padClass?: string }) {
 	const inner = useRef<HTMLDivElement>(null);
 	const [height, setHeight] = useState<number | null>(null);
 	useLayoutEffect(() => {
@@ -43,70 +43,28 @@ function Collapsible({ open, children }: { open: boolean; children: React.ReactN
 	return (
 		<motion.div
 			initial={false}
-			animate={{ height: height === null ? "auto" : open ? height : 0, opacity: open ? 1 : 0 }}
+			animate={{ height: height === null || (open && follow) ? "auto" : open ? height : 0, opacity: open ? 1 : 0 }}
 			transition={{ duration: 0.32, ease: [0.2, 0.9, 0.3, 1] }}
 			inert={!open}
 			className={cn("overflow-hidden", BLEED)}
 		>
-			<div ref={inner} className="pt-3.5">
+			<div ref={inner} className={padClass}>
 				{children}
 			</div>
 		</motion.div>
 	);
 }
 
-function StatusLine({
-	loading,
-	listings,
-	errors,
-	searched,
-	mine,
-	toggle,
-}: {
-	loading: boolean;
-	listings: DetailListing[];
-	errors: SearchError[];
-	searched: ProviderId[];
-	mine: boolean;
-	toggle?: Toggle;
-}) {
-	const counts = searched.map((p) => [p, listings.filter((l) => l.provider === p).length] as const);
-	const Root = toggle ? "button" : "div";
-	const props = toggle
-		? ({ type: "button", "aria-expanded": toggle.open, onClick: toggle.onToggle } as const)
-		: ({ role: "status", "aria-live": "polite" } as const);
+const errorTitle = (error: SearchError, name: string) => (isUnavailable(error) ? strings.providerUnavailable(name) : isRateLimited(error) ? strings.providerRateLimited(name) : undefined);
+
+function StatusLine() {
 	return (
-		<Root {...props} className={cn("flex items-center gap-2.5 text-left text-[13px] font-medium whitespace-nowrap text-fg-3 max-sm:gap-2 max-sm:overflow-x-auto sm:flex-wrap", HIDE_BAR)}>
-			{toggle && <ChevronDown className={cn("size-3.5 shrink-0 transition-transform duration-300", !toggle.open && "-rotate-90")} strokeWidth={2.2} aria-hidden />}
-			{loading ? (
-				<>
-					<span className="spin inline-grid">
-						<RefreshCw className="size-3.5" aria-hidden />
-					</span>
-					{strings.searchingStatus}
-				</>
-			) : (
-				<>
-					<Search className="size-3.5 shrink-0" aria-hidden />
-					<span className={cn(!mine && "max-sm:sr-only")}>{mine ? strings.searchedMine : strings.searchedOn}</span>
-					{!mine &&
-						counts.map(([p, n]) => {
-							const error = errors.find((e) => e.provider === p);
-							return error ? (
-								<span key={p} title={isUnavailable(error) ? strings.providerUnavailable(PROVIDERS[p].siteName) : isRateLimited(error) ? strings.providerRateLimited(PROVIDERS[p].siteName) : undefined} className="chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-[3px]">
-									<TriangleAlert className="size-3 text-danger" aria-hidden />
-									{PROVIDERS[p].name}
-								</span>
-							) : (
-								<span key={p} className="chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-[3px]">
-									<Check className="size-3 text-ok" strokeWidth={3} aria-hidden />
-									{strings.count(PROVIDERS[p].name, n)}
-								</span>
-							);
-						})}
-				</>
-			)}
-		</Root>
+		<div role="status" aria-live="polite" className={cn("flex items-center gap-2.5 text-left text-[13px] font-medium whitespace-nowrap text-fg-3 max-sm:gap-2 max-sm:overflow-x-auto sm:flex-wrap", HIDE_BAR)}>
+			<span className="spin inline-grid">
+				<RefreshCw className="size-3.5" aria-hidden />
+			</span>
+			{strings.searchingStatus}
+		</div>
 	);
 }
 
@@ -194,7 +152,7 @@ function Results({ cards, view, loading, mine = false }: { cards: DetailListing[
 			<div
 				ref={grid}
 				className={cn(
-					"scroll-x flex snap-x snap-mandatory gap-2.5 pb-1 max-sm:scroll-pl-[58px]", BLEED, "sm:pb-0",
+					"scroll-x flex snap-x snap-mandatory gap-2.5 pb-1 max-sm:scroll-pl-[var(--bleed,58px)]", BLEED, "sm:pb-0",
 					row
 						? "sm:flex-col sm:overflow-visible"
 						: "sm:grid sm:grid-cols-2 sm:gap-3.5 sm:overflow-visible @[600px]:grid-cols-3 @[880px]:grid-cols-4",
@@ -262,16 +220,69 @@ function applyControls(listings: DetailListing[], c: Controls) {
 	return c.cheapest ? [...filtered].sort((a, b) => sortValue(a) - sortValue(b)) : filtered;
 }
 
+const REVEAL = "pointer-fine:opacity-0 pointer-fine:group-focus-within/row:opacity-100 pointer-fine:group-hover/row:opacity-100";
+
+// The split per provider shows on hover. A failed provider stays visible by name, because a touch screen shows no title.
+function ProviderSplit({ output }: { output: SearchOutput }) {
+	const searched = searchedOf(output);
+	const failed = output.errors.filter((e) => searched.includes(e.provider as ProviderId));
+	const split = searched
+		.filter((p) => !failed.some((e) => e.provider === p))
+		.map((p) => `${PROVIDERS[p].name} ${output.listings.filter((l) => l.provider === p).length}`)
+		.join(" · ");
+	return (
+		<>
+			{failed.map((e) => (
+				<span key={e.provider} title={errorTitle(e, PROVIDERS[e.provider as ProviderId].siteName)} className="inline-flex items-center gap-1 text-xs text-danger">
+					<TriangleAlert className="size-3.5" aria-hidden />
+					{PROVIDERS[e.provider as ProviderId].name}
+				</span>
+			))}
+			<span className="hidden text-xs font-normal text-fg-4 sm:group-focus-within/row:inline sm:group-hover/row:inline">{split}</span>
+		</>
+	);
+}
+
+function RowLabel({ input, mine, unit }: { input?: SearchInput; mine: boolean; unit: string }) {
+	return (
+		<>
+			<span className="min-w-0 truncate text-fg">{mine ? strings.searchedMine : input?.q ? `„${input.q}“` : strings.searchedOn}</span>
+			{input?.maxPrice !== undefined && <span className="shrink-0 text-fg-4">{strings.maxPrice(input.maxPrice, unit)}</span>}
+		</>
+	);
+}
+
 function Loaded({ output, input, mine, defaultOpen }: { output: SearchOutput; input?: SearchInput; mine: boolean; defaultOpen: boolean }) {
-	// A click on the header wins over the default from then on.
+	// A click on the row wins over the default from then on.
 	const [clicked, setClicked] = useState<boolean | null>(null);
 	const open = clicked ?? defaultOpen;
 	const block = useRef<HTMLDivElement>(null);
+	const total = output.listings.length;
 	return (
 		<div ref={block}>
-			<div className="flex items-center justify-between gap-1">
-				<StatusLine loading={false} listings={output.listings} errors={output.errors} searched={searchedOf(output)} mine={mine} toggle={{ open, onToggle: () => setClicked(!open) }} />
-				<CopyImageButton target={block} className="-my-1.5" />
+			<div className="group/row flex items-center gap-1">
+				<button
+					type="button"
+					aria-expanded={open}
+					onClick={() => setClicked(!open)}
+					className="group/btn flex min-w-0 flex-1 items-center gap-2 py-1.5 text-left text-[13px] font-medium whitespace-nowrap text-fg-3"
+				>
+					<span className="relative grid size-3.5 shrink-0 place-items-center">
+						<Search className={cn("size-3.5 transition-opacity group-hover/btn:opacity-0 group-focus-visible/btn:opacity-0", open && "opacity-0")} aria-hidden />
+						<ChevronDown
+							className={cn("absolute size-3.5 transition-[opacity,transform] duration-300 group-hover/btn:opacity-100 group-focus-visible/btn:opacity-100", open ? "opacity-100" : "-rotate-90 opacity-0")}
+							strokeWidth={2.2}
+							aria-hidden
+						/>
+					</span>
+					<RowLabel input={input} mine={mine} unit={output.unit ?? "KM"} />
+					<span className="ml-auto flex shrink-0 items-center gap-2 pl-2">
+						{!mine && <ProviderSplit output={output} />}
+						<span className={cn("tabular-nums", total === 0 ? "text-fg-4" : "text-fg-3")}>{total}</span>
+					</span>
+				</button>
+				{/* A closed row has no cards to copy. The button keeps its space so the counts stay in one column. */}
+				<CopyImageButton target={block} className={cn("-my-1.5", open ? REVEAL : "invisible")} />
 			</div>
 			<Collapsible open={open}>
 				<LoadedBody output={output} input={input} mine={mine} />
@@ -317,7 +328,7 @@ export function SearchPart({ part, defaultOpen = true }: { part: ToolUIPart; def
 	if (part.state === "input-streaming" || part.state === "input-available") {
 		return (
 			<div className="flex flex-col gap-3.5">
-				<StatusLine loading listings={[]} errors={[]} searched={[]} mine={mine} />
+				<StatusLine />
 				<Results cards={[]} view="grid" loading />
 			</div>
 		);
