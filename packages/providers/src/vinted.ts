@@ -17,16 +17,14 @@ type VintedItem = {
 
 export type VintedId = "vintedhr" | "vintedsi" | "vintedat";
 
-// A page holds 96 items. Each id is a country domain of the same site.
-export const VINTED_PAGE_SIZE = 96;
 
 const ORDER = { newest: "newest_first", price_asc: "price_low_to_high", price_desc: "price_high_to_low" } as const;
 // The ids of the filter: 6 new with tags, 1 new without tags, 2 very good, 3 good, 4 satisfactory.
 const STATUS = { new: ["6", "1"], used: ["2", "3", "4"] } as const;
 
 // The page has no condition id, only the text in the language of the site. The text ends the line, for example "M · Dobro".
-const NEW_TEXT = /^(novo|neu|neuf)\b/i;
-const USED_TEXT = /^(veoma dobro|dobro|zadovolj|zelo dobro|sehr gut|gut|zufrieden|très bon|bon état|satisfaisant)/i;
+const NEW_TEXT = /^(novo|neu)\b/i;
+const USED_TEXT = /^(veoma dobro|dobro|zadovolj|zelo dobro|sehr gut|gut|zufrieden)/i;
 
 function conditionOf(line: string | undefined): Listing["condition"] {
 	const text = line?.split(" · ").pop()?.trim() ?? "";

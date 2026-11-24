@@ -142,9 +142,8 @@ export const PROVIDERS = {
 		currencyLabel: "EUR",
 		searchLanguage: "hr",
 		searchLanguageName: "Croatian",
-		capabilities: { search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false },
-		// 2 pages of 96.
-		priceSampleMax: 150,
+		// No price check: the search page has no listing date, and the price check drops undated listings.
+		capabilities: { search: true, detail: false, priceCheck: false, mine: false, publish: false, edit: false },
 	},
 	vintedsi: {
 		id: "vintedsi",
@@ -156,9 +155,7 @@ export const PROVIDERS = {
 		currencyLabel: "EUR",
 		searchLanguage: "sl",
 		searchLanguageName: "Slovenian",
-		capabilities: { search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false },
-		// 2 pages of 96.
-		priceSampleMax: 150,
+		capabilities: { search: true, detail: false, priceCheck: false, mine: false, publish: false, edit: false },
 	},
 	vintedat: {
 		id: "vintedat",
@@ -170,9 +167,7 @@ export const PROVIDERS = {
 		currencyLabel: "EUR",
 		searchLanguage: "de",
 		searchLanguageName: "German",
-		capabilities: { search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false },
-		// 2 pages of 96.
-		priceSampleMax: 150,
+		capabilities: { search: true, detail: false, priceCheck: false, mine: false, publish: false, edit: false },
 	},
 } as const satisfies Record<ProviderId, ProviderInfo>;
 

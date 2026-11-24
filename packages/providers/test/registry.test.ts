@@ -7,7 +7,8 @@ const has = (c: Record<string, unknown>, names: string[]) => names.every((n) => 
 // What the code supports today, by capability. A flag must be true exactly when the adapter has these methods.
 const METHODS = {
 	search: (c: Record<string, unknown>) => has(c, ["search", "getListing"]),
-	priceCheck: (c: Record<string, unknown>) => has(c, ["search"]),	mine: (c: Record<string, unknown>) => has(c, ["listMine"]),
+	priceCheck: (c: Record<string, unknown>) => has(c, ["search"]),
+	mine: (c: Record<string, unknown>) => has(c, ["listMine"]),
 	edit: (c: Record<string, unknown>) => has(c, ["hide", "unhide", "refresh", "finish", "updatePrice"]),
 	publish: (c: Record<string, unknown>) => has(c, ["publish"]) || has(c, ["publishListing", "createListing"]),
 };
@@ -36,6 +37,8 @@ describe("provider registry", () => {
 			const c = client(id);
 			for (const [capability, supported] of Object.entries(METHODS)) {
 				const flag: boolean = PROVIDERS[id].capabilities[capability as keyof typeof METHODS];
+				// A search site can turn the price check off on purpose (see Vinted), so only a true flag must have the method.
+				if (capability === "priceCheck" && !flag) continue;
 				expect(`${id} ${capability} ${flag}`).toBe(`${id} ${capability} ${supported(c)}`);
 			}
 		}
@@ -58,6 +61,13 @@ describe("provider registry", () => {
 	test("kp can search and check prices only", () => {
 		expect(PROVIDERS.kp.capabilities).toEqual({ search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false });
 		expect(providersWith("mine")).not.toContain("kp");
+	});
+
+	test("vinted searches only, because its listings have no date", () => {
+		for (const id of ["vintedhr", "vintedsi", "vintedat"] as const) {
+			expect(PROVIDERS[id].capabilities).toEqual({ search: true, detail: false, priceCheck: false, mine: false, publish: false, edit: false });
+		}
+		expect(providersWith("priceCheck")).not.toContain("vintedhr");
 	});
 
 	test("njuskalo searches and checks prices only, and needs the extension", () => {
