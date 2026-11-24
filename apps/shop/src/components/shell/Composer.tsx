@@ -123,7 +123,7 @@ function TaggedSlot() {
 }
 
 // The site icons, in public/logos. A new provider must add one here.
-const LOGOS: Record<ProviderId, string> = { olx: "/logos/olx.svg", svex: "/logos/svex.svg", kp: "/logos/kp.png", njuskalo: "/logos/njuskalo.svg", bolha: "/logos/bolha.svg", olxbg: "/logos/olxbg.png", willhaben: "/logos/willhaben.png" };
+const LOGOS: Record<ProviderId, string> = { olx: "/logos/olx.svg", svex: "/logos/svex.svg", kp: "/logos/kp.png", njuskalo: "/logos/njuskalo.svg", bolha: "/logos/bolha.svg", olxbg: "/logos/olxbg.png", willhaben: "/logos/willhaben.png", vintedhr: "/logos/vinted.png", vintedsi: "/logos/vinted.png", vintedat: "/logos/vinted.png", vintedbg: "/logos/vinted.png" };
 // The trigger shows this many logos, then "+N".
 const MAX_LOGOS = 3;
 

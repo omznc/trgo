@@ -5,6 +5,10 @@ import {
 	createOlxBgProvider,
 	createOlxProvider,
 	createSvexProvider,
+	createVintedAtProvider,
+	createVintedBgProvider,
+	createVintedHrProvider,
+	createVintedSiProvider,
 	createWillhabenProvider,
 	OLX_SHIPPING_NOTE,
 	olxListingUrl,
@@ -84,6 +88,10 @@ const ACCOUNTS: Record<ProviderId, Provider> = {
 	bolha: createBolhaProvider({ proxyUrl, fetch: transportFetch }),
 	olxbg: createOlxBgProvider({ proxyUrl, fetch: transportFetch }),
 	willhaben: createWillhabenProvider({ proxyUrl, fetch: transportFetch }),
+	vintedhr: createVintedHrProvider({ proxyUrl, fetch: transportFetch }),
+	vintedsi: createVintedSiProvider({ proxyUrl, fetch: transportFetch }),
+	vintedat: createVintedAtProvider({ proxyUrl, fetch: transportFetch }),
+	vintedbg: createVintedBgProvider({ proxyUrl, fetch: transportFetch }),
 };
 export const accountsWith = (capability: Capability): Provider[] => providersWith(capability).map((id) => ACCOUNTS[id]);
 export const clientsOf = (ids: readonly ProviderId[]): Provider[] => ids.map((id) => ACCOUNTS[id]);
@@ -267,6 +275,10 @@ const STEPS: Record<ProviderId, (args: ListingArgs, track: Track) => Step> = {
 	bolha: publishSearchOnly,
 	olxbg: publishSearchOnly,
 	willhaben: publishSearchOnly,
+	vintedhr: publishSearchOnly,
+	vintedsi: publishSearchOnly,
+	vintedat: publishSearchOnly,
+	vintedbg: publishSearchOnly,
 };
 
 // Runs after the user approved. Providers run one after the other, so progress is easy to show.

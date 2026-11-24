@@ -17,7 +17,8 @@ describe("proxy table", () => {
 		expect(proxy("/bolha/search/?q=x")).not.toBeNull();
 		expect(proxy("/olxbg/api/v1/offers/?query=x")).not.toBeNull();
 		expect(proxy("/willhaben/iad/kaufen-und-verkaufen/marktplatz?keyword=x")).not.toBeNull();
-		for (const path of ["/bolha/", "/bolha/user/login", "/olxbg/api/v1/users/me", "/olxbg/", "/willhaben/iad/myprofile", "/willhaben/search/"]) {
+		expect(proxy("/vintedhr/catalog?search_text=x")).not.toBeNull();
+		for (const path of ["/vintedhr/api/v2/users/me", "/vintedat/", "/bolha/", "/bolha/user/login", "/olxbg/api/v1/users/me", "/olxbg/", "/willhaben/iad/myprofile", "/willhaben/search/"]) {
 			expect(proxy(path)).toBeNull();
 		}
 		expect(proxy("/olx/anything")).not.toBeNull();
@@ -67,7 +68,7 @@ describe("extension table", () => {
 	});
 
 	test("the proxy-only keys are not in the extension table", () => {
-		for (const key of ["bolha", "olxbg", "willhaben"]) {
+		for (const key of ["bolha", "olxbg", "willhaben", "vintedhr", "vintedsi", "vintedat", "vintedbg"]) {
 			expect(Object.keys(UPSTREAMS)).toContain(key);
 			expect(Object.keys(EXTENSION_HOSTS)).not.toContain(key);
 		}

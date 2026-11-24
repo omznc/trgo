@@ -32,7 +32,7 @@ test("a saved choice wins and /geo is never called", async () => {
 });
 
 test("no saved choice and an unknown country give BA", async () => {
-	answer({ country: "HR" });
+	answer({ country: "DE" });
 	const m = await fresh("unknown");
 	await m.initMarket();
 	expect(calls).toBe(1);
@@ -41,13 +41,20 @@ test("no saved choice and an unknown country give BA", async () => {
 	expect(store.has("trgo-market")).toBe(false);
 });
 
-test("with the extension, HR gives njuskalo and a saved njuskalo is kept", async () => {
+test("without the extension, HR gives Vinted only", async () => {
+	answer({ country: "HR" });
+	const m = await fresh("hr-plain");
+	await m.initMarket();
+	expect(m.getSelection()).toEqual(["vintedhr"]);
+});
+
+test("with the extension, HR gives njuskalo and Vinted, and a saved njuskalo is kept", async () => {
 	(globalThis as Record<string, unknown>).document = { documentElement: { dataset: { trgoExtension: "0.1.0" } } };
 	try {
 		answer({ country: "HR" });
 		const m = await fresh("hr");
 		await m.initMarket();
-		expect(m.getSelection()).toEqual(["njuskalo"]);
+		expect(m.getSelection()).toEqual(["njuskalo", "vintedhr"]);
 		store.set("trgo-market", JSON.stringify(["njuskalo"]));
 		const saved = await fresh("hr-saved");
 		await saved.initMarket();

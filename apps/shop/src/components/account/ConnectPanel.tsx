@@ -12,6 +12,10 @@ import { btn, Dot, FIELD, LBL, maskKey, PanelBody, PanelHeader, PROXY_SOURCE, re
 
 type Form = "key" | ProviderId | null;
 
+const noVintedAccount = async () => {
+	throw new Error("Vinted has no account.");
+};
+
 // The login call differs by provider. A new provider fails the typecheck here until its call exists.
 const LOGIN: Record<ProviderId, (username: string, password: string) => Promise<void>> = {
 	olx: async (username, password) => setSession("olx", await olxAccount.login({ username, password })),
@@ -34,6 +38,10 @@ const LOGIN: Record<ProviderId, (username: string, password: string) => Promise<
 	willhaben: async () => {
 		throw new Error("willhaben has no account.");
 	},
+	vintedhr: noVintedAccount,
+	vintedsi: noVintedAccount,
+	vintedat: noVintedAccount,
+	vintedbg: noVintedAccount,
 };
 const SPIN = "animate-spin";
 const CARD = "rounded-[24px] p-5";

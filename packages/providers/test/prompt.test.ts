@@ -34,6 +34,7 @@ test("the new search-only selections name the site and the language", () => {
 	expect(buildSystemPrompt("en", ["bolha"])).toContain("Bolha.com are Slovenian sites.");
 	expect(buildSystemPrompt("en", ["olxbg"])).toContain("OLX.bg are Bulgarian sites.");
 	expect(buildSystemPrompt("en", ["willhaben"])).toContain("willhaben.at are German sites.");
+	expect(buildSystemPrompt("en", ["vintedhr"])).toContain("Vinted.hr are Croatian sites.");
 });
 
 test("the prompt of the Bosnian market is the same when other markets exist", async () => {

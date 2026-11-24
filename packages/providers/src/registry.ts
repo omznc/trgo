@@ -6,7 +6,7 @@
 // See docs/adding-a-provider.md.
 import type { Currency } from "./rates";
 
-export const PROVIDER_IDS = ["olx", "svex", "kp", "njuskalo", "bolha", "olxbg", "willhaben"] as const;
+export const PROVIDER_IDS = ["olx", "svex", "kp", "njuskalo", "bolha", "olxbg", "willhaben", "vintedhr", "vintedsi", "vintedat", "vintedbg"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
 // `detail` is true when getListing works. Without it the UI shows the card data and a link.
@@ -130,6 +130,62 @@ export const PROVIDERS = {
 		searchLanguageName: "German",
 		capabilities: { search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false },
 		// 5 pages of 30.
+		priceSampleMax: 150,
+	},
+	vintedhr: {
+		id: "vintedhr",
+		name: "Vinted",
+		siteName: "Vinted.hr",
+		site: "https://www.vinted.hr",
+		country: "HR",
+		currency: "EUR",
+		currencyLabel: "EUR",
+		searchLanguage: "hr",
+		searchLanguageName: "Croatian",
+		capabilities: { search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false },
+		// 2 pages of 96.
+		priceSampleMax: 150,
+	},
+	vintedsi: {
+		id: "vintedsi",
+		name: "Vinted",
+		siteName: "Vinted.si",
+		site: "https://www.vinted.si",
+		country: "SI",
+		currency: "EUR",
+		currencyLabel: "EUR",
+		searchLanguage: "sl",
+		searchLanguageName: "Slovenian",
+		capabilities: { search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false },
+		// 2 pages of 96.
+		priceSampleMax: 150,
+	},
+	vintedat: {
+		id: "vintedat",
+		name: "Vinted",
+		siteName: "Vinted.at",
+		site: "https://www.vinted.at",
+		country: "AT",
+		currency: "EUR",
+		currencyLabel: "EUR",
+		searchLanguage: "de",
+		searchLanguageName: "German",
+		capabilities: { search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false },
+		// 2 pages of 96.
+		priceSampleMax: 150,
+	},
+	vintedbg: {
+		id: "vintedbg",
+		name: "Vinted",
+		siteName: "Vinted.bg",
+		site: "https://www.vinted.bg",
+		country: "BG",
+		currency: "EUR",
+		currencyLabel: "EUR",
+		searchLanguage: "bg",
+		searchLanguageName: "Bulgarian",
+		capabilities: { search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false },
+		// 2 pages of 96.
 		priceSampleMax: 150,
 	},
 } as const satisfies Record<ProviderId, ProviderInfo>;

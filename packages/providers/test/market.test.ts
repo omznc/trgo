@@ -3,8 +3,10 @@ import { accountIds, availableTable, convert, countryProviders, displayCurrency,
 
 const none = { search: false, detail: false, priceCheck: false, mine: false, publish: false, edit: false };
 // A fake search-only provider in Croatia.
+// HR has no real provider here, so a fake one makes the market.
+const { vintedhr: _vintedhr, ...WITHOUT_HR } = availableTable(PROVIDERS, false);
 const FAKE: Table = {
-	...availableTable(PROVIDERS, false),
+	...WITHOUT_HR,
 	fakehr: { id: "fakehr", name: "Fake", siteName: "fake.hr", site: "https://fake.hr", country: "HR", currency: "EUR", currencyLabel: "EUR", searchLanguage: "hr", searchLanguageName: "Croatian", capabilities: { ...none, search: true, priceCheck: true } },
 };
 
@@ -23,10 +25,10 @@ describe("market helpers", () => {
 	});
 
 	test("a provider that needs the extension is a market only with it", () => {
-		expect(marketCountries(availableTable(PROVIDERS, false))).toEqual(["BA", "RS", "SI", "BG", "AT"]);
-		// HR then falls back like an unknown country.
-		expect(marketSelection(availableTable(PROVIDERS, false), "HR")).toEqual(["olx", "svex"]);
-		expect(marketSelection(availableTable(PROVIDERS, true), "HR")).toEqual(["njuskalo"]);
+		// HR stays a market without it, with Vinted only.
+		expect(marketCountries(availableTable(PROVIDERS, false))).toEqual(["BA", "RS", "SI", "BG", "AT", "HR"]);
+		expect(marketSelection(availableTable(PROVIDERS, false), "HR")).toEqual(["vintedhr"]);
+		expect(marketSelection(availableTable(PROVIDERS, true), "HR")).toEqual(["njuskalo", "vintedhr"]);
 		expect(parseSelection(availableTable(PROVIDERS, false), ["njuskalo", "kp"])).toEqual(["kp"]);
 		expect(availableTable(PROVIDERS, true)).toBe(PROVIDERS);
 	});

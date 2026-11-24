@@ -34,6 +34,10 @@ const DELIVERY: Record<ProviderId, (input: ListingArgs) => string> = {
 	bolha: () => sell.approve.deliveryOlx,
 	olxbg: () => sell.approve.deliveryOlx,
 	willhaben: () => sell.approve.deliveryOlx,
+	vintedhr: () => sell.approve.deliveryOlx,
+	vintedsi: () => sell.approve.deliveryOlx,
+	vintedat: () => sell.approve.deliveryOlx,
+	vintedbg: () => sell.approve.deliveryOlx,
 };
 
 function rowsFor(input: ListingArgs, provider: ProviderId): [string, string][] {
