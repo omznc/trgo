@@ -6,7 +6,7 @@ import { createOlxBgProvider } from "./olxbg";
 import type { ProviderId } from "./registry";
 import { createSvexProvider } from "./svex";
 import type { Provider, ProviderOptions } from "./types";
-import { createVintedAtProvider,createVintedHrProvider, createVintedSiProvider } from "./vinted";
+import { createVintedAtProvider, createVintedHrProvider, createVintedSiProvider } from "./vinted";
 import { createWillhabenProvider } from "./willhaben";
 
 // Adapter factories by id. Code that loops over providers does not name them.
