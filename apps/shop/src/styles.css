@@ -234,10 +234,13 @@ input::placeholder {
 .scroll::-webkit-scrollbar-thumb:hover {
 	background: rgba(255, 255, 255, 0.32);
 }
-.scroll-x {
-	overflow-x: auto;
-	scrollbar-width: thin;
-	scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+/* In a layer, so a utility such as sm:overflow-visible can override it. */
+@layer components {
+	.scroll-x {
+		overflow-x: auto;
+		scrollbar-width: thin;
+		scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+	}
 }
 
 /* Messages fade out as they pass under the docked composer, so text does not show through the glass. */
