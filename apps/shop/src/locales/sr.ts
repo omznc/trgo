@@ -111,7 +111,7 @@ const strings: Locale["strings"] = {
 	errorFreeLongTitle: "Razgovor je predug",
 	errorFreeLong: "Razgovor je predug za besplatni režim. Počni novi razgovor ili poveži svoj OpenRouter.",
 	freeBannerTitle: "Besplatni režim je uključen",
-	freeBannerBody: "Nadam se da mi nećete potrošiti sve tokene. Poveži OpenRouter za neograničeno korišćenje sa vašim nalogom (bio bih zahvalan).",
+	freeBannerBody: "Srećno sa trošenjem mojih tokena",
 	modelNeedsConnect: "Poveži OpenRouter",
 	dropTitle: "Spusti slike bilo gde",
 	dropSub: "Dodaću ih u poruku",

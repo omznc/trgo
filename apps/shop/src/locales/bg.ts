@@ -110,7 +110,7 @@ const strings: Locale["strings"] = {
 	errorFreeLongTitle: "Разговорът е твърде дълъг",
 	errorFreeLong: "Разговорът е твърде дълъг за безплатния режим. Започни нов разговор или свържи своя OpenRouter.",
 	freeBannerTitle: "Безплатният режим е включен",
-	freeBannerBody: "Надявам се да не изхарчиш всичките ми токени. Свържи OpenRouter, за да ползваш своя акаунт без ограничения (ще съм ти благодарен).",
+	freeBannerBody: "Приятно харчене на токените ми",
 	modelNeedsConnect: "Свържи OpenRouter",
 	dropTitle: "Пусни снимки където и да е",
 	dropSub: "Ще ги добавя към съобщението",

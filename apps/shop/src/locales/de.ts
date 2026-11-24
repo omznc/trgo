@@ -111,7 +111,7 @@ const strings: Locale["strings"] = {
 	errorFreeLongTitle: "Chat zu lang",
 	errorFreeLong: "Dieser Chat ist zu lang für den Gratis-Modus. Starte einen neuen Chat oder verbinde dein OpenRouter.",
 	freeBannerTitle: "Gratis-Modus ist aktiv",
-	freeBannerBody: "Hoffentlich verbrauchst du nicht alle meine Tokens. Verbinde OpenRouter, um mit deinem eigenen Konto ohne Limit zu nutzen (ich wäre dankbar).",
+	freeBannerBody: "Viel Spaß beim Verschwenden meiner Tokens",
 	modelNeedsConnect: "OpenRouter verbinden",
 	dropTitle: "Bilder überall ablegen",
 	dropSub: "Ich füge sie der Nachricht hinzu",
