@@ -12,7 +12,6 @@ export const UPSTREAMS: Record<string, string> = {
 	vintedhr: "https://www.vinted.hr",
 	vintedsi: "https://www.vinted.si",
 	vintedat: "https://www.vinted.at",
-	vintedbg: "https://www.vinted.bg",
 };
 
 // These hosts are read-only through the proxy: GET only, these path prefixes only, no cookie, no authorization.
@@ -23,7 +22,6 @@ export const READ_ONLY: Record<string, string[]> = {
 	vintedhr: ["/catalog"],
 	vintedsi: ["/catalog"],
 	vintedat: ["/catalog"],
-	vintedbg: ["/catalog"],
 };
 
 export const isReadOnly = (key: string) => Object.hasOwn(READ_ONLY, key);
@@ -35,7 +33,7 @@ export const EXTENSION_ERROR = "x-trgo-extension-error";
 export type ExtensionHost = { origin: string; credentials: "include" | "omit"; paths?: string[]; extensionOnly?: boolean };
 
 // These keys are proxy-only: the extension is in store review, so its host list must not grow.
-const PROXY_ONLY = ["bolha", "olxbg", "willhaben", "vintedhr", "vintedsi", "vintedat", "vintedbg"];
+const PROXY_ONLY = ["bolha", "olxbg", "willhaben", "vintedhr", "vintedsi", "vintedat"];
 
 // Only njuskalo needs the user's own session. The other hosts never get the browser cookies.
 // With the session, njuskalo could show the user's account pages, so it gets the search pages only.

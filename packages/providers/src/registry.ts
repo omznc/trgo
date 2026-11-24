@@ -6,7 +6,7 @@
 // See docs/adding-a-provider.md.
 import type { Currency } from "./rates";
 
-export const PROVIDER_IDS = ["olx", "svex", "kp", "njuskalo", "bolha", "olxbg", "willhaben", "vintedhr", "vintedsi", "vintedat", "vintedbg"] as const;
+export const PROVIDER_IDS = ["olx", "svex", "kp", "njuskalo", "bolha", "olxbg", "willhaben", "vintedhr", "vintedsi", "vintedat"] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
 // `detail` is true when getListing works. Without it the UI shows the card data and a link.
@@ -170,20 +170,6 @@ export const PROVIDERS = {
 		currencyLabel: "EUR",
 		searchLanguage: "de",
 		searchLanguageName: "German",
-		capabilities: { search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false },
-		// 2 pages of 96.
-		priceSampleMax: 150,
-	},
-	vintedbg: {
-		id: "vintedbg",
-		name: "Vinted",
-		siteName: "Vinted.bg",
-		site: "https://www.vinted.bg",
-		country: "BG",
-		currency: "EUR",
-		currencyLabel: "EUR",
-		searchLanguage: "bg",
-		searchLanguageName: "Bulgarian",
 		capabilities: { search: true, detail: false, priceCheck: true, mine: false, publish: false, edit: false },
 		// 2 pages of 96.
 		priceSampleMax: 150,

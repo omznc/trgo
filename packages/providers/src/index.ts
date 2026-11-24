@@ -7,7 +7,7 @@ export { createOlxProvider, olxListingUrl } from "./olx";
 export { createKpProvider, KP_RATE_LIMITED, KP_UNAVAILABLE } from "./kp";
 export { createBolhaProvider } from "./bolha";
 export { createOlxBgProvider } from "./olxbg";
-export { createVintedAtProvider, createVintedBgProvider, createVintedHrProvider, createVintedSiProvider } from "./vinted";
+export { createVintedAtProvider,createVintedHrProvider, createVintedSiProvider } from "./vinted";
 export { createWillhabenProvider } from "./willhaben";
 export { createNjuskaloProvider, NJUSKALO_CHECK } from "./njuskalo";
 export { createSvexProvider, svexListingUrl } from "./svex";

@@ -37,7 +37,6 @@ const DELIVERY: Record<ProviderId, (input: ListingArgs) => string> = {
 	vintedhr: () => sell.approve.deliveryOlx,
 	vintedsi: () => sell.approve.deliveryOlx,
 	vintedat: () => sell.approve.deliveryOlx,
-	vintedbg: () => sell.approve.deliveryOlx,
 };
 
 function rowsFor(input: ListingArgs, provider: ProviderId): [string, string][] {

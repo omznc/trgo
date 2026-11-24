@@ -144,7 +144,7 @@ const strings: Locale["strings"] = {
 	connecting: "Свързвам...",
 	accountFailed: "Влизането не успя. Провери данните.",
 	needKeySend: "Свържи OpenRouter, за да изпратя съобщение.",
-	needPublish: { olx: "Свържи OLX, за да публикувам обява.", svex: "Свържи SVEX, за да публикувам обява.", kp: "KP не поддържа публикуване на обяви.", njuskalo: "Njuškalo не поддържа публикуване на обяви.", bolha: "Bolha не поддържа публикуване на обяви.", olxbg: "OLX.bg не поддържа публикуване на обяви.", willhaben: "willhaben не поддържа публикуване на обяви.", vintedhr: "Vinted не поддържа публикуване на обяви.", vintedsi: "Vinted не поддържа публикуване на обяви.", vintedat: "Vinted не поддържа публикуване на обяви.", vintedbg: "Vinted не поддържа публикуване на обяви." },
+	needPublish: { olx: "Свържи OLX, за да публикувам обява.", svex: "Свържи SVEX, за да публикувам обява.", kp: "KP не поддържа публикуване на обяви.", njuskalo: "Njuškalo не поддържа публикуване на обяви.", bolha: "Bolha не поддържа публикуване на обяви.", olxbg: "OLX.bg не поддържа публикуване на обяви.", willhaben: "willhaben не поддържа публикуване на обяви.", vintedhr: "Vinted не поддържа публикуване на обяви.", vintedsi: "Vinted не поддържа публикуване на обяви.", vintedat: "Vinted не поддържа публикуване на обяви." },
 	needConnect: {
 		openrouter: "Свържи OpenRouter, за да мога да търся и отговарям.",
 		olx: "Свържи OLX, за да публикуваш и виждаш обявите си.",
@@ -157,7 +157,6 @@ const strings: Locale["strings"] = {
 		vintedhr: "Vinted няма акаунт в това приложение.",
 		vintedsi: "Vinted няма акаунт в това приложение.",
 		vintedat: "Vinted няма акаунт в това приложение.",
-		vintedbg: "Vinted няма акаунт в това приложение.",
 	},
 	needMine: "Свържи OLX или SVEX, за да видя обявите ти.",
 	notConnected: "Не си свързан. Свържи акаунт и опитай отново.",

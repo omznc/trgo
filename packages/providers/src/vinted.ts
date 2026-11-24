@@ -15,7 +15,7 @@ type VintedItem = {
 	};
 };
 
-export type VintedId = "vintedhr" | "vintedsi" | "vintedat" | "vintedbg";
+export type VintedId = "vintedhr" | "vintedsi" | "vintedat";
 
 // A page holds 96 items. Each id is a country domain of the same site.
 export const VINTED_PAGE_SIZE = 96;
@@ -117,4 +117,3 @@ export function createVintedProvider(id: VintedId, options: ProviderOptions): Pr
 export const createVintedHrProvider = (options: ProviderOptions) => createVintedProvider("vintedhr", options);
 export const createVintedSiProvider = (options: ProviderOptions) => createVintedProvider("vintedsi", options);
 export const createVintedAtProvider = (options: ProviderOptions) => createVintedProvider("vintedat", options);
-export const createVintedBgProvider = (options: ProviderOptions) => createVintedProvider("vintedbg", options);

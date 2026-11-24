@@ -145,7 +145,7 @@ const strings: Locale["strings"] = {
 	connecting: "Povezujem...",
 	accountFailed: "Prijava nije uspjela. Provjeri podatke.",
 	needKeySend: "Poveži OpenRouter da pošaljem poruku.",
-	needPublish: { olx: "Poveži OLX da objavim oglas.", svex: "Poveži SVEX da objavim oglas.", kp: "KP ne podržava objavu oglasa.", njuskalo: "Njuškalo ne podržava objavu oglasa.", bolha: "Bolha ne podržava objavu oglasa.", olxbg: "OLX.bg ne podržava objavu oglasa.", willhaben: "willhaben ne podržava objavu oglasa.", vintedhr: "Vinted ne podržava objavu oglasa.", vintedsi: "Vinted ne podržava objavu oglasa.", vintedat: "Vinted ne podržava objavu oglasa.", vintedbg: "Vinted ne podržava objavu oglasa." },
+	needPublish: { olx: "Poveži OLX da objavim oglas.", svex: "Poveži SVEX da objavim oglas.", kp: "KP ne podržava objavu oglasa.", njuskalo: "Njuškalo ne podržava objavu oglasa.", bolha: "Bolha ne podržava objavu oglasa.", olxbg: "OLX.bg ne podržava objavu oglasa.", willhaben: "willhaben ne podržava objavu oglasa.", vintedhr: "Vinted ne podržava objavu oglasa.", vintedsi: "Vinted ne podržava objavu oglasa.", vintedat: "Vinted ne podržava objavu oglasa." },
 	needConnect: {
 		openrouter: "Poveži OpenRouter da mogu pretraživati i odgovarati.",
 		olx: "Poveži OLX da objavljuješ i vidiš svoje oglase.",
@@ -158,7 +158,6 @@ const strings: Locale["strings"] = {
 		vintedhr: "Vinted nema račun u ovoj aplikaciji.",
 		vintedsi: "Vinted nema račun u ovoj aplikaciji.",
 		vintedat: "Vinted nema račun u ovoj aplikaciji.",
-		vintedbg: "Vinted nema račun u ovoj aplikaciji.",
 	},
 	needMine: "Poveži OLX ili SVEX da vidim tvoje oglase.",
 	notConnected: "Nisi povezan. Poveži račun i pokušaj ponovno.",

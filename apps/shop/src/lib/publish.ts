@@ -6,7 +6,6 @@ import {
 	createOlxProvider,
 	createSvexProvider,
 	createVintedAtProvider,
-	createVintedBgProvider,
 	createVintedHrProvider,
 	createVintedSiProvider,
 	createWillhabenProvider,
@@ -91,7 +90,6 @@ const ACCOUNTS: Record<ProviderId, Provider> = {
 	vintedhr: createVintedHrProvider({ proxyUrl, fetch: transportFetch }),
 	vintedsi: createVintedSiProvider({ proxyUrl, fetch: transportFetch }),
 	vintedat: createVintedAtProvider({ proxyUrl, fetch: transportFetch }),
-	vintedbg: createVintedBgProvider({ proxyUrl, fetch: transportFetch }),
 };
 export const accountsWith = (capability: Capability): Provider[] => providersWith(capability).map((id) => ACCOUNTS[id]);
 export const clientsOf = (ids: readonly ProviderId[]): Provider[] => ids.map((id) => ACCOUNTS[id]);
@@ -278,7 +276,6 @@ const STEPS: Record<ProviderId, (args: ListingArgs, track: Track) => Step> = {
 	vintedhr: publishSearchOnly,
 	vintedsi: publishSearchOnly,
 	vintedat: publishSearchOnly,
-	vintedbg: publishSearchOnly,
 };
 
 // Runs after the user approved. Providers run one after the other, so progress is easy to show.

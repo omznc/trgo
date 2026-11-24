@@ -68,7 +68,7 @@ describe("extension table", () => {
 	});
 
 	test("the proxy-only keys are not in the extension table", () => {
-		for (const key of ["bolha", "olxbg", "willhaben", "vintedhr", "vintedsi", "vintedat", "vintedbg"]) {
+		for (const key of ["bolha", "olxbg", "willhaben", "vintedhr", "vintedsi", "vintedat"]) {
 			expect(Object.keys(UPSTREAMS)).toContain(key);
 			expect(Object.keys(EXTENSION_HOSTS)).not.toContain(key);
 		}

@@ -7,7 +7,7 @@ export function listingIdFromUrl(provider: ProviderId, idOrUrl: string): string 
 	if (!idOrUrl.includes("/")) return idOrUrl;
 	const path = new URL(idOrUrl).pathname;
 	const vinted = /\/items\/(\d+)/;
-	const patterns: Record<ProviderId, RegExp> = { vintedhr: vinted, vintedsi: vinted, vintedat: vinted, vintedbg: vinted, olx: /\/artikal\/(\d+)/, svex: /\/oglas\/([0-9a-f-]{36})/i, kp: /\/oglas\/(\d+)/, njuskalo: /-oglas-(\d+)\/?$/, bolha: /-oglas-(\d+)\/?$/, willhaben: /-(\d+)\/?$/, olxbg: /-ID(\w+)\.html$/ };	const id = patterns[provider].exec(path)?.[1];
+	const patterns: Record<ProviderId, RegExp> = { vintedhr: vinted, vintedsi: vinted, vintedat: vinted, olx: /\/artikal\/(\d+)/, svex: /\/oglas\/([0-9a-f-]{36})/i, kp: /\/oglas\/(\d+)/, njuskalo: /-oglas-(\d+)\/?$/, bolha: /-oglas-(\d+)\/?$/, willhaben: /-(\d+)\/?$/, olxbg: /-ID(\w+)\.html$/ };	const id = patterns[provider].exec(path)?.[1];
 	if (!id) throw new Error(`Not a ${provider} listing URL: ${idOrUrl}`);
 	return id;
 }

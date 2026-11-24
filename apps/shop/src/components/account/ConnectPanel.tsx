@@ -41,7 +41,6 @@ const LOGIN: Record<ProviderId, (username: string, password: string) => Promise<
 	vintedhr: noVintedAccount,
 	vintedsi: noVintedAccount,
 	vintedat: noVintedAccount,
-	vintedbg: noVintedAccount,
 };
 const SPIN = "animate-spin";
 const CARD = "rounded-[24px] p-5";

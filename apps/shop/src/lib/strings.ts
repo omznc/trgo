@@ -147,7 +147,7 @@ const bs = {
 	accountFailed: "Prijava nije uspjela. Provjeri podatke.",
 	needKeySend: "Poveži OpenRouter da pošaljem poruku.",
 	// A new provider fails the typecheck until it has an entry here.
-	needPublish: { olx: "Poveži OLX da objavim oglas.", svex: "Poveži SVEX da objavim oglas.", kp: "KP ne podržava objavu oglasa.", njuskalo: "Njuškalo ne podržava objavu oglasa.", bolha: "Bolha ne podržava objavu oglasa.", olxbg: "OLX.bg ne podržava objavu oglasa.", willhaben: "willhaben ne podržava objavu oglasa.", vintedhr: "Vinted ne podržava objavu oglasa.", vintedsi: "Vinted ne podržava objavu oglasa.", vintedat: "Vinted ne podržava objavu oglasa.", vintedbg: "Vinted ne podržava objavu oglasa." } satisfies Record<ProviderId, string>,
+	needPublish: { olx: "Poveži OLX da objavim oglas.", svex: "Poveži SVEX da objavim oglas.", kp: "KP ne podržava objavu oglasa.", njuskalo: "Njuškalo ne podržava objavu oglasa.", bolha: "Bolha ne podržava objavu oglasa.", olxbg: "OLX.bg ne podržava objavu oglasa.", willhaben: "willhaben ne podržava objavu oglasa.", vintedhr: "Vinted ne podržava objavu oglasa.", vintedsi: "Vinted ne podržava objavu oglasa.", vintedat: "Vinted ne podržava objavu oglasa." } satisfies Record<ProviderId, string>,
 	needConnect: {
 		openrouter: "Poveži OpenRouter da mogu pretraživati i odgovarati.",
 		olx: "Poveži OLX da objavljuješ i vidiš svoje oglase.",
@@ -160,7 +160,6 @@ const bs = {
 		vintedhr: "Vinted nema račun u ovoj aplikaciji.",
 		vintedsi: "Vinted nema račun u ovoj aplikaciji.",
 		vintedat: "Vinted nema račun u ovoj aplikaciji.",
-		vintedbg: "Vinted nema račun u ovoj aplikaciji.",
 	} satisfies Record<ProviderId | "openrouter", string>,
 	needMine: "Poveži OLX ili SVEX da vidim tvoje oglase.",
 	notConnected: "Nisi povezan. Poveži račun i pokušaj ponovo.",
@@ -363,7 +362,7 @@ const en: typeof bs = {
 	connecting: "Connecting...",
 	accountFailed: "Sign-in failed. Check your details.",
 	needKeySend: "Connect OpenRouter to send a message.",
-	needPublish: { olx: "Connect OLX to publish a listing.", svex: "Connect SVEX to publish a listing.", kp: "KP does not support publishing.", njuskalo: "Njuškalo does not support publishing.", bolha: "Bolha does not support publishing.", olxbg: "OLX.bg does not support publishing.", willhaben: "willhaben does not support publishing.", vintedhr: "Vinted does not support publishing.", vintedsi: "Vinted does not support publishing.", vintedat: "Vinted does not support publishing.", vintedbg: "Vinted does not support publishing." },
+	needPublish: { olx: "Connect OLX to publish a listing.", svex: "Connect SVEX to publish a listing.", kp: "KP does not support publishing.", njuskalo: "Njuškalo does not support publishing.", bolha: "Bolha does not support publishing.", olxbg: "OLX.bg does not support publishing.", willhaben: "willhaben does not support publishing.", vintedhr: "Vinted does not support publishing.", vintedsi: "Vinted does not support publishing.", vintedat: "Vinted does not support publishing." },
 	needConnect: {
 		openrouter: "Connect OpenRouter so I can search and answer.",
 		olx: "Connect OLX to publish and see your listings.",
@@ -376,7 +375,6 @@ const en: typeof bs = {
 		vintedhr: "Vinted has no account in this app.",
 		vintedsi: "Vinted has no account in this app.",
 		vintedat: "Vinted has no account in this app.",
-		vintedbg: "Vinted has no account in this app.",
 	},
 	needMine: "Connect OLX or SVEX so I can see your listings.",
 	notConnected: "You are not connected. Connect an account and try again.",
